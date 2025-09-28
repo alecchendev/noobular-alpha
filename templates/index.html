@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HTMX Counter</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+    <h1>HTMX + Flask Counter</h1>
+
+    <!-- The count display -->
+    <div id="count">Count: {{ counter }}</div>
+
+    <!-- Button triggers POST /increment -->
+    <button hx-post="/increment"
+            hx-target="#count"
+            hx-swap="outerHTML">
+        Increment
+    </button>
+</body>
+</html>
+
