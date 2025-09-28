@@ -9,19 +9,24 @@ readme = "README.md"
 requires-python = ">=3.9"
 
 dependencies = [
-  "flask[no-cli]"
+  "flask[no-cli]",
+  "pyyaml"
 ]
 
 [project.optional-dependencies]
 dev = [
   "mypy",
   "ruff",
-  "pre-commit"
+  "pre-commit",
+  "types-pyyaml"
 ]
 
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["main"]
 
 [tool.mypy]
 files = ["main.py"]   # folders or files to always check

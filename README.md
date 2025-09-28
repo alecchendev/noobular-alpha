@@ -26,8 +26,8 @@ Unlike Math Academy, I don't have a team or the expertise to create educational 
     - `python3 -m venv venv`
     - `source venv/bin/activate.fish`
     - (deactivate virtual environment) `deactivate`
-- Install dependencies: `python -m pip install .`
-- Install dev dependencies: `python -m pip install .[dev]`
+- Install dependencies: `python -m pip install -e .`
+- Install dev dependencies: `python -m pip install -e ".[dev]"`
 - Install pre-commit hooks: `pre-commit install`
 - Run: `python main.py`
 - Run tests: `python test.py`
