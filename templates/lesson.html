@@ -8,14 +8,20 @@
     <h1>{{ lesson.title }}</h1>
     <p><strong>Course:</strong> {{ course.title }}</p>
 
-    <div class="lesson-content">
-        {% for block in lesson.blocks %}
-            <p>{{ block }}</p>
-        {% endfor %}
-    </div>
+    {% if lesson.blocks|length >= 1 %}
+    <p>{{ lesson.blocks[0] }}</p>
+    {% endif %}
 
-    <div class="navigation">
-        <a href="/course/{{ course.route }}">← Back to {{ course.title }}</a>
-    </div>
+    {% if lesson.blocks|length > 1 %}
+    <button
+        id="submit-button"
+        hx-post="/course/{{ course.route }}/lesson/{{ lesson.route }}/next"
+        hx-target="#submit-button"
+        hx-vals='{"block_index": 1}'
+        hx-swap="outerHTML"
+    >Next</button>
+    {% endif %}
+
+    <a href="/course/{{ course.route }}">← Back to {{ course.title }}</a>
 </body>
 </html>

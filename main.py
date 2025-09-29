@@ -1,4 +1,4 @@
-from flask import Flask, render_template, abort
+from flask import Flask, render_template, abort, request
 import yaml
 from pathlib import Path
 from typing import List, Optional
@@ -96,6 +96,49 @@ def lesson_page(course_route: str, lesson_route: str) -> str:
     )
 
 
+@app.route("/course/<course_route>/lesson/<lesson_route>/next", methods=["POST"])
+def lesson_next_block(course_route: str, lesson_route: str) -> str:
+    course = load_course_by_route(course_route)
+    if not course:
+        abort(404)
+
+    # Find the lesson
+    lesson = None
+    for lesson in course.lessons:
+        if lesson.route == lesson_route:
+            lesson = lesson
+            break
+
+    if not lesson:
+        abort(404)
+
+    print("got here0")
+    block_index_str = request.form.get("block_index")
+    if not block_index_str:
+        abort(404)
+    block_index = int(block_index_str)
+    print("got here1")
+    if block_index >= len(lesson.blocks):
+        raise ValueError("Block index of range")
+    print("got here2")
+    button_html = ""
+    if block_index < len(lesson.blocks) - 1:
+        button_html = f"""
+        <button
+            id="submit-button"
+            hx-post="/course/{course.route}/lesson/{lesson.route}/next"
+            hx-target="#submit-button"
+            hx-vals='{{"block_index": {block_index + 1} }}'
+            hx-swap="outerHTML"
+        >Next</button>
+        """
+
+    return f"""
+        <p>{lesson.blocks[block_index]}</p>
+        {button_html}
+    """
+
+
 @app.route("/increment", methods=["POST"])
 def increment() -> str:
     global counter
@@ -105,4 +148,4 @@ def increment() -> str:
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
