@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ lesson.title }} - {{ course.title }}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+    <h1>{{ lesson.title }}</h1>
+    <p><strong>Course:</strong> {{ course.title }}</p>
+
+    <div class="lesson-content">
+        {% for block in lesson.blocks %}
+            <p>{{ block }}</p>
+        {% endfor %}
+    </div>
+
+    <div class="navigation">
+        <a href="/course/{{ course.route }}">← Back to {{ course.title }}</a>
+    </div>
+</body>
+</html>
