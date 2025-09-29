@@ -12,7 +12,7 @@
     {% if courses %}
         <ul>
         {% for course in courses %}
-            <li>{{ course }}</li>
+            <li><a href="/course/{{ course.route }}">{{ course.title }}</a></li>
         {% endfor %}
         </ul>
     {% else %}
