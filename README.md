@@ -34,3 +34,7 @@ Unlike Math Academy, I don't have a team or the expertise to create educational 
 - Lint: `ruff check`
 - Format: `ruff format`
 - Type check: `mypy`
+
+### Database
+
+The app uses SQLite3 for data storage, which is included in Python's standard library. A `database.db` file will be created automatically on first run.

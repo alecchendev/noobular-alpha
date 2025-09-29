@@ -1,10 +1,34 @@
 from flask import Flask, render_template, abort, request, render_template_string
 import yaml
+import sqlite3
 from pathlib import Path
 from typing import Any, List, Optional
 from dataclasses import dataclass
 from enum import Enum
 
+
+def init_database() -> None:
+    """Initialize SQLite database on app startup"""
+    with sqlite3.connect("database.db") as conn:
+        cursor = conn.cursor()
+
+        # Create dummy table
+        cursor.execute("""CREATE TABLE IF NOT EXISTS test_table
+                         (id INTEGER PRIMARY KEY, message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+
+        # Write test data
+        cursor.execute(
+            "INSERT INTO test_table (message) VALUES (?)", ("Hello from SQLite!",)
+        )
+
+        # Read back the data
+        cursor.execute("SELECT * FROM test_table ORDER BY created_at DESC LIMIT 1")
+        row = cursor.fetchone()
+
+        print(f"✅ Database initialized successfully! Latest record: {row}")
+
+
+# Init app
 app = Flask(__name__)
 
 counter = 0
@@ -272,4 +296,5 @@ def increment() -> str:
 
 
 if __name__ == "__main__":
+    init_database()
     app.run(debug=True, port=5000)
