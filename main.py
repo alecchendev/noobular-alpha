@@ -3,17 +3,37 @@ import yaml
 from pathlib import Path
 from typing import List, Optional
 from dataclasses import dataclass
+from enum import Enum
 
 app = Flask(__name__)
 
 counter = 0
 
 
+class BlockKind(str, Enum):
+    CONTENT = "content"
+    QUESTION = "question"
+
+
+@dataclass
+class Choice:
+    text: str
+    correct: Optional[bool] = None
+
+
+@dataclass
+class Block:
+    kind: BlockKind
+    content: Optional[str] = None  # for content blocks
+    prompt: Optional[str] = None  # for question blocks
+    choices: Optional[List[Choice]] = None  # for question blocks
+
+
 @dataclass
 class Lesson:
     title: str
     route: str
-    blocks: List[str]
+    blocks: List[Block]
 
 
 @dataclass
@@ -38,14 +58,32 @@ def load_course_by_route(route: str) -> Optional[Course]:
     if not title:
         raise ValueError(f"Course {yaml_file.name} missing required 'title' field")
 
-    lessons = [
-        Lesson(
-            title=lesson["title"],
-            route=lesson["route"],
-            blocks=lesson.get("blocks", []),
+    lessons = []
+    for lesson_data in course_data.get("lessons", []):
+        blocks = []
+        for block_data in lesson_data.get("blocks", []):
+            if block_data["kind"] == "content":
+                blocks.append(
+                    Block(kind=BlockKind.CONTENT, content=block_data["content"])
+                )
+            elif block_data["kind"] == "question":
+                choices = [
+                    Choice(text=choice["text"], correct=choice.get("correct", False))
+                    for choice in block_data.get("choices", [])
+                ]
+                blocks.append(
+                    Block(
+                        kind=BlockKind.QUESTION,
+                        prompt=block_data["prompt"],
+                        choices=choices,
+                    )
+                )
+
+        lessons.append(
+            Lesson(
+                title=lesson_data["title"], route=lesson_data["route"], blocks=blocks
+            )
         )
-        for lesson in course_data.get("lessons", [])
-    ]
     return Course(title=title, route=route, lessons=lessons)
 
 
@@ -112,15 +150,12 @@ def lesson_next_block(course_route: str, lesson_route: str) -> str:
     if not lesson:
         abort(404)
 
-    print("got here0")
     block_index_str = request.form.get("block_index")
     if not block_index_str:
         abort(404)
     block_index = int(block_index_str)
-    print("got here1")
     if block_index >= len(lesson.blocks):
         raise ValueError("Block index of range")
-    print("got here2")
     button_html = ""
     if block_index < len(lesson.blocks) - 1:
         button_html = f"""
@@ -133,8 +168,33 @@ def lesson_next_block(course_route: str, lesson_route: str) -> str:
         >Next</button>
         """
 
+    # Render the current block
+    block = lesson.blocks[block_index]
+    block_html = ""
+
+    if block.kind == BlockKind.CONTENT:
+        block_html = f"<p>{block.content}</p>"
+    elif block.kind == BlockKind.QUESTION:
+        choices_html = ""
+        assert block.choices is not None
+        for i, choice in enumerate(block.choices):
+            choices_html += f'''
+                <label>
+                    <input type="radio" name="answer" value="{i}">
+                    {choice.text}
+                </label><br>
+            '''
+        block_html = f"""
+            <div class="question">
+                <p><strong>{block.prompt}</strong></p>
+                <form>
+                    {choices_html}
+                </form>
+            </div>
+        """
+
     return f"""
-        <p>{lesson.blocks[block_index]}</p>
+        {block_html}
         {button_html}
     """
 

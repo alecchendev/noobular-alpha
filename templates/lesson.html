@@ -9,7 +9,22 @@
     <p><strong>Course:</strong> {{ course.title }}</p>
 
     {% if lesson.blocks|length >= 1 %}
-    <p>{{ lesson.blocks[0] }}</p>
+        {% set block = lesson.blocks[0] %}
+        {% if block.kind == "content" %}
+            <p>{{ block.content }}</p>
+        {% elif block.kind == "question" %}
+            <div class="question">
+                <p><strong>{{ block.prompt }}</strong></p>
+                <form>
+                    {% for choice in block.choices %}
+                        <label>
+                            <input type="radio" name="answer" value="{{ loop.index0 }}">
+                            {{ choice.text }}
+                        </label><br>
+                    {% endfor %}
+                </form>
+            </div>
+        {% endif %}
     {% endif %}
 
     {% if lesson.blocks|length > 1 %}
