@@ -22,12 +22,13 @@ def load_courses() -> List[Dict[str, Any]]:
             course_data = yaml.safe_load(f) or {}
 
         title = course_data.get("title")
+        lessons = course_data.get("lessons", [])
         route = yaml_file.stem  # filename without extension
 
         if not title:
             raise ValueError(f"Course {yaml_file.name} missing required 'title' field")
 
-        courses.append({"title": title, "route": route})
+        courses.append({"title": title, "route": route, "lessons": lessons})
 
     return courses
 

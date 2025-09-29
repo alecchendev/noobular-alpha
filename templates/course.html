@@ -7,7 +7,31 @@
 <body>
     <h1>{{ course.title }}</h1>
 
-    <p>Welcome to {{ course.title }}! Course content coming soon...</p>
+    <h2>Diagnostic Quiz</h2>
+    <p>No diagnostic quiz available yet</p>
+
+    <h2>Lessons</h2>
+    {% if course.lessons %}
+        <ul>
+        {% for lesson in course.lessons %}
+            <li>{{ lesson.title }}</li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No lessons available</p>
+    {% endif %}
+
+    <h2>Completed Lessons</h2>
+    <p>No completed lessons</p>
+
+    <h2>Remaining Lessons</h2>
+    <p>No remaining lessons</p>
+
+    <h2>Quizzes</h2>
+    <p>No quizzes available yet</p>
+
+    <h2>Completed Quizzes</h2>
+    <p>No completed quizzes</p>
 
     <a href="/">← Back to Course Catalog</a>
 </body>
