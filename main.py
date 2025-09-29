@@ -12,7 +12,7 @@ counter = 0
 
 class BlockKind(str, Enum):
     CONTENT = "content"
-    QUESTION = "question"
+    KNOWLEDGE_POINT = "knowledge_point"
 
 
 @dataclass
@@ -22,11 +22,23 @@ class Choice:
 
 
 @dataclass
+class Question:
+    prompt: str
+    choices: List[Choice]
+
+
+@dataclass
+class KnowledgePoint:
+    id: str  # kebab-case identifier
+    description: str
+    questions: List[Question]
+
+
+@dataclass
 class Block:
     kind: BlockKind
     content: Optional[str] = None  # for content blocks
-    prompt: Optional[str] = None  # for question blocks
-    choices: Optional[List[Choice]] = None  # for question blocks
+    knowledge_point: Optional[KnowledgePoint] = None  # for knowledge point blocks
 
 
 @dataclass
@@ -66,16 +78,35 @@ def load_course_by_route(route: str) -> Optional[Course]:
                 blocks.append(
                     Block(kind=BlockKind.CONTENT, content=block_data["content"])
                 )
-            elif block_data["kind"] == BlockKind.QUESTION:
-                choices = [
-                    Choice(text=choice["text"], correct=choice.get("correct", False))
-                    for choice in block_data.get("choices", [])
-                ]
+            elif block_data["kind"] == BlockKind.KNOWLEDGE_POINT:
+                questions = []
+                for question_data in block_data.get("questions", []):
+                    choices = [
+                        Choice(
+                            text=choice["text"], correct=choice.get("correct", False)
+                        )
+                        for choice in question_data.get("choices", [])
+                    ]
+
+                    # Validate that there's exactly one correct choice
+                    correct_count = sum(1 for choice in choices if choice.correct)
+                    if correct_count != 1:
+                        raise ValueError(
+                            f"Question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
+                        )
+
+                    questions.append(
+                        Question(prompt=question_data["prompt"], choices=choices)
+                    )
+
+                knowledge_point = KnowledgePoint(
+                    id=block_data["id"],
+                    description=block_data["description"],
+                    questions=questions,
+                )
                 blocks.append(
                     Block(
-                        kind=BlockKind.QUESTION,
-                        prompt=block_data["prompt"],
-                        choices=choices,
+                        kind=BlockKind.KNOWLEDGE_POINT, knowledge_point=knowledge_point
                     )
                 )
 
@@ -183,8 +214,10 @@ def lesson_next_block(course_route: str, lesson_route: str) -> str:
 
     if block.kind == BlockKind.CONTENT:
         block_html = render_macro("lesson_macros.html", "render_content", block=block)
-    elif block.kind == BlockKind.QUESTION:
-        block_html = render_macro("lesson_macros.html", "render_question", block=block)
+    elif block.kind == BlockKind.KNOWLEDGE_POINT:
+        block_html = render_macro(
+            "lesson_macros.html", "render_knowledge_point", block=block
+        )
     else:
         block_html = ""
 

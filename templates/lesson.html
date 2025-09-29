@@ -1,3 +1,4 @@
+{% from 'lesson_macros.html' import render_content, render_knowledge_point, render_next_button %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,30 +12,14 @@
     {% if lesson.blocks|length >= 1 %}
         {% set block = lesson.blocks[0] %}
         {% if block.kind == "content" %}
-            <p>{{ block.content }}</p>
-        {% elif block.kind == "question" %}
-            <div class="question">
-                <p><strong>{{ block.prompt }}</strong></p>
-                <form>
-                    {% for choice in block.choices %}
-                        <label>
-                            <input type="radio" name="answer" value="{{ loop.index0 }}">
-                            {{ choice.text }}
-                        </label><br>
-                    {% endfor %}
-                </form>
-            </div>
+            {{ render_content(block) }}
+        {% elif block.kind == "knowledge_point" %}
+            {{ render_knowledge_point(block) }}
         {% endif %}
     {% endif %}
 
     {% if lesson.blocks|length > 1 %}
-    <button
-        id="submit-button"
-        hx-post="/course/{{ course.route }}/lesson/{{ lesson.route }}/next"
-        hx-target="#submit-button"
-        hx-vals='{"block_index": 1}'
-        hx-swap="outerHTML"
-    >Next</button>
+        {{ render_next_button(course, lesson, 0) }}
     {% endif %}
 
     <a href="/course/{{ course.route }}">← Back to {{ course.title }}</a>
