@@ -175,6 +175,59 @@ def lesson_page(course_route: str, lesson_route: str) -> str:
     )
 
 
+@app.route("/course/<course_route>/lesson/<lesson_route>/submit", methods=["POST"])
+def lesson_submit_answer(course_route: str, lesson_route: str) -> str:
+    course = load_course_by_route(course_route)
+    if not course:
+        abort(404)
+
+    # Find the lesson
+    lesson = None
+    for lesson in course.lessons:
+        if lesson.route == lesson_route:
+            lesson = lesson
+            break
+
+    if not lesson:
+        abort(404)
+
+    block_index_str = request.form.get("block_index")
+    question_index_str = request.form.get("question_index", "0")
+    answer_str = request.form.get("answer")
+    if not block_index_str or answer_str is None:
+        abort(404)
+
+    block_index = int(block_index_str)
+    question_index = int(question_index_str)
+    answer_index = int(answer_str)
+    print("answer:", answer_index)
+
+    # Here we could validate the answer, store progress, etc.
+    # For now, just render the next button
+    block = lesson.blocks[block_index]
+
+    # Calculate next block/question indices
+    if block_index < len(lesson.blocks) - 1:
+        next_block_index = block_index + 1
+        next_question_index = 0
+        if block.kind == BlockKind.KNOWLEDGE_POINT:
+            assert block.knowledge_point is not None
+            if question_index < len(block.knowledge_point.questions) - 1:
+                next_block_index = block_index
+                next_question_index = question_index + 1
+
+        return render_macro(
+            "lesson_macros.html",
+            "render_next_button",
+            course=course,
+            lesson=lesson,
+            next_block_index=next_block_index,
+            next_question_index=next_question_index,
+        )
+    else:
+        return ""
+
+
 @app.route("/course/<course_route>/lesson/<lesson_route>/next", methods=["POST"])
 def lesson_next_block(course_route: str, lesson_route: str) -> str:
     course = load_course_by_route(course_route)
