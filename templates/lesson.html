@@ -1,4 +1,4 @@
-{% from 'lesson_macros.html' import render_content, render_knowledge_point, render_next_button %}
+{% from 'lesson_macros.html' import render_lesson_block %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -9,18 +9,7 @@
     <h1>{{ lesson.title }}</h1>
     <p><strong>Course:</strong> {{ course.title }}</p>
 
-    {% if lesson.blocks|length >= 1 %}
-        {% set block = lesson.blocks[0] %}
-        {% if block.kind == "content" %}
-            {{ render_content(block) }}
-        {% elif block.kind == "knowledge_point" %}
-            {{ render_knowledge_point(block) }}
-        {% endif %}
-    {% endif %}
-
-    {% if lesson.blocks|length > 1 %}
-        {{ render_next_button(course, lesson, 0) }}
-    {% endif %}
+    {{ render_lesson_block(course, lesson, 0, 0) }}
 
     <a href="/course/{{ course.route }}">← Back to {{ course.title }}</a>
 </body>

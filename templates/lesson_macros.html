@@ -2,31 +2,56 @@
 <p>{{ block.content }}</p>
 {% endmacro %}
 
-{% macro render_knowledge_point(block) %}
+{% macro render_knowledge_point(block, question_index=0) %}
 <div class="knowledge-point">
-    <h3>{{ block.knowledge_point.description }}</h3>
-    {% for question in block.knowledge_point.questions %}
+    {% if block.knowledge_point.questions and question_index < block.knowledge_point.questions|length %}
+        {% set question = block.knowledge_point.questions[question_index] %}
         <div class="question">
             <p><strong>{{ question.prompt }}</strong></p>
             <form>
                 {% for choice in question.choices %}
                     <label>
-                        <input type="radio" name="answer_{{ loop.index0 }}" value="{{ loop.index0 }}">
+                        <input type="radio" name="answer" value="{{ loop.index0 }}">
                         {{ choice.text }}
                     </label><br>
                 {% endfor %}
             </form>
         </div>
-    {% endfor %}
+        <p><small>Question {{ question_index + 1 }} of {{ block.knowledge_point.questions|length }}</small></p>
+    {% endif %}
 </div>
 {% endmacro %}
 
-{% macro render_next_button(course, lesson, block_index) %}
+{% macro render_next_button(course, lesson, next_block_index, next_question_index) %}
 <button
     id="submit-button"
     hx-post="/course/{{ course.route }}/lesson/{{ lesson.route }}/next"
     hx-target="#submit-button"
-    hx-vals='{"block_index": {{ block_index + 1 }}}'
+    hx-vals='{"block_index": {{ next_block_index }}, "question_index": {{ next_question_index }}}'
     hx-swap="outerHTML"
 >Next</button>
+{% endmacro %}
+
+{% macro render_lesson_block(course, lesson, block_index, question_index) %}
+{% set block = lesson.blocks[block_index] %}
+
+{# Render the current block #}
+{% if block.kind == "content" %}
+    {{ render_content(block) }}
+{% elif block.kind == "knowledge_point" %}
+    {{ render_knowledge_point(block, question_index) }}
+{% endif %}
+
+{# Render next button if appropriate #}
+{% if block_index < lesson.blocks|length - 1 %}
+    {% set next_block_index = block_index + 1 %}
+    {% set next_question_index = 0 %}
+    {% if block.kind == "knowledge_point" %}
+        {% if question_index < block.knowledge_point.questions|length - 1 %}
+            {% set next_block_index = block_index %}
+            {% set next_question_index = question_index + 1 %}
+        {% endif %}
+    {% endif %}
+    {{ render_next_button(course, lesson, next_block_index, next_question_index) }}
+{% endif %}
 {% endmacro %}
