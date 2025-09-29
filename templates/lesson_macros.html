@@ -29,14 +29,25 @@
     {% endif %}
 {% endmacro %}
 
-{% macro render_next_button(course, lesson, next_block_index, next_question_index) %}
-<button
-    id="submit-button"
-    hx-post="/course/{{ course.route }}/lesson/{{ lesson.route }}/next"
-    hx-target="#submit-button"
-    hx-vals='{"block_index": {{ next_block_index }}, "question_index": {{ next_question_index }}}'
-    hx-swap="outerHTML"
->Next</button>
+{% macro render_next_button(course, lesson, block_index, question_index) %}
+{% set block = lesson.blocks[block_index] %}
+{% if block_index < lesson.blocks|length - 1 %}
+    {% set next_block_index = block_index + 1 %}
+    {% set next_question_index = 0 %}
+    {% if block.kind == "knowledge_point" %}
+        {% if question_index < block.knowledge_point.questions|length - 1 %}
+            {% set next_block_index = block_index %}
+            {% set next_question_index = question_index + 1 %}
+        {% endif %}
+    {% endif %}
+    <button
+        id="submit-button"
+        hx-post="/course/{{ course.route }}/lesson/{{ lesson.route }}/next"
+        hx-target="#submit-button"
+        hx-vals='{"block_index": {{ next_block_index }}, "question_index": {{ next_question_index }}}'
+        hx-swap="outerHTML"
+    >Next</button>
+{% endif %}
 {% endmacro %}
 
 {% macro render_lesson_block(course, lesson, block_index, question_index) %}
@@ -46,11 +57,7 @@
 {% if block.kind == "content" %}
     {{ render_content(block) }}
     {# For content blocks, show next button immediately #}
-    {% if block_index < lesson.blocks|length - 1 %}
-        {% set next_block_index = block_index + 1 %}
-        {% set next_question_index = 0 %}
-        {{ render_next_button(course, lesson, next_block_index, next_question_index) }}
-    {% endif %}
+    {{ render_next_button(course, lesson, block_index, question_index) }}
 {% elif block.kind == "knowledge_point" %}
     {{ render_knowledge_point(course, lesson, block, block_index, question_index) }}
     {# For knowledge points, next button is rendered after answer submission #}

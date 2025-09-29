@@ -217,26 +217,17 @@ def lesson_submit_answer(course_route: str, lesson_route: str) -> str:
     else:
         feedback = f"❌ Incorrect. The correct answer is: {correct_answer_text}"
 
-    # Calculate next block/question indices for the next button
-    next_button_html = ""
-    if block_index < len(lesson.blocks) - 1:
-        next_block_index = block_index + 1
-        next_question_index = 0
-        if block.kind == BlockKind.KNOWLEDGE_POINT:
-            if question_index < len(block.knowledge_point.questions) - 1:
-                next_block_index = block_index
-                next_question_index = question_index + 1
+    # Render next button with logic handled in macro
+    next_button_html = render_macro(
+        "lesson_macros.html",
+        "render_next_button",
+        course=course,
+        lesson=lesson,
+        block_index=block_index,
+        question_index=question_index,
+    )
 
-        next_button_html = render_macro(
-            "lesson_macros.html",
-            "render_next_button",
-            course=course,
-            lesson=lesson,
-            next_block_index=next_block_index,
-            next_question_index=next_question_index,
-        )
-
-    return f"<div><p>{feedback}</p>{next_button_html}</div>"
+    return f"<p>{feedback}</p>{next_button_html}"
 
 
 @app.route("/course/<course_route>/lesson/<lesson_route>/next", methods=["POST"])
