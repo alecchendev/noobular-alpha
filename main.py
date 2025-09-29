@@ -200,23 +200,34 @@ def lesson_submit_answer(course_route: str, lesson_route: str) -> str:
     block_index = int(block_index_str)
     question_index = int(question_index_str)
     answer_index = int(answer_str)
-    print("answer:", answer_index)
 
-    # Here we could validate the answer, store progress, etc.
-    # For now, just render the next button
+    # Validate the answer
     block = lesson.blocks[block_index]
+    assert block.kind == BlockKind.KNOWLEDGE_POINT
+    assert block.knowledge_point is not None
+    question = block.knowledge_point.questions[question_index]
 
-    # Calculate next block/question indices
+    is_correct = question.choices[answer_index].correct
+    correct_answer_index = next(
+        i for i, choice in enumerate(question.choices) if choice.correct
+    )
+    correct_answer_text = question.choices[correct_answer_index].text
+    if is_correct:
+        feedback = f"✅ Correct! The correct answer is: {correct_answer_text}"
+    else:
+        feedback = f"❌ Incorrect. The correct answer is: {correct_answer_text}"
+
+    # Calculate next block/question indices for the next button
+    next_button_html = ""
     if block_index < len(lesson.blocks) - 1:
         next_block_index = block_index + 1
         next_question_index = 0
         if block.kind == BlockKind.KNOWLEDGE_POINT:
-            assert block.knowledge_point is not None
             if question_index < len(block.knowledge_point.questions) - 1:
                 next_block_index = block_index
                 next_question_index = question_index + 1
 
-        return render_macro(
+        next_button_html = render_macro(
             "lesson_macros.html",
             "render_next_button",
             course=course,
@@ -224,8 +235,8 @@ def lesson_submit_answer(course_route: str, lesson_route: str) -> str:
             next_block_index=next_block_index,
             next_question_index=next_question_index,
         )
-    else:
-        return ""
+
+    return f"<div><p>{feedback}</p>{next_button_html}</div>"
 
 
 @app.route("/course/<course_route>/lesson/<lesson_route>/next", methods=["POST"])
