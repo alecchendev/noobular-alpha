@@ -1,7 +1,7 @@
-from flask import Flask, render_template, abort, request
+from flask import Flask, render_template, abort, request, render_template_string
 import yaml
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -62,11 +62,11 @@ def load_course_by_route(route: str) -> Optional[Course]:
     for lesson_data in course_data.get("lessons", []):
         blocks = []
         for block_data in lesson_data.get("blocks", []):
-            if block_data["kind"] == "content":
+            if block_data["kind"] == BlockKind.CONTENT:
                 blocks.append(
                     Block(kind=BlockKind.CONTENT, content=block_data["content"])
                 )
-            elif block_data["kind"] == "question":
+            elif block_data["kind"] == BlockKind.QUESTION:
                 choices = [
                     Choice(text=choice["text"], correct=choice.get("correct", False))
                     for choice in block_data.get("choices", [])
@@ -134,6 +134,16 @@ def lesson_page(course_route: str, lesson_route: str) -> str:
     )
 
 
+def render_macro(template_file: str, macro_name: str, **kwargs: Any) -> str:
+    """Helper function to render a single Jinja2 macro with given arguments."""
+    args = ", ".join(kwargs.keys())
+    template_string = (
+        f"{{% from '{template_file}' import {macro_name} %}}"
+        + f"{{{{ {macro_name}({args}) }}}}"
+    )
+    return render_template_string(template_string, **kwargs)
+
+
 @app.route("/course/<course_route>/lesson/<lesson_route>/next", methods=["POST"])
 def lesson_next_block(course_route: str, lesson_route: str) -> str:
     course = load_course_by_route(course_route)
@@ -156,47 +166,29 @@ def lesson_next_block(course_route: str, lesson_route: str) -> str:
     block_index = int(block_index_str)
     if block_index >= len(lesson.blocks):
         raise ValueError("Block index of range")
-    button_html = ""
+    # Render the next button using macro
     if block_index < len(lesson.blocks) - 1:
-        button_html = f"""
-        <button
-            id="submit-button"
-            hx-post="/course/{course.route}/lesson/{lesson.route}/next"
-            hx-target="#submit-button"
-            hx-vals='{{"block_index": {block_index + 1} }}'
-            hx-swap="outerHTML"
-        >Next</button>
-        """
+        button_html = render_macro(
+            "lesson_macros.html",
+            "render_next_button",
+            course=course,
+            lesson=lesson,
+            block_index=block_index,
+        )
+    else:
+        button_html = ""
 
-    # Render the current block
+    # Render the current block using macros
     block = lesson.blocks[block_index]
-    block_html = ""
 
     if block.kind == BlockKind.CONTENT:
-        block_html = f"<p>{block.content}</p>"
+        block_html = render_macro("lesson_macros.html", "render_content", block=block)
     elif block.kind == BlockKind.QUESTION:
-        choices_html = ""
-        assert block.choices is not None
-        for i, choice in enumerate(block.choices):
-            choices_html += f'''
-                <label>
-                    <input type="radio" name="answer" value="{i}">
-                    {choice.text}
-                </label><br>
-            '''
-        block_html = f"""
-            <div class="question">
-                <p><strong>{block.prompt}</strong></p>
-                <form>
-                    {choices_html}
-                </form>
-            </div>
-        """
+        block_html = render_macro("lesson_macros.html", "render_question", block=block)
+    else:
+        block_html = ""
 
-    return f"""
-        {block_html}
-        {button_html}
-    """
+    return f"{block_html}{button_html}"
 
 
 @app.route("/increment", methods=["POST"])
