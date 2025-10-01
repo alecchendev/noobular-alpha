@@ -1,4 +1,4 @@
-{% from 'lesson_macros.html' import render_lesson_block %}
+{% from 'lesson_macros.html' import render_knowledge_point %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -9,7 +9,7 @@
     <h1>{{ lesson.title }}</h1>
     <p><strong>Course:</strong> {{ course.title }}</p>
 
-    {{ render_lesson_block(course, lesson, 0, 0) }}
+    {{ render_knowledge_point(course, lesson, lesson.knowledge_points[0], 0, 0) }}
 
     <a href="/course/{{ course.route }}">← Back to {{ course.title }}</a>
 </body>

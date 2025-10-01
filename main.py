@@ -5,7 +5,6 @@ import hashlib
 from pathlib import Path
 from typing import Any, List, Optional
 from dataclasses import dataclass
-from enum import Enum
 
 
 def init_database() -> None:
@@ -31,14 +30,32 @@ def init_database() -> None:
             FOREIGN KEY (course_id) REFERENCES courses (id)
         )""")
 
-        # Create questions table
-        cursor.execute("""CREATE TABLE IF NOT EXISTS questions (
+        # Create knowledge_points table
+        cursor.execute("""CREATE TABLE IF NOT EXISTS knowledge_points (
             id INTEGER PRIMARY KEY,
             lesson_id INTEGER NOT NULL,
             knowledge_point_id TEXT NOT NULL,
-            prompt TEXT NOT NULL,
+            description TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (lesson_id) REFERENCES lessons (id)
+        )""")
+
+        # Create contents table
+        cursor.execute("""CREATE TABLE IF NOT EXISTS contents (
+            id INTEGER PRIMARY KEY,
+            knowledge_point_id INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points (id)
+        )""")
+
+        # Create questions table
+        cursor.execute("""CREATE TABLE IF NOT EXISTS questions (
+            id INTEGER PRIMARY KEY,
+            knowledge_point_id INTEGER NOT NULL,
+            prompt TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points (id)
         )""")
 
         # Create choices table
@@ -104,29 +121,43 @@ def load_courses_to_database() -> None:
                 )
                 lesson_id = cursor.lastrowid
 
-                # Insert questions and choices for knowledge point blocks
-                for block in lesson.blocks:
-                    if (
-                        block.kind == BlockKind.KNOWLEDGE_POINT
-                        and block.knowledge_point
-                    ):
-                        for question in block.knowledge_point.questions:
-                            cursor.execute(
-                                """INSERT OR REPLACE INTO questions
-                                             (lesson_id, knowledge_point_id, prompt)
-                                             VALUES (?, ?, ?)""",
-                                (lesson_id, block.knowledge_point.id, question.prompt),
-                            )
-                            question_id = cursor.lastrowid
+                # Insert knowledge points, contents, and questions
+                for knowledge_point in lesson.knowledge_points:
+                    cursor.execute(
+                        """INSERT OR REPLACE INTO knowledge_points
+                                     (lesson_id, knowledge_point_id, description)
+                                     VALUES (?, ?, ?)""",
+                        (lesson_id, knowledge_point.id, knowledge_point.description),
+                    )
+                    knowledge_point_db_id = cursor.lastrowid
 
-                            # Insert choices
-                            for choice in question.choices:
-                                cursor.execute(
-                                    """INSERT OR REPLACE INTO choices
-                                                 (question_id, text, is_correct)
-                                                 VALUES (?, ?, ?)""",
-                                    (question_id, choice.text, choice.correct or False),
-                                )
+                    # Insert contents
+                    for content in knowledge_point.contents:
+                        cursor.execute(
+                            """INSERT OR REPLACE INTO contents
+                                         (knowledge_point_id, text)
+                                         VALUES (?, ?)""",
+                            (knowledge_point_db_id, content.text),
+                        )
+
+                    # Insert questions and choices
+                    for question in knowledge_point.questions:
+                        cursor.execute(
+                            """INSERT OR REPLACE INTO questions
+                                         (knowledge_point_id, prompt)
+                                         VALUES (?, ?)""",
+                            (knowledge_point_db_id, question.prompt),
+                        )
+                        question_id = cursor.lastrowid
+
+                        # Insert choices
+                        for choice in question.choices:
+                            cursor.execute(
+                                """INSERT OR REPLACE INTO choices
+                                             (question_id, text, is_correct)
+                                             VALUES (?, ?, ?)""",
+                                (question_id, choice.text, choice.correct or False),
+                            )
 
         print("✅ Courses loaded into database successfully!")
 
@@ -135,11 +166,6 @@ def load_courses_to_database() -> None:
 app = Flask(__name__)
 
 counter = 0
-
-
-class BlockKind(str, Enum):
-    CONTENT = "content"
-    KNOWLEDGE_POINT = "knowledge_point"
 
 
 @dataclass
@@ -155,24 +181,23 @@ class Question:
 
 
 @dataclass
-class KnowledgePoint:
-    id: str  # kebab-case identifier
-    description: str
-    questions: List[Question]
+class Content:
+    text: str
 
 
 @dataclass
-class Block:
-    kind: BlockKind
-    content: Optional[str] = None  # for content blocks
-    knowledge_point: Optional[KnowledgePoint] = None  # for knowledge point blocks
+class KnowledgePoint:
+    id: str  # kebab-case identifier
+    description: str
+    contents: List[Content]
+    questions: List[Question]
 
 
 @dataclass
 class Lesson:
     title: str
     route: str
-    blocks: List[Block]
+    knowledge_points: List[KnowledgePoint]
 
 
 @dataclass
@@ -199,47 +224,46 @@ def load_course_by_route(route: str) -> Optional[Course]:
 
     lessons = []
     for lesson_data in course_data.get("lessons", []):
-        blocks = []
-        for block_data in lesson_data.get("blocks", []):
-            if block_data["kind"] == BlockKind.CONTENT:
-                blocks.append(
-                    Block(kind=BlockKind.CONTENT, content=block_data["content"])
-                )
-            elif block_data["kind"] == BlockKind.KNOWLEDGE_POINT:
-                questions = []
-                for question_data in block_data.get("questions", []):
-                    choices = [
-                        Choice(
-                            text=choice["text"], correct=choice.get("correct", False)
-                        )
-                        for choice in question_data.get("choices", [])
-                    ]
+        knowledge_points = []
+        for kp_data in lesson_data.get("knowledge_points", []):
+            # Parse contents
+            contents = [
+                Content(text=content_text)
+                for content_text in kp_data.get("contents", [])
+            ]
 
-                    # Validate that there's exactly one correct choice
-                    correct_count = sum(1 for choice in choices if choice.correct)
-                    if correct_count != 1:
-                        raise ValueError(
-                            f"Question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
-                        )
+            # Parse questions
+            questions = []
+            for question_data in kp_data.get("questions", []):
+                choices = [
+                    Choice(text=choice["text"], correct=choice.get("correct", False))
+                    for choice in question_data.get("choices", [])
+                ]
 
-                    questions.append(
-                        Question(prompt=question_data["prompt"], choices=choices)
+                # Validate that there's exactly one correct choice
+                correct_count = sum(1 for choice in choices if choice.correct)
+                if correct_count != 1:
+                    raise ValueError(
+                        f"Question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
                     )
 
-                knowledge_point = KnowledgePoint(
-                    id=block_data["id"],
-                    description=block_data["description"],
-                    questions=questions,
+                questions.append(
+                    Question(prompt=question_data["prompt"], choices=choices)
                 )
-                blocks.append(
-                    Block(
-                        kind=BlockKind.KNOWLEDGE_POINT, knowledge_point=knowledge_point
-                    )
-                )
+
+            knowledge_point = KnowledgePoint(
+                id=kp_data["id"],
+                description=kp_data["description"],
+                contents=contents,
+                questions=questions,
+            )
+            knowledge_points.append(knowledge_point)
 
         lessons.append(
             Lesson(
-                title=lesson_data["title"], route=lesson_data["route"], blocks=blocks
+                title=lesson_data["title"],
+                route=lesson_data["route"],
+                knowledge_points=knowledge_points,
             )
         )
     return Course(title=title, route=route, lessons=lessons)
@@ -294,6 +318,7 @@ def lesson_page(course_route: str, lesson_route: str) -> str:
 
     if not lesson:
         abort(404)
+    assert len(lesson.knowledge_points) > 0
 
     return render_template(
         "lesson.html",
@@ -318,21 +343,26 @@ def lesson_submit_answer(course_route: str, lesson_route: str) -> str:
     if not lesson:
         abort(404)
 
-    block_index_str = request.form.get("block_index")
-    question_index_str = request.form.get("question_index", "0")
+    kp_index_str = request.form.get("knowledge_point_index")
+    question_index_str = request.form.get("question_index")
+    i_str = request.form.get("i")
     answer_str = request.form.get("answer")
-    if not block_index_str or answer_str is None:
+    if (
+        not kp_index_str
+        or question_index_str is None
+        or i_str is None
+        or answer_str is None
+    ):
         abort(404)
 
-    block_index = int(block_index_str)
+    kp_index = int(kp_index_str)
     question_index = int(question_index_str)
+    i = int(i_str)
     answer_index = int(answer_str)
 
     # Validate the answer
-    block = lesson.blocks[block_index]
-    assert block.kind == BlockKind.KNOWLEDGE_POINT
-    assert block.knowledge_point is not None
-    question = block.knowledge_point.questions[question_index]
+    knowledge_point = lesson.knowledge_points[kp_index]
+    question = knowledge_point.questions[question_index]
 
     is_correct = question.choices[answer_index].correct
     correct_answer_index = next(
@@ -344,21 +374,28 @@ def lesson_submit_answer(course_route: str, lesson_route: str) -> str:
     else:
         feedback = f"❌ Incorrect. The correct answer is: {correct_answer_text}"
 
+    print(
+        kp_index,
+        question_index,
+        i,
+        len(knowledge_point.contents) + len(knowledge_point.questions),
+    )
     # Render next button with logic handled in macro
     next_button_html = render_macro(
         "lesson_macros.html",
         "render_next_button",
         course=course,
         lesson=lesson,
-        block_index=block_index,
-        question_index=question_index,
+        knowledge_point=knowledge_point,
+        kp_index=kp_index,
+        i=i,
     )
 
     return f"<p>{feedback}</p>{next_button_html}"
 
 
 @app.route("/course/<course_route>/lesson/<lesson_route>/next", methods=["POST"])
-def lesson_next_block(course_route: str, lesson_route: str) -> str:
+def lesson_next_lesson_chunk(course_route: str, lesson_route: str) -> str:
     course = load_course_by_route(course_route)
     if not course:
         abort(404)
@@ -373,20 +410,22 @@ def lesson_next_block(course_route: str, lesson_route: str) -> str:
     if not lesson:
         abort(404)
 
-    block_index_str = request.form.get("block_index")
-    question_index_str = request.form.get("question_index", "0")
-    if not block_index_str:
+    kp_index_str = request.form.get("knowledge_point_index")
+    i_str = request.form.get("i")
+    if not kp_index_str or not i_str:
         abort(404)
-    block_index = int(block_index_str)
-    question_index = int(question_index_str)
+    kp_index = int(kp_index_str)
+    assert kp_index < len(lesson.knowledge_points)
+    i = int(i_str)
 
     return render_macro(
         "lesson_macros.html",
-        "render_lesson_block",
+        "render_knowledge_point",
         course=course,
         lesson=lesson,
-        block_index=block_index,
-        question_index=question_index,
+        knowledge_point=lesson.knowledge_points[kp_index],
+        knowledge_point_index=kp_index,
+        i=i,
     )
 
 
