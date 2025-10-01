@@ -1,9 +1,9 @@
-from flask import Flask, render_template, abort, request, render_template_string
+from flask import Flask, render_template, abort, request
 import yaml
 import sqlite3
 import hashlib
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import List, Optional
 from dataclasses import dataclass
 
 
@@ -293,16 +293,6 @@ def course_page(course_route: str) -> str:
     return render_template("course.html", course=course)
 
 
-def render_macro(template_file: str, macro_name: str, **kwargs: Any) -> str:
-    """Helper function to render a single Jinja2 macro with given arguments."""
-    args = ", ".join(kwargs.keys())
-    template_string = (
-        f"{{% from '{template_file}' import {macro_name} %}}"
-        + f"{{{{ {macro_name}({args}) }}}}"
-    )
-    return render_template_string(template_string, **kwargs)
-
-
 @app.route("/course/<course_route>/lesson/<lesson_route>")
 def lesson_page(course_route: str, lesson_route: str) -> str:
     course = load_course_by_route(course_route)
@@ -380,14 +370,13 @@ def lesson_submit_answer(course_route: str, lesson_route: str) -> str:
         i,
         len(knowledge_point.contents) + len(knowledge_point.questions),
     )
-    # Render next button with logic handled in macro
-    next_button_html = render_macro(
-        "lesson_macros.html",
-        "render_next_button",
+    # Render next button with logic handled in template
+    next_button_html = render_template(
+        "next_button.html",
         course=course,
         lesson=lesson,
         knowledge_point=knowledge_point,
-        kp_index=kp_index,
+        knowledge_point_index=kp_index,
         i=i,
     )
 
@@ -418,9 +407,8 @@ def lesson_next_lesson_chunk(course_route: str, lesson_route: str) -> str:
     assert kp_index < len(lesson.knowledge_points)
     i = int(i_str)
 
-    return render_macro(
-        "lesson_macros.html",
-        "render_knowledge_point",
+    return render_template(
+        "knowledge_point.html",
         course=course,
         lesson=lesson,
         knowledge_point=lesson.knowledge_points[kp_index],
