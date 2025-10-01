@@ -12,20 +12,55 @@ def init_database() -> None:
     with sqlite3.connect("database.db") as conn:
         cursor = conn.cursor()
 
-        # Create dummy table
-        cursor.execute("""CREATE TABLE IF NOT EXISTS test_table
-                         (id INTEGER PRIMARY KEY, message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        # Create courses table
+        cursor.execute("""CREATE TABLE IF NOT EXISTS courses (
+            id INTEGER PRIMARY KEY,
+            title TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )""")
 
-        # Write test data
-        cursor.execute(
-            "INSERT INTO test_table (message) VALUES (?)", ("Hello from SQLite!",)
-        )
+        # Create lessons table
+        cursor.execute("""CREATE TABLE IF NOT EXISTS lessons (
+            id INTEGER PRIMARY KEY,
+            course_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (course_id) REFERENCES courses (id),
+            UNIQUE(course_id)
+        )""")
 
-        # Read back the data
-        cursor.execute("SELECT * FROM test_table ORDER BY created_at DESC LIMIT 1")
-        row = cursor.fetchone()
+        # Create questions table
+        cursor.execute("""CREATE TABLE IF NOT EXISTS questions (
+            id INTEGER PRIMARY KEY,
+            lesson_id INTEGER NOT NULL,
+            knowledge_point_id TEXT NOT NULL,
+            prompt TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lesson_id) REFERENCES lessons (id)
+        )""")
 
-        print(f"✅ Database initialized successfully! Latest record: {row}")
+        # Create choices table
+        cursor.execute("""CREATE TABLE IF NOT EXISTS choices (
+            id INTEGER PRIMARY KEY,
+            question_id INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            is_correct BOOLEAN NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (question_id) REFERENCES questions (id)
+        )""")
+
+        # Create answers table (user responses)
+        cursor.execute("""CREATE TABLE IF NOT EXISTS answers (
+            id INTEGER PRIMARY KEY,
+            question_id INTEGER NOT NULL,
+            choice_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (question_id) REFERENCES questions (id),
+            FOREIGN KEY (choice_id) REFERENCES choices (id),
+            UNIQUE(question_id)
+        )""")
+
+        print("✅ Database tables created successfully!")
 
 
 # Init app
