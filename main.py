@@ -1,6 +1,7 @@
 from flask import Flask, render_template, abort, request, render_template_string
 import yaml
 import sqlite3
+import hashlib
 from pathlib import Path
 from typing import Any, List, Optional
 from dataclasses import dataclass
@@ -16,7 +17,9 @@ def init_database() -> None:
         cursor.execute("""CREATE TABLE IF NOT EXISTS courses (
             id INTEGER PRIMARY KEY,
             title TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            file_hash BLOB,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(file_hash)
         )""")
 
         # Create lessons table
@@ -25,8 +28,7 @@ def init_database() -> None:
             course_id INTEGER NOT NULL,
             title TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (course_id) REFERENCES courses (id),
-            UNIQUE(course_id)
+            FOREIGN KEY (course_id) REFERENCES courses (id)
         )""")
 
         # Create questions table
@@ -61,6 +63,72 @@ def init_database() -> None:
         )""")
 
         print("✅ Database tables created successfully!")
+
+
+def load_courses_to_database() -> None:
+    """Load courses from YAML files into database"""
+    if not COURSES_DIRECTORY.is_dir():
+        print("No courses directory found, skipping course loading")
+        return
+
+    with sqlite3.connect("database.db") as conn:
+        cursor = conn.cursor()
+
+        for yaml_file in COURSES_DIRECTORY.glob("*.yaml"):
+            # Calculate file hash (MD5, 16 bytes)
+            with open(yaml_file, "rb") as f:
+                file_hash = hashlib.md5(f.read()).digest()
+
+            # Check if this file hash already exists
+            cursor.execute("SELECT id FROM courses WHERE file_hash = ?", (file_hash,))
+            if cursor.fetchone():
+                print(f"Course {yaml_file.name} already loaded (unchanged), skipping")
+                continue
+
+            course = load_course_by_route(yaml_file.stem)
+            if not course:
+                continue
+
+            # Insert course with hash
+            cursor.execute(
+                "INSERT OR REPLACE INTO courses (title, file_hash) VALUES (?, ?)",
+                (course.title, file_hash),
+            )
+            course_id = cursor.lastrowid
+
+            # Insert lessons
+            for lesson in course.lessons:
+                cursor.execute(
+                    "INSERT OR REPLACE INTO lessons (course_id, title) VALUES (?, ?)",
+                    (course_id, lesson.title),
+                )
+                lesson_id = cursor.lastrowid
+
+                # Insert questions and choices for knowledge point blocks
+                for block in lesson.blocks:
+                    if (
+                        block.kind == BlockKind.KNOWLEDGE_POINT
+                        and block.knowledge_point
+                    ):
+                        for question in block.knowledge_point.questions:
+                            cursor.execute(
+                                """INSERT OR REPLACE INTO questions
+                                             (lesson_id, knowledge_point_id, prompt)
+                                             VALUES (?, ?, ?)""",
+                                (lesson_id, block.knowledge_point.id, question.prompt),
+                            )
+                            question_id = cursor.lastrowid
+
+                            # Insert choices
+                            for choice in question.choices:
+                                cursor.execute(
+                                    """INSERT OR REPLACE INTO choices
+                                                 (question_id, text, is_correct)
+                                                 VALUES (?, ?, ?)""",
+                                    (question_id, choice.text, choice.correct or False),
+                                )
+
+        print("✅ Courses loaded into database successfully!")
 
 
 # Init app
@@ -332,4 +400,5 @@ def increment() -> str:
 
 if __name__ == "__main__":
     init_database()
+    load_courses_to_database()
     app.run(debug=True, port=5000)
