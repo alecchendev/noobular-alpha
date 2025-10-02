@@ -19,7 +19,7 @@
     <button
         id="submit-button"
         type="submit"
-        hx-post="/course/{{ course.route }}/lesson/{{ lesson.route }}/submit"
+        hx-post="/course/{{ course.id }}/lesson/{{ lesson.id }}/submit"
         hx-target="#submit-button"
         hx-vals='{"knowledge_point_index": {{ knowledge_point_index }}, "question_index": {{ question_index }}, "i": {{ i }}}'
         hx-include="#knowledge-point-{{ knowledge_point_index }}-question-form-{{ question_index }}"

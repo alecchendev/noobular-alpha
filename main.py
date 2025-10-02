@@ -165,8 +165,6 @@ def load_courses_to_database() -> None:
 # Init app
 app = Flask(__name__)
 
-counter = 0
-
 
 @dataclass
 class Choice:
@@ -187,7 +185,7 @@ class Content:
 
 @dataclass
 class KnowledgePoint:
-    id: str  # kebab-case identifier
+    id: str
     description: str
     contents: List[Content]
     questions: List[Question]
@@ -195,19 +193,113 @@ class KnowledgePoint:
 
 @dataclass
 class Lesson:
+    id: int
     title: str
-    route: str
     knowledge_points: List[KnowledgePoint]
 
 
 @dataclass
 class Course:
+    id: int
     title: str
-    route: str
     lessons: List[Lesson]
 
 
 COURSES_DIRECTORY = Path("courses")
+
+
+def load_course_from_db(course_id: int) -> Optional[Course]:
+    """Load a course from the database by ID"""
+    with sqlite3.connect("database.db") as conn:
+        cursor = conn.cursor()
+
+        # Get course
+        cursor.execute("SELECT title FROM courses WHERE id = ?", (course_id,))
+        course_row = cursor.fetchone()
+        if not course_row:
+            return None
+
+        course_title = course_row[0]
+
+        # Get lessons
+        cursor.execute(
+            "SELECT id, title FROM lessons WHERE course_id = ?", (course_id,)
+        )
+        lesson_rows = cursor.fetchall()
+
+        lessons = []
+        for lesson_id, lesson_title in lesson_rows:
+            # Get knowledge points for this lesson
+            cursor.execute(
+                "SELECT id, knowledge_point_id, description FROM knowledge_points WHERE lesson_id = ?",
+                (lesson_id,),
+            )
+            kp_rows = cursor.fetchall()
+
+            knowledge_points = []
+            for kp_db_id, kp_id, kp_description in kp_rows:
+                # Get contents for this knowledge point
+                cursor.execute(
+                    "SELECT text FROM contents WHERE knowledge_point_id = ?",
+                    (kp_db_id,),
+                )
+                content_rows = cursor.fetchall()
+                contents = [Content(text=row[0]) for row in content_rows]
+
+                # Get questions for this knowledge point
+                cursor.execute(
+                    "SELECT id, prompt FROM questions WHERE knowledge_point_id = ?",
+                    (kp_db_id,),
+                )
+                question_rows = cursor.fetchall()
+
+                questions = []
+                for question_id, prompt in question_rows:
+                    # Get choices for this question
+                    cursor.execute(
+                        "SELECT text, is_correct FROM choices WHERE question_id = ?",
+                        (question_id,),
+                    )
+                    choice_rows = cursor.fetchall()
+                    choices = [
+                        Choice(text=text, correct=bool(is_correct))
+                        for text, is_correct in choice_rows
+                    ]
+
+                    questions.append(Question(prompt=prompt, choices=choices))
+
+                knowledge_points.append(
+                    KnowledgePoint(
+                        id=kp_id,
+                        description=kp_description,
+                        contents=contents,
+                        questions=questions,
+                    )
+                )
+
+            lessons.append(
+                Lesson(
+                    id=lesson_id, title=lesson_title, knowledge_points=knowledge_points
+                )
+            )
+
+        return Course(id=course_id, title=course_title, lessons=lessons)
+
+
+def get_all_courses() -> List[Course]:
+    """Get all courses from the database"""
+    with sqlite3.connect("database.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM courses")
+        course_ids = cursor.fetchall()
+
+        courses = []
+        for (course_id,) in course_ids:
+            course = load_course_from_db(course_id)
+            if course:
+                courses.append(course)
+
+        return courses
 
 
 def load_course_by_route(route: str) -> Optional[Course]:
@@ -261,49 +353,39 @@ def load_course_by_route(route: str) -> Optional[Course]:
 
         lessons.append(
             Lesson(
+                id=-1,
                 title=lesson_data["title"],
-                route=lesson_data["route"],
                 knowledge_points=knowledge_points,
             )
         )
-    return Course(title=title, route=route, lessons=lessons)
+    return Course(id=-1, title=title, lessons=lessons)
 
 
 @app.route("/")
 def index() -> str:
-    if not COURSES_DIRECTORY.is_dir():
-        raise FileNotFoundError(
-            f"Courses directory '{COURSES_DIRECTORY}' must exist and be a directory"
-        )
-
-    courses = []
-    for yaml_file in COURSES_DIRECTORY.glob("*.yaml"):
-        course = load_course_by_route(yaml_file.stem)
-        if course:
-            courses.append(course)
-
-    return render_template("index.html", counter=counter, courses=courses)
+    courses = get_all_courses()
+    return render_template("index.html", courses=courses)
 
 
-@app.route("/course/<course_route>")
-def course_page(course_route: str) -> str:
-    course = load_course_by_route(course_route)
+@app.route("/course/<int:course_id>")
+def course_page(course_id: int) -> str:
+    course = load_course_from_db(course_id)
     if not course:
         abort(404)
     return render_template("course.html", course=course)
 
 
-@app.route("/course/<course_route>/lesson/<lesson_route>")
-def lesson_page(course_route: str, lesson_route: str) -> str:
-    course = load_course_by_route(course_route)
+@app.route("/course/<int:course_id>/lesson/<int:lesson_id>")
+def lesson_page(course_id: int, lesson_id: int) -> str:
+    course = load_course_from_db(course_id)
     if not course:
         abort(404)
 
-    # Find the lesson with matching route
+    # Find the lesson with matching ID
     lesson = None
-    for lesson in course.lessons:
-        if lesson.route == lesson_route:
-            lesson = lesson
+    for lesson_obj in course.lessons:
+        if lesson_obj.id == lesson_id:
+            lesson = lesson_obj
             break
 
     if not lesson:
@@ -317,17 +399,17 @@ def lesson_page(course_route: str, lesson_route: str) -> str:
     )
 
 
-@app.route("/course/<course_route>/lesson/<lesson_route>/submit", methods=["POST"])
-def lesson_submit_answer(course_route: str, lesson_route: str) -> str:
-    course = load_course_by_route(course_route)
+@app.route("/course/<int:course_id>/lesson/<int:lesson_id>/submit", methods=["POST"])
+def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
+    course = load_course_from_db(course_id)
     if not course:
         abort(404)
 
     # Find the lesson
     lesson = None
-    for lesson in course.lessons:
-        if lesson.route == lesson_route:
-            lesson = lesson
+    for lesson_obj in course.lessons:
+        if lesson_obj.id == lesson_id:
+            lesson = lesson_obj
             break
 
     if not lesson:
@@ -383,17 +465,17 @@ def lesson_submit_answer(course_route: str, lesson_route: str) -> str:
     return f"<p>{feedback}</p>{next_button_html}"
 
 
-@app.route("/course/<course_route>/lesson/<lesson_route>/next", methods=["POST"])
-def lesson_next_lesson_chunk(course_route: str, lesson_route: str) -> str:
-    course = load_course_by_route(course_route)
+@app.route("/course/<int:course_id>/lesson/<int:lesson_id>/next", methods=["POST"])
+def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
+    course = load_course_from_db(course_id)
     if not course:
         abort(404)
 
     # Find the lesson
     lesson = None
-    for lesson in course.lessons:
-        if lesson.route == lesson_route:
-            lesson = lesson
+    for lesson_obj in course.lessons:
+        if lesson_obj.id == lesson_id:
+            lesson = lesson_obj
             break
 
     if not lesson:
@@ -415,14 +497,6 @@ def lesson_next_lesson_chunk(course_route: str, lesson_route: str) -> str:
         knowledge_point_index=kp_index,
         i=i,
     )
-
-
-@app.route("/increment", methods=["POST"])
-def increment() -> str:
-    global counter
-    counter += 1
-    # return just the snippet HTMX will swap in
-    return f"<div id='count'>Count: {counter}</div>"
 
 
 if __name__ == "__main__":

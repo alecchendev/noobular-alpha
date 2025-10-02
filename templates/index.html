@@ -12,22 +12,13 @@
     {% if courses %}
         <ul>
         {% for course in courses %}
-            <li><a href="/course/{{ course.route }}">{{ course.title }}</a></li>
+            <li><a href="/course/{{ course.id }}">{{ course.title }}</a></li>
         {% endfor %}
         </ul>
     {% else %}
         <p>No courses available.</p>
     {% endif %}
 
-    <!-- The count display -->
-    <div id="count">Count: {{ counter }}</div>
-
-    <!-- Button triggers POST /increment -->
-    <button hx-post="/increment"
-            hx-target="#count"
-            hx-swap="outerHTML">
-        Increment
-    </button>
 </body>
 </html>
 
