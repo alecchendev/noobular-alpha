@@ -426,7 +426,22 @@ def course_page(course_id: int) -> str:
     course = load_course_from_db(course_id)
     if not course:
         abort(404)
-    return render_template("course.html", course=course)
+    next_lessons = []
+    completed_lessons = []
+    for lesson in course.lessons:
+        if all(
+            all(question.answer is not None for question in kp.questions)
+            for kp in lesson.knowledge_points
+        ):
+            completed_lessons.append(lesson)
+        else:
+            next_lessons.append(lesson)
+    return render_template(
+        "course.html",
+        course=course,
+        next_lessons=next_lessons,
+        completed_lessons=completed_lessons,
+    )
 
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>")

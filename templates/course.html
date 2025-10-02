@@ -10,10 +10,10 @@
     <h2>Diagnostic Quiz</h2>
     <p>No diagnostic quiz available yet</p>
 
-    <h2>Lessons</h2>
-    {% if course.lessons %}
+    <h2>Next Lessons</h2>
+    {% if next_lessons|length > 0 %}
         <ul>
-        {% for lesson in course.lessons %}
+        {% for lesson in next_lessons %}
             <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
         {% endfor %}
         </ul>
@@ -22,7 +22,15 @@
     {% endif %}
 
     <h2>Completed Lessons</h2>
-    <p>No completed lessons</p>
+    {% if completed_lessons|length > 0 %}
+        <ul>
+        {% for lesson in completed_lessons %}
+            <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No completed lessons</p>
+    {% endif %}
 
     <h2>Remaining Lessons</h2>
     <p>No remaining lessons</p>
