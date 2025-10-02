@@ -1,85 +1,215 @@
-from flask import Flask, render_template, abort, request
+from flask import Flask, render_template, abort, request, g
 import yaml
 import sqlite3
 import hashlib
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 from dataclasses import dataclass
 
 
 def init_database() -> None:
     """Initialize SQLite database on app startup"""
-    with sqlite3.connect("database.db") as conn:
-        cursor = conn.cursor()
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
 
-        # Create courses table
-        cursor.execute("""CREATE TABLE IF NOT EXISTS courses (
-            id INTEGER PRIMARY KEY,
-            title TEXT NOT NULL,
-            file_hash BLOB,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(file_hash)
-        )""")
+    # Create courses table
+    cursor.execute("""CREATE TABLE IF NOT EXISTS courses (
+        id INTEGER PRIMARY KEY,
+        title TEXT NOT NULL,
+        file_hash BLOB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(file_hash)
+    )""")
 
-        # Create lessons table
-        cursor.execute("""CREATE TABLE IF NOT EXISTS lessons (
-            id INTEGER PRIMARY KEY,
-            course_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (course_id) REFERENCES courses (id)
-        )""")
+    # Create lessons table
+    cursor.execute("""CREATE TABLE IF NOT EXISTS lessons (
+        id INTEGER PRIMARY KEY,
+        course_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (course_id) REFERENCES courses (id)
+    )""")
 
-        # Create knowledge_points table
-        cursor.execute("""CREATE TABLE IF NOT EXISTS knowledge_points (
-            id INTEGER PRIMARY KEY,
-            lesson_id INTEGER NOT NULL,
-            knowledge_point_id TEXT NOT NULL,
-            description TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (lesson_id) REFERENCES lessons (id)
-        )""")
+    # Create knowledge_points table
+    cursor.execute("""CREATE TABLE IF NOT EXISTS knowledge_points (
+        id INTEGER PRIMARY KEY,
+        lesson_id INTEGER NOT NULL,
+        knowledge_point_id TEXT NOT NULL,
+        description TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (lesson_id) REFERENCES lessons (id)
+    )""")
 
-        # Create contents table
-        cursor.execute("""CREATE TABLE IF NOT EXISTS contents (
-            id INTEGER PRIMARY KEY,
-            knowledge_point_id INTEGER NOT NULL,
-            text TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points (id)
-        )""")
+    # Create contents table
+    cursor.execute("""CREATE TABLE IF NOT EXISTS contents (
+        id INTEGER PRIMARY KEY,
+        knowledge_point_id INTEGER NOT NULL,
+        text TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points (id)
+    )""")
 
-        # Create questions table
-        cursor.execute("""CREATE TABLE IF NOT EXISTS questions (
-            id INTEGER PRIMARY KEY,
-            knowledge_point_id INTEGER NOT NULL,
-            prompt TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points (id)
-        )""")
+    # Create questions table
+    cursor.execute("""CREATE TABLE IF NOT EXISTS questions (
+        id INTEGER PRIMARY KEY,
+        knowledge_point_id INTEGER NOT NULL,
+        prompt TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points (id)
+    )""")
 
-        # Create choices table
-        cursor.execute("""CREATE TABLE IF NOT EXISTS choices (
-            id INTEGER PRIMARY KEY,
-            question_id INTEGER NOT NULL,
-            text TEXT NOT NULL,
-            is_correct BOOLEAN NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (question_id) REFERENCES questions (id)
-        )""")
+    # Create choices table
+    cursor.execute("""CREATE TABLE IF NOT EXISTS choices (
+        id INTEGER PRIMARY KEY,
+        question_id INTEGER NOT NULL,
+        text TEXT NOT NULL,
+        is_correct BOOLEAN NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (question_id) REFERENCES questions (id)
+    )""")
 
-        # Create answers table (user responses)
-        cursor.execute("""CREATE TABLE IF NOT EXISTS answers (
-            id INTEGER PRIMARY KEY,
-            question_id INTEGER NOT NULL,
-            choice_id INTEGER NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (question_id) REFERENCES questions (id),
-            FOREIGN KEY (choice_id) REFERENCES choices (id),
-            UNIQUE(question_id)
-        )""")
+    # Create answers table (user responses)
+    cursor.execute("""CREATE TABLE IF NOT EXISTS answers (
+        id INTEGER PRIMARY KEY,
+        question_id INTEGER NOT NULL,
+        choice_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (question_id) REFERENCES questions (id),
+        FOREIGN KEY (choice_id) REFERENCES choices (id),
+        UNIQUE(question_id)
+    )""")
 
-        print("✅ Database tables created successfully!")
+    print("✅ Database tables created successfully!")
+    conn.close()
+
+
+# Init app
+app = Flask(__name__)
+
+DATABASE = "database.db"
+
+
+def get_db() -> sqlite3.Connection:
+    """Get database connection for current request"""
+    if "db" not in g:
+        g.db = sqlite3.connect(DATABASE)
+        g.db.row_factory = sqlite3.Row  # Enable dict-like access
+    db: sqlite3.Connection = g.db
+    return db
+
+
+def close_db() -> None:
+    """Close database connection"""
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
+
+
+@app.teardown_appcontext
+def close_db_connection(error: Any) -> None:
+    """Automatically close db connection at end of request"""
+    close_db()
+
+
+@dataclass
+class Choice:
+    text: str
+    correct: Optional[bool] = None
+
+
+@dataclass
+class Question:
+    prompt: str
+    choices: List[Choice]
+
+
+@dataclass
+class Content:
+    text: str
+
+
+@dataclass
+class KnowledgePoint:
+    id: str
+    description: str
+    contents: List[Content]
+    questions: List[Question]
+
+
+@dataclass
+class Lesson:
+    id: int
+    title: str
+    knowledge_points: List[KnowledgePoint]
+
+
+@dataclass
+class Course:
+    id: int
+    title: str
+    lessons: List[Lesson]
+
+
+COURSES_DIRECTORY = Path("courses")
+
+
+def load_course_by_route(route: str) -> Optional[Course]:
+    yaml_file = COURSES_DIRECTORY / f"{route}.yaml"
+    if not yaml_file.exists():
+        return None
+
+    with open(yaml_file, "r") as f:
+        course_data = yaml.safe_load(f) or {}
+
+    title = course_data.get("title")
+    if not title:
+        raise ValueError(f"Course {yaml_file.name} missing required 'title' field")
+
+    lessons = []
+    for lesson_data in course_data.get("lessons", []):
+        knowledge_points = []
+        for kp_data in lesson_data.get("knowledge_points", []):
+            # Parse contents
+            contents = [
+                Content(text=content_text)
+                for content_text in kp_data.get("contents", [])
+            ]
+
+            # Parse questions
+            questions = []
+            for question_data in kp_data.get("questions", []):
+                choices = [
+                    Choice(text=choice["text"], correct=choice.get("correct", False))
+                    for choice in question_data.get("choices", [])
+                ]
+
+                # Validate that there's exactly one correct choice
+                correct_count = sum(1 for choice in choices if choice.correct)
+                if correct_count != 1:
+                    raise ValueError(
+                        f"Question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
+                    )
+
+                questions.append(
+                    Question(prompt=question_data["prompt"], choices=choices)
+                )
+
+            knowledge_point = KnowledgePoint(
+                id=kp_data["id"],
+                description=kp_data["description"],
+                contents=contents,
+                questions=questions,
+            )
+            knowledge_points.append(knowledge_point)
+
+        lessons.append(
+            Lesson(
+                id=-1,
+                title=lesson_data["title"],
+                knowledge_points=knowledge_points,
+            )
+        )
+    return Course(id=-1, title=title, lessons=lessons)
 
 
 def load_courses_to_database() -> None:
@@ -88,7 +218,7 @@ def load_courses_to_database() -> None:
         print("No courses directory found, skipping course loading")
         return
 
-    with sqlite3.connect("database.db") as conn:
+    with sqlite3.connect(DATABASE) as conn:
         cursor = conn.cursor()
 
         for yaml_file in COURSES_DIRECTORY.glob("*.yaml"):
@@ -162,203 +292,94 @@ def load_courses_to_database() -> None:
         print("✅ Courses loaded into database successfully!")
 
 
-# Init app
-app = Flask(__name__)
-
-
-@dataclass
-class Choice:
-    text: str
-    correct: Optional[bool] = None
-
-
-@dataclass
-class Question:
-    prompt: str
-    choices: List[Choice]
-
-
-@dataclass
-class Content:
-    text: str
-
-
-@dataclass
-class KnowledgePoint:
-    id: str
-    description: str
-    contents: List[Content]
-    questions: List[Question]
-
-
-@dataclass
-class Lesson:
-    id: int
-    title: str
-    knowledge_points: List[KnowledgePoint]
-
-
-@dataclass
-class Course:
-    id: int
-    title: str
-    lessons: List[Lesson]
-
-
-COURSES_DIRECTORY = Path("courses")
-
-
 def load_course_from_db(course_id: int) -> Optional[Course]:
     """Load a course from the database by ID"""
-    with sqlite3.connect("database.db") as conn:
-        cursor = conn.cursor()
+    db = get_db()
+    cursor = db.cursor()
 
-        # Get course
-        cursor.execute("SELECT title FROM courses WHERE id = ?", (course_id,))
-        course_row = cursor.fetchone()
-        if not course_row:
-            return None
+    # Get course
+    cursor.execute("SELECT title FROM courses WHERE id = ?", (course_id,))
+    course_row = cursor.fetchone()
+    if not course_row:
+        return None
 
-        course_title = course_row[0]
+    course_title = course_row[0]
 
-        # Get lessons
+    # Get lessons
+    cursor.execute("SELECT id, title FROM lessons WHERE course_id = ?", (course_id,))
+    lesson_rows = cursor.fetchall()
+
+    lessons = []
+    for lesson_id, lesson_title in lesson_rows:
+        # Get knowledge points for this lesson
         cursor.execute(
-            "SELECT id, title FROM lessons WHERE course_id = ?", (course_id,)
+            "SELECT id, knowledge_point_id, description FROM knowledge_points WHERE lesson_id = ?",
+            (lesson_id,),
         )
-        lesson_rows = cursor.fetchall()
+        kp_rows = cursor.fetchall()
 
-        lessons = []
-        for lesson_id, lesson_title in lesson_rows:
-            # Get knowledge points for this lesson
+        knowledge_points = []
+        for kp_db_id, kp_id, kp_description in kp_rows:
+            # Get contents for this knowledge point
             cursor.execute(
-                "SELECT id, knowledge_point_id, description FROM knowledge_points WHERE lesson_id = ?",
-                (lesson_id,),
+                "SELECT text FROM contents WHERE knowledge_point_id = ?",
+                (kp_db_id,),
             )
-            kp_rows = cursor.fetchall()
+            content_rows = cursor.fetchall()
+            contents = [Content(text=row[0]) for row in content_rows]
 
-            knowledge_points = []
-            for kp_db_id, kp_id, kp_description in kp_rows:
-                # Get contents for this knowledge point
+            # Get questions for this knowledge point
+            cursor.execute(
+                "SELECT id, prompt FROM questions WHERE knowledge_point_id = ?",
+                (kp_db_id,),
+            )
+            question_rows = cursor.fetchall()
+
+            questions = []
+            for question_id, prompt in question_rows:
+                # Get choices for this question
                 cursor.execute(
-                    "SELECT text FROM contents WHERE knowledge_point_id = ?",
-                    (kp_db_id,),
+                    "SELECT text, is_correct FROM choices WHERE question_id = ?",
+                    (question_id,),
                 )
-                content_rows = cursor.fetchall()
-                contents = [Content(text=row[0]) for row in content_rows]
+                choice_rows = cursor.fetchall()
+                choices = [
+                    Choice(text=text, correct=bool(is_correct))
+                    for text, is_correct in choice_rows
+                ]
 
-                # Get questions for this knowledge point
-                cursor.execute(
-                    "SELECT id, prompt FROM questions WHERE knowledge_point_id = ?",
-                    (kp_db_id,),
-                )
-                question_rows = cursor.fetchall()
+                questions.append(Question(prompt=prompt, choices=choices))
 
-                questions = []
-                for question_id, prompt in question_rows:
-                    # Get choices for this question
-                    cursor.execute(
-                        "SELECT text, is_correct FROM choices WHERE question_id = ?",
-                        (question_id,),
-                    )
-                    choice_rows = cursor.fetchall()
-                    choices = [
-                        Choice(text=text, correct=bool(is_correct))
-                        for text, is_correct in choice_rows
-                    ]
-
-                    questions.append(Question(prompt=prompt, choices=choices))
-
-                knowledge_points.append(
-                    KnowledgePoint(
-                        id=kp_id,
-                        description=kp_description,
-                        contents=contents,
-                        questions=questions,
-                    )
-                )
-
-            lessons.append(
-                Lesson(
-                    id=lesson_id, title=lesson_title, knowledge_points=knowledge_points
+            knowledge_points.append(
+                KnowledgePoint(
+                    id=kp_id,
+                    description=kp_description,
+                    contents=contents,
+                    questions=questions,
                 )
             )
 
-        return Course(id=course_id, title=course_title, lessons=lessons)
+        lessons.append(
+            Lesson(id=lesson_id, title=lesson_title, knowledge_points=knowledge_points)
+        )
+
+    return Course(id=course_id, title=course_title, lessons=lessons)
 
 
 def get_all_courses() -> List[Course]:
     """Get all courses from the database"""
-    with sqlite3.connect("database.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT id FROM courses")
-        course_ids = cursor.fetchall()
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT id FROM courses")
+    course_ids = cursor.fetchall()
 
-        courses = []
-        for (course_id,) in course_ids:
-            course = load_course_from_db(course_id)
-            if course:
-                courses.append(course)
+    courses = []
+    for (course_id,) in course_ids:
+        course = load_course_from_db(course_id)
+        if course:
+            courses.append(course)
 
-        return courses
-
-
-def load_course_by_route(route: str) -> Optional[Course]:
-    yaml_file = COURSES_DIRECTORY / f"{route}.yaml"
-    if not yaml_file.exists():
-        return None
-
-    with open(yaml_file, "r") as f:
-        course_data = yaml.safe_load(f) or {}
-
-    title = course_data.get("title")
-    if not title:
-        raise ValueError(f"Course {yaml_file.name} missing required 'title' field")
-
-    lessons = []
-    for lesson_data in course_data.get("lessons", []):
-        knowledge_points = []
-        for kp_data in lesson_data.get("knowledge_points", []):
-            # Parse contents
-            contents = [
-                Content(text=content_text)
-                for content_text in kp_data.get("contents", [])
-            ]
-
-            # Parse questions
-            questions = []
-            for question_data in kp_data.get("questions", []):
-                choices = [
-                    Choice(text=choice["text"], correct=choice.get("correct", False))
-                    for choice in question_data.get("choices", [])
-                ]
-
-                # Validate that there's exactly one correct choice
-                correct_count = sum(1 for choice in choices if choice.correct)
-                if correct_count != 1:
-                    raise ValueError(
-                        f"Question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
-                    )
-
-                questions.append(
-                    Question(prompt=question_data["prompt"], choices=choices)
-                )
-
-            knowledge_point = KnowledgePoint(
-                id=kp_data["id"],
-                description=kp_data["description"],
-                contents=contents,
-                questions=questions,
-            )
-            knowledge_points.append(knowledge_point)
-
-        lessons.append(
-            Lesson(
-                id=-1,
-                title=lesson_data["title"],
-                knowledge_points=knowledge_points,
-            )
-        )
-    return Course(id=-1, title=title, lessons=lessons)
+    return courses
 
 
 @app.route("/")
