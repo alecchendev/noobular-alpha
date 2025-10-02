@@ -112,19 +112,30 @@ def close_db_connection(error: Any) -> None:
 
 
 @dataclass
+class Answer:
+    id: int
+    question_id: int
+    choice_id: int
+
+
+@dataclass
 class Choice:
+    id: int
     text: str
     correct: Optional[bool] = None
 
 
 @dataclass
 class Question:
+    id: int
     prompt: str
     choices: List[Choice]
+    answer: Optional[Answer]
 
 
 @dataclass
 class Content:
+    id: int
     text: str
 
 
@@ -171,7 +182,7 @@ def load_course_by_route(route: str) -> Optional[Course]:
         for kp_data in lesson_data.get("knowledge_points", []):
             # Parse contents
             contents = [
-                Content(text=content_text)
+                Content(id=-1, text=content_text)
                 for content_text in kp_data.get("contents", [])
             ]
 
@@ -179,7 +190,9 @@ def load_course_by_route(route: str) -> Optional[Course]:
             questions = []
             for question_data in kp_data.get("questions", []):
                 choices = [
-                    Choice(text=choice["text"], correct=choice.get("correct", False))
+                    Choice(
+                        id=-1, text=choice["text"], correct=choice.get("correct", False)
+                    )
                     for choice in question_data.get("choices", [])
                 ]
 
@@ -191,7 +204,12 @@ def load_course_by_route(route: str) -> Optional[Course]:
                     )
 
                 questions.append(
-                    Question(prompt=question_data["prompt"], choices=choices)
+                    Question(
+                        id=-1,
+                        prompt=question_data["prompt"],
+                        choices=choices,
+                        answer=None,
+                    )
                 )
 
             knowledge_point = KnowledgePoint(
@@ -322,11 +340,11 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
         for kp_db_id, kp_id, kp_description in kp_rows:
             # Get contents for this knowledge point
             cursor.execute(
-                "SELECT text FROM contents WHERE knowledge_point_id = ?",
+                "SELECT id, text FROM contents WHERE knowledge_point_id = ?",
                 (kp_db_id,),
             )
             content_rows = cursor.fetchall()
-            contents = [Content(text=row[0]) for row in content_rows]
+            contents = [Content(id=id, text=text) for id, text in content_rows]
 
             # Get questions for this knowledge point
             cursor.execute(
@@ -339,16 +357,31 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
             for question_id, prompt in question_rows:
                 # Get choices for this question
                 cursor.execute(
-                    "SELECT text, is_correct FROM choices WHERE question_id = ?",
+                    "SELECT id, text, is_correct FROM choices WHERE question_id = ?",
                     (question_id,),
                 )
                 choice_rows = cursor.fetchall()
                 choices = [
-                    Choice(text=text, correct=bool(is_correct))
-                    for text, is_correct in choice_rows
+                    Choice(id=id, text=text, correct=bool(is_correct))
+                    for id, text, is_correct in choice_rows
                 ]
 
-                questions.append(Question(prompt=prompt, choices=choices))
+                cursor.execute(
+                    """SELECT id, question_id, choice_id FROM answers
+                       WHERE question_id = ?""",
+                    (question_id,),
+                )
+                answer_row = cursor.fetchone()
+                answer = None
+                if answer_row:
+                    id, question_id, choice_id = answer_row
+                    answer = Answer(id=id, question_id=question_id, choice_id=choice_id)
+
+                questions.append(
+                    Question(
+                        id=question_id, prompt=prompt, choices=choices, answer=answer
+                    )
+                )
 
             knowledge_points.append(
                 KnowledgePoint(
@@ -456,8 +489,18 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     # Validate the answer
     knowledge_point = lesson.knowledge_points[kp_index]
     question = knowledge_point.questions[question_index]
+    user_choice = question.choices[answer_index]
 
-    is_correct = question.choices[answer_index].correct
+    # Save the user's answer to the database
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute(
+        "INSERT OR REPLACE INTO answers (question_id, choice_id) VALUES (?, ?)",
+        (question.id, user_choice.id),
+    )
+    db.commit()
+
+    is_correct = user_choice.correct
     correct_answer_index = next(
         i for i, choice in enumerate(question.choices) if choice.correct
     )
