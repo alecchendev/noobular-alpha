@@ -304,7 +304,7 @@ def load_courses_to_database() -> None:
             kp_name_to_db_id = {}
 
             # Insert lessons
-            for lesson_idx, lesson in enumerate(course.lessons):
+            for lesson in course.lessons:
                 cursor.execute(
                     "INSERT OR REPLACE INTO lessons (course_id, title) VALUES (?, ?)",
                     (course_id, lesson.title),
@@ -312,7 +312,7 @@ def load_courses_to_database() -> None:
                 lesson_id = cursor.lastrowid
 
                 # Insert knowledge points, contents, and questions
-                for kp_idx, knowledge_point in enumerate(lesson.knowledge_points):
+                for knowledge_point in lesson.knowledge_points:
                     cursor.execute(
                         """INSERT OR REPLACE INTO knowledge_points
                                      (lesson_id, name, description)
@@ -351,7 +351,7 @@ def load_courses_to_database() -> None:
                             )
 
             # Insert prerequisites (after all knowledge points are created)
-            for lesson_idx, lesson_data in enumerate(course_data.get("lessons", [])):
+            for lesson_data in course_data.get("lessons", []):
                 for kp_data in lesson_data.get("knowledge_points", []):
                     kp_name = kp_data["name"]
                     kp_db_id = kp_name_to_db_id.get(kp_name)
@@ -830,6 +830,58 @@ def validate_course() -> tuple[Any, int]:
                         return ValidationError(
                             error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
                         ).jsonify()
+
+        # Validate prereq tree
+        kp_to_prereqs: dict[str, set[str]] = {}
+        prereq_to_kps: dict[str, set[str]] = {}
+        for lesson_data in course_data.get("lessons", []):
+            for kp_data in lesson_data.get("knowledge_points", []):
+                if kp_data["name"] not in kp_to_prereqs.keys():
+                    kp_to_prereqs[kp_data["name"]] = set()
+                kp_to_prereqs[kp_data["name"]].update(kp_data["prerequisites"])
+                for prereq in kp_data["prerequisites"]:
+                    if prereq not in prereq_to_kps.keys():
+                        prereq_to_kps[prereq] = set()
+                    prereq_to_kps[prereq].add(kp_data["name"])
+
+        # Get roots
+        roots = [kp for kp, prereqs in kp_to_prereqs.items() if len(prereqs) == 0]
+
+        # Check cycles, i.e. depth first for each root, see if you visit already visited
+        def has_cycle_dfs(node: str, visited: set[str], rec_stack: list[str]) -> bool:
+            print(node)
+            visited.add(node)
+            rec_stack.append(node)
+
+            for kp in prereq_to_kps.get(node, set()):
+                if kp not in visited:
+                    if has_cycle_dfs(kp, visited, rec_stack):
+                        return True
+                elif kp in rec_stack:
+                    # Add so that upon returning, rec_stack includes the full cycle
+                    rec_stack.append(kp)
+                    return True
+
+            rec_stack.remove(node)
+            return False
+
+        visited_for_cycles: set[str] = set()
+        for kp_name in roots:
+            if kp_name not in visited_for_cycles:
+                rec_stack: list[str] = []
+                if has_cycle_dfs(kp_name, visited_for_cycles, rec_stack):
+                    return ValidationError(
+                        error=f"Prerequisite cycle detected in prerequisite graph: {' -> '.join(rec_stack)}"
+                    ).jsonify()
+
+        # Check every node got visited once
+        unreachable = set(kp_to_prereqs.keys()) - visited_for_cycles
+        if len(unreachable) != 0:
+            loop_rec_stack: list[str] = []
+            assert has_cycle_dfs(list(unreachable)[0], set(), loop_rec_stack)
+            return ValidationError(
+                error=f"Cannot visit all knowledge points in prerequisite graph. Some knowledge points are not reachable from root nodes because they form a loop: {' -> '.join(loop_rec_stack)}"
+            ).jsonify()
 
         return ValidationSuccess(
             success=True, message=f"Course '{course_data['title']}' is valid"
