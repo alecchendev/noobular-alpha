@@ -1,4 +1,4 @@
-from flask import Flask, render_template, abort, request, g
+from flask import Flask, render_template, abort, request, g, jsonify
 import yaml
 import sqlite3
 import hashlib
@@ -159,6 +159,27 @@ class Course:
     id: int
     title: str
     lessons: List[Lesson]
+
+
+@dataclass
+class ValidationSuccess:
+    success: bool
+    message: str
+    status_code: int = 200
+
+    def jsonify(self) -> tuple[Any, int]:
+        return jsonify(
+            {"success": self.success, "message": self.message}
+        ), self.status_code
+
+
+@dataclass
+class ValidationError:
+    error: str
+    status_code: int = 400
+
+    def jsonify(self) -> tuple[Any, int]:
+        return jsonify({"error": self.error}), self.status_code
 
 
 COURSES_DIRECTORY = Path("courses")
@@ -542,6 +563,174 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     )
 
     return f"<p>{feedback}</p>{next_button_html}"
+
+
+@app.route("/validate-course", methods=["POST"])
+def validate_course() -> tuple[Any, int]:
+    """Validate that a course file parses correctly"""
+    data = request.get_json()
+    if not data or "filename" not in data:
+        return ValidationError(error="Missing 'filename' in request body").jsonify()
+
+    filename = data["filename"]
+    file_path = COURSES_DIRECTORY / filename
+
+    # Check if file exists
+    if not file_path.exists():
+        return ValidationError(
+            error=f"File '{filename}' not found in courses directory", status_code=404
+        ).jsonify()
+
+    # Check if file has .yaml extension
+    if file_path.suffix not in [".yaml", ".yml"]:
+        return ValidationError(error=f"File '{filename}' is not a YAML file").jsonify()
+
+    try:
+        # Read and parse YAML
+        with open(file_path, "r") as f:
+            course_data = yaml.safe_load(f)
+
+        if not course_data:
+            return ValidationError(
+                error="File is empty or contains no valid YAML"
+            ).jsonify()
+
+        # Validate required fields
+        if "title" not in course_data:
+            return ValidationError(error="Missing required field: 'title'").jsonify()
+
+        if (
+            not isinstance(course_data["title"], str)
+            or not course_data["title"].strip()
+        ):
+            return ValidationError(
+                error="Field 'title' must be a non-empty string"
+            ).jsonify()
+
+        # Validate lessons
+        if "lessons" not in course_data:
+            return ValidationError(error="Missing required field: 'lessons'").jsonify()
+
+        if not isinstance(course_data["lessons"], list):
+            return ValidationError(error="Field 'lessons' must be a list").jsonify()
+
+        for lesson_idx, lesson_data in enumerate(course_data["lessons"]):
+            if not isinstance(lesson_data, dict):
+                return ValidationError(
+                    error=f"Lesson {lesson_idx} must be an object"
+                ).jsonify()
+
+            if "title" not in lesson_data:
+                return ValidationError(
+                    error=f"Lesson {lesson_idx} missing required field: 'title'"
+                ).jsonify()
+
+            if "knowledge_points" not in lesson_data:
+                return ValidationError(
+                    error=f"Lesson {lesson_idx} ('{lesson_data.get('title', 'unnamed')}') missing required field: 'knowledge_points'"
+                ).jsonify()
+
+            if not isinstance(lesson_data["knowledge_points"], list):
+                return ValidationError(
+                    error=f"Lesson {lesson_idx} ('{lesson_data['title']}') field 'knowledge_points' must be a list"
+                ).jsonify()
+
+            # Validate knowledge points
+            for kp_idx, kp_data in enumerate(lesson_data["knowledge_points"]):
+                if not isinstance(kp_data, dict):
+                    return ValidationError(
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} must be an object"
+                    ).jsonify()
+
+                if "id" not in kp_data:
+                    return ValidationError(
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} missing required field: 'id'"
+                    ).jsonify()
+
+                if "description" not in kp_data:
+                    return ValidationError(
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data.get('id', 'unknown')}') missing required field: 'description'"
+                    ).jsonify()
+
+                if "contents" not in kp_data:
+                    return ValidationError(
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}') missing required field: 'contents'"
+                    ).jsonify()
+
+                if not isinstance(kp_data["contents"], list):
+                    return ValidationError(
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}') field 'contents' must be a list"
+                    ).jsonify()
+
+                if "questions" not in kp_data:
+                    return ValidationError(
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}') missing required field: 'questions'"
+                    ).jsonify()
+
+                if not isinstance(kp_data["questions"], list):
+                    return ValidationError(
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}') field 'questions' must be a list"
+                    ).jsonify()
+
+                # Validate questions
+                for q_idx, question_data in enumerate(kp_data["questions"]):
+                    if not isinstance(question_data, dict):
+                        return ValidationError(
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} must be an object"
+                        ).jsonify()
+
+                    if "prompt" not in question_data:
+                        return ValidationError(
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} missing required field: 'prompt'"
+                        ).jsonify()
+
+                    if "choices" not in question_data:
+                        return ValidationError(
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} (prompt: '{question_data.get('prompt', 'unknown')}') missing required field: 'choices'"
+                        ).jsonify()
+
+                    if not isinstance(question_data["choices"], list):
+                        return ValidationError(
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} (prompt: '{question_data['prompt']}') field 'choices' must be a list"
+                        ).jsonify()
+
+                    if len(question_data["choices"]) < 2:
+                        return ValidationError(
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} (prompt: '{question_data['prompt']}') must have at least 2 choices"
+                        ).jsonify()
+
+                    # Validate choices and count correct answers
+                    correct_count = 0
+                    for c_idx, choice_data in enumerate(question_data["choices"]):
+                        if not isinstance(choice_data, dict):
+                            return ValidationError(
+                                error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} must be an object"
+                            ).jsonify()
+
+                        if "text" not in choice_data:
+                            return ValidationError(
+                                error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} missing required field: 'text'"
+                            ).jsonify()
+
+                        if choice_data.get("correct", False):
+                            correct_count += 1
+
+                    # Validate exactly one correct answer
+                    if correct_count != 1:
+                        return ValidationError(
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
+                        ).jsonify()
+
+        return ValidationSuccess(
+            success=True, message=f"Course '{course_data['title']}' is valid"
+        ).jsonify()
+
+    except yaml.YAMLError as e:
+        return ValidationError(error=f"YAML parsing error: {str(e)}").jsonify()
+    except Exception as e:
+        return ValidationError(
+            error=f"Unexpected error: {str(e)}", status_code=500
+        ).jsonify()
 
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/next", methods=["POST"])
