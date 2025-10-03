@@ -33,7 +33,15 @@
     {% endif %}
 
     <h2>Remaining Lessons</h2>
-    <p>No remaining lessons</p>
+    {% if remaining_lessons|length > 0 %}
+        <ul>
+        {% for lesson in remaining_lessons %}
+            <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No remaining lessons</p>
+    {% endif %}
 
     <h2>Quizzes</h2>
     <p>No quizzes available yet</p>

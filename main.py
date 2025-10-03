@@ -497,21 +497,50 @@ def course_page(course_id: int) -> str:
     course = load_course_from_db(course_id)
     if not course:
         abort(404)
+
+    # Build a map of knowledge point ID to completion status
+    completed_kp_ids = set()
+    for lesson in course.lessons:
+        for kp in lesson.knowledge_points:
+            if all(question.answer is not None for question in kp.questions):
+                completed_kp_ids.add(kp.id)
+
     next_lessons = []
     completed_lessons = []
+    remaining_lessons = []
     for lesson in course.lessons:
-        if all(
-            all(question.answer is not None for question in kp.questions)
-            for kp in lesson.knowledge_points
-        ):
+        # Check if lesson is completed
+        lesson_completed = all(
+            kp.id in completed_kp_ids for kp in lesson.knowledge_points
+        )
+
+        if lesson_completed:
             completed_lessons.append(lesson)
-        else:
+            continue
+
+        prerequisites_met = True
+        lesson_kp_ids = set()
+        for kp in lesson.knowledge_points:
+            lesson_kp_ids.add(kp.id)
+            if any(
+                prereq_id not in (completed_kp_ids.union(lesson_kp_ids))
+                for prereq_id in kp.prerequisites
+            ):
+                prerequisites_met = False
+                break
+
+        if prerequisites_met:
             next_lessons.append(lesson)
+            continue
+
+        remaining_lessons.append(lesson)
+
     return render_template(
         "course.html",
         course=course,
         next_lessons=next_lessons,
         completed_lessons=completed_lessons,
+        remaining_lessons=remaining_lessons,
     )
 
 
