@@ -1,0 +1,320 @@
+title: Chemistry Basics
+lessons:
+  - title: Atoms and Elements
+    knowledge_points:
+      - name: "atomic-structure"
+        description: "Understanding the basic structure of atoms"
+        prerequisites: []
+        contents:
+          - "Atoms are the fundamental building blocks of matter. They consist of three subatomic particles: protons, neutrons, and electrons."
+          - "Protons are positively charged and found in the nucleus. Neutrons have no charge and are also in the nucleus. Electrons are negatively charged and orbit the nucleus."
+          - "The number of protons in an atom determines what element it is. This is called the atomic number."
+        questions:
+          - prompt: "Which subatomic particle determines what element an atom is?"
+            choices:
+              - text: "Electron"
+              - text: "Neutron"
+              - text: "Proton"
+                correct: true
+              - text: "Nucleus"
+          - prompt: "Where are electrons located in an atom?"
+            choices:
+              - text: "In the nucleus"
+              - text: "Orbiting the nucleus"
+                correct: true
+              - text: "Between protons and neutrons"
+              - text: "Outside the atom"
+      - name: "periodic-table"
+        description: "Introduction to the periodic table and how elements are organized"
+        prerequisites: ["atomic-structure"]
+        contents:
+          - "The periodic table organizes all known elements by their atomic number and chemical properties."
+          - "Elements in the same column (group) share similar chemical properties. Elements in the same row (period) have the same number of electron shells."
+          - "The periodic table is divided into metals, nonmetals, and metalloids based on their properties."
+        questions:
+          - prompt: "Elements in the same group (column) of the periodic table share what?"
+            choices:
+              - text: "The same atomic number"
+              - text: "Similar chemical properties"
+                correct: true
+              - text: "The same number of protons"
+              - text: "The same mass"
+          - prompt: "What does the row (period) number indicate?"
+            choices:
+              - text: "Number of protons"
+              - text: "Number of neutrons"
+              - text: "Number of electron shells"
+                correct: true
+              - text: "Atomic mass"
+      - name: "elements-compounds"
+        description: "Distinguishing between elements and compounds"
+        prerequisites: ["atomic-structure", "periodic-table"]
+        contents:
+          - "An element is a pure substance made of only one type of atom. Examples include oxygen (O), hydrogen (H), and carbon (C)."
+          - "A compound is a substance made of two or more different elements chemically bonded together. Examples include water (H2O) and carbon dioxide (CO2)."
+          - "Compounds have different properties than the elements that make them up. For example, water is liquid at room temperature, but hydrogen and oxygen are gases."
+        questions:
+          - prompt: "What is a compound?"
+            choices:
+              - text: "A pure substance with one type of atom"
+              - text: "Two or more elements chemically bonded"
+                correct: true
+              - text: "A mixture of different substances"
+              - text: "An atom with multiple protons"
+
+  - title: Chemical Bonds
+    knowledge_points:
+      - name: "ionic-bonds"
+        description: "Understanding ionic bonds and how they form"
+        prerequisites: ["atomic-structure", "periodic-table"]
+        contents:
+          - "Ionic bonds form when one atom transfers electrons to another atom, creating oppositely charged ions."
+          - "Metals tend to lose electrons and become positively charged ions (cations). Nonmetals tend to gain electrons and become negatively charged ions (anions)."
+          - "The electrostatic attraction between opposite charges holds the ions together. Common examples include table salt (NaCl) and calcium chloride (CaCl2)."
+        questions:
+          - prompt: "What happens in an ionic bond?"
+            choices:
+              - text: "Atoms share electrons equally"
+              - text: "One atom transfers electrons to another"
+                correct: true
+              - text: "Atoms repel each other"
+              - text: "Electrons are destroyed"
+          - prompt: "What is a cation?"
+            choices:
+              - text: "A negatively charged ion"
+              - text: "A neutral atom"
+              - text: "A positively charged ion"
+                correct: true
+              - text: "A type of molecule"
+      - name: "covalent-bonds"
+        description: "Understanding covalent bonds and molecular structures"
+        prerequisites: ["atomic-structure"]
+        contents:
+          - "Covalent bonds form when atoms share electrons with each other. This typically occurs between nonmetal atoms."
+          - "A single covalent bond involves sharing one pair of electrons. Double and triple bonds involve sharing two or three pairs of electrons."
+          - "Examples of covalent compounds include water (H2O), methane (CH4), and oxygen gas (O2)."
+        questions:
+          - prompt: "What characterizes a covalent bond?"
+            choices:
+              - text: "Transfer of electrons"
+              - text: "Sharing of electrons"
+                correct: true
+              - text: "Loss of electrons"
+              - text: "Magnetic attraction"
+          - prompt: "How many electron pairs are shared in a double bond?"
+            choices:
+              - text: "One"
+              - text: "Two"
+                correct: true
+              - text: "Three"
+              - text: "Four"
+      - name: "molecular-structures"
+        description: "Understanding how molecules are structured"
+        prerequisites: ["covalent-bonds", "elements-compounds"]
+        contents:
+          - "The arrangement of atoms in a molecule determines its shape and properties. This is called molecular geometry."
+          - "The chemical formula shows what elements and how many atoms are in a molecule. For example, H2O means 2 hydrogen atoms and 1 oxygen atom."
+          - "Structural formulas show how atoms are bonded together in a molecule, giving more detail than simple chemical formulas."
+        questions:
+          - prompt: "What does the chemical formula CO2 tell us?"
+            choices:
+              - text: "1 carbon, 2 oxygen atoms"
+                correct: true
+              - text: "2 carbon, 1 oxygen atom"
+              - text: "1 carbon dioxide molecule"
+              - text: "The molecular shape"
+
+  - title: States of Matter
+    knowledge_points:
+      - name: "matter-states"
+        description: "Understanding the three main states of matter"
+        prerequisites: []
+        contents:
+          - "Matter exists in three main states: solid, liquid, and gas. Each state has distinct properties based on particle arrangement and movement."
+          - "Solids have particles tightly packed in fixed positions. They have definite shape and volume."
+          - "Liquids have particles close together but free to move. They have definite volume but take the shape of their container."
+          - "Gases have particles far apart and moving freely. They have no definite shape or volume and expand to fill their container."
+        questions:
+          - prompt: "Which state of matter has particles in fixed positions?"
+            choices:
+              - text: "Gas"
+              - text: "Liquid"
+              - text: "Solid"
+                correct: true
+              - text: "Plasma"
+          - prompt: "Which state of matter has no definite shape or volume?"
+            choices:
+              - text: "Solid"
+              - text: "Liquid"
+              - text: "Gas"
+                correct: true
+              - text: "All of them"
+      - name: "phase-changes"
+        description: "Understanding how matter changes between states"
+        prerequisites: ["matter-states"]
+        contents:
+          - "Phase changes occur when matter transitions from one state to another by adding or removing energy (usually heat)."
+          - "Melting is solid to liquid. Freezing is liquid to solid. Evaporation is liquid to gas. Condensation is gas to liquid."
+          - "Sublimation is solid directly to gas (like dry ice). Deposition is gas directly to solid (like frost forming)."
+        questions:
+          - prompt: "What is the phase change from liquid to gas called?"
+            choices:
+              - text: "Melting"
+              - text: "Freezing"
+              - text: "Evaporation"
+                correct: true
+              - text: "Condensation"
+          - prompt: "What is sublimation?"
+            choices:
+              - text: "Liquid to gas"
+              - text: "Solid directly to gas"
+                correct: true
+              - text: "Gas to liquid"
+              - text: "Solid to liquid"
+      - name: "kinetic-molecular-theory"
+        description: "Understanding particle movement and energy in matter"
+        prerequisites: ["matter-states", "phase-changes"]
+        contents:
+          - "The kinetic molecular theory states that all particles of matter are in constant motion. The speed of movement depends on temperature."
+          - "Higher temperature means particles move faster and have more kinetic energy. Lower temperature means slower movement and less energy."
+          - "In gases, particle motion is random and rapid. In liquids, particles slide past each other. In solids, particles vibrate in place."
+        questions:
+          - prompt: "What happens to particle movement when temperature increases?"
+            choices:
+              - text: "Particles move slower"
+              - text: "Particles move faster"
+                correct: true
+              - text: "Particles stop moving"
+              - text: "Nothing changes"
+
+  - title: Chemical Reactions
+    knowledge_points:
+      - name: "reaction-types"
+        description: "Understanding different types of chemical reactions"
+        prerequisites: ["elements-compounds", "ionic-bonds", "covalent-bonds"]
+        contents:
+          - "Chemical reactions occur when substances interact to form new substances with different properties."
+          - "Synthesis reactions combine two or more substances to form a new compound (A + B → AB)."
+          - "Decomposition reactions break down a compound into simpler substances (AB → A + B)."
+          - "Combustion reactions involve burning in oxygen, producing heat and light. Single and double replacement reactions involve exchanging atoms between compounds."
+        questions:
+          - prompt: "What type of reaction combines substances to form a new compound?"
+            choices:
+              - text: "Decomposition"
+              - text: "Synthesis"
+                correct: true
+              - text: "Combustion"
+              - text: "Replacement"
+          - prompt: "What type of reaction breaks down compounds into simpler substances?"
+            choices:
+              - text: "Synthesis"
+              - text: "Decomposition"
+                correct: true
+              - text: "Combustion"
+              - text: "Double replacement"
+      - name: "balancing-equations"
+        description: "Learning to balance chemical equations"
+        prerequisites: ["reaction-types"]
+        contents:
+          - "Chemical equations represent reactions using chemical formulas. The reactants are on the left, products are on the right, separated by an arrow."
+          - "The law of conservation of mass states that matter cannot be created or destroyed in a chemical reaction. Atoms must be balanced on both sides."
+          - "To balance an equation, adjust the coefficients (numbers in front of formulas) so each element has the same number of atoms on both sides."
+        questions:
+          - prompt: "What does the law of conservation of mass state?"
+            choices:
+              - text: "Mass can be created in reactions"
+              - text: "Mass cannot be created or destroyed"
+                correct: true
+              - text: "Mass always increases"
+              - text: "Mass can disappear"
+          - prompt: "In a balanced equation, what must be equal on both sides?"
+            choices:
+              - text: "The number of molecules"
+              - text: "The number of each type of atom"
+                correct: true
+              - text: "The total mass only"
+              - text: "The coefficients"
+      - name: "reactants-products"
+        description: "Understanding reactants and products in chemical reactions"
+        prerequisites: ["reaction-types"]
+        contents:
+          - "Reactants are the starting substances that undergo change in a chemical reaction. They appear on the left side of the equation."
+          - "Products are the new substances formed during the reaction. They appear on the right side of the equation."
+          - "Chemical reactions involve breaking bonds in reactants and forming new bonds to create products. Energy is either absorbed or released in this process."
+        questions:
+          - prompt: "Where do reactants appear in a chemical equation?"
+            choices:
+              - text: "On the right side"
+              - text: "On the left side"
+                correct: true
+              - text: "In the middle"
+              - text: "Above the arrow"
+
+  - title: Acids and Bases
+    knowledge_points:
+      - name: "ph-scale"
+        description: "Understanding the pH scale and what it measures"
+        prerequisites: []
+        contents:
+          - "The pH scale measures how acidic or basic a solution is. It ranges from 0 to 14."
+          - "A pH of 7 is neutral (like pure water). pH below 7 is acidic. pH above 7 is basic (also called alkaline)."
+          - "Each number on the pH scale represents a tenfold difference in acidity or basicity. For example, pH 4 is ten times more acidic than pH 5."
+        questions:
+          - prompt: "What pH value is considered neutral?"
+            choices:
+              - text: "0"
+              - text: "7"
+                correct: true
+              - text: "10"
+              - text: "14"
+          - prompt: "A solution with pH 3 is:"
+            choices:
+              - text: "Neutral"
+              - text: "Basic"
+              - text: "Acidic"
+                correct: true
+              - text: "Not measurable"
+      - name: "acid-base-properties"
+        description: "Understanding the properties of acids and bases"
+        prerequisites: ["ph-scale"]
+        contents:
+          - "Acids taste sour, turn blue litmus paper red, and react with metals to produce hydrogen gas. Examples include vinegar (acetic acid) and lemon juice (citric acid)."
+          - "Bases taste bitter, feel slippery, and turn red litmus paper blue. Examples include soap, baking soda (sodium bicarbonate), and bleach."
+          - "Acids release hydrogen ions (H+) in water. Bases release hydroxide ions (OH-) in water or accept hydrogen ions."
+        questions:
+          - prompt: "What do acids release in water?"
+            choices:
+              - text: "Hydroxide ions (OH-)"
+              - text: "Hydrogen ions (H+)"
+                correct: true
+              - text: "Oxygen"
+              - text: "Carbon dioxide"
+          - prompt: "Which is a property of bases?"
+            choices:
+              - text: "Taste sour"
+              - text: "Feel slippery"
+                correct: true
+              - text: "Turn litmus red"
+              - text: "React with metals"
+      - name: "neutralization"
+        description: "Understanding neutralization reactions between acids and bases"
+        prerequisites: ["acid-base-properties", "reaction-types"]
+        contents:
+          - "Neutralization occurs when an acid and base react together to form water and a salt."
+          - "The general equation is: Acid + Base → Salt + Water. For example, HCl + NaOH → NaCl + H2O."
+          - "During neutralization, hydrogen ions from the acid combine with hydroxide ions from the base to form water. This reaction often releases heat."
+        questions:
+          - prompt: "What are the products of a neutralization reaction?"
+            choices:
+              - text: "Acid and base"
+              - text: "Salt and water"
+                correct: true
+              - text: "Hydrogen and oxygen"
+              - text: "Carbon dioxide and water"
+          - prompt: "What happens to pH when an acid is neutralized by a base?"
+            choices:
+              - text: "pH becomes more acidic"
+              - text: "pH moves toward 7"
+                correct: true
+              - text: "pH becomes 0"
+              - text: "pH becomes 14"
