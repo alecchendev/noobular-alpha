@@ -34,7 +34,7 @@ def init_database() -> None:
     cursor.execute("""CREATE TABLE IF NOT EXISTS knowledge_points (
         id INTEGER PRIMARY KEY,
         lesson_id INTEGER NOT NULL,
-        knowledge_point_id TEXT NOT NULL,
+        name TEXT NOT NULL,
         description TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (lesson_id) REFERENCES lessons (id)
@@ -141,7 +141,8 @@ class Content:
 
 @dataclass
 class KnowledgePoint:
-    id: str
+    id: int
+    name: str
     description: str
     contents: List[Content]
     questions: List[Question]
@@ -234,7 +235,8 @@ def load_course_by_route(route: str) -> Optional[Course]:
                 )
 
             knowledge_point = KnowledgePoint(
-                id=kp_data["id"],
+                id=-1,
+                name=kp_data["name"],
                 description=kp_data["description"],
                 contents=contents,
                 questions=questions,
@@ -294,9 +296,9 @@ def load_courses_to_database() -> None:
                 for knowledge_point in lesson.knowledge_points:
                     cursor.execute(
                         """INSERT OR REPLACE INTO knowledge_points
-                                     (lesson_id, knowledge_point_id, description)
+                                     (lesson_id, name, description)
                                      VALUES (?, ?, ?)""",
-                        (lesson_id, knowledge_point.id, knowledge_point.description),
+                        (lesson_id, knowledge_point.name, knowledge_point.description),
                     )
                     knowledge_point_db_id = cursor.lastrowid
 
@@ -352,13 +354,13 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
     for lesson_id, lesson_title in lesson_rows:
         # Get knowledge points for this lesson
         cursor.execute(
-            "SELECT id, knowledge_point_id, description FROM knowledge_points WHERE lesson_id = ?",
+            "SELECT id, name, description FROM knowledge_points WHERE lesson_id = ?",
             (lesson_id,),
         )
         kp_rows = cursor.fetchall()
 
         knowledge_points = []
-        for kp_db_id, kp_id, kp_description in kp_rows:
+        for kp_db_id, kp_name, kp_description in kp_rows:
             # Get contents for this knowledge point
             cursor.execute(
                 "SELECT id, text FROM contents WHERE knowledge_point_id = ?",
@@ -406,7 +408,8 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
 
             knowledge_points.append(
                 KnowledgePoint(
-                    id=kp_id,
+                    id=kp_db_id,
+                    name=kp_name,
                     description=kp_description,
                     contents=contents,
                     questions=questions,
@@ -642,61 +645,61 @@ def validate_course() -> tuple[Any, int]:
                         error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} must be an object"
                     ).jsonify()
 
-                if "id" not in kp_data:
+                if "name" not in kp_data:
                     return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} missing required field: 'id'"
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} missing required field: 'name'"
                     ).jsonify()
 
                 if "description" not in kp_data:
                     return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data.get('id', 'unknown')}') missing required field: 'description'"
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data.get('name', 'unknown')}') missing required field: 'description'"
                     ).jsonify()
 
                 if "contents" not in kp_data:
                     return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}') missing required field: 'contents'"
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') missing required field: 'contents'"
                     ).jsonify()
 
                 if not isinstance(kp_data["contents"], list):
                     return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}') field 'contents' must be a list"
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') field 'contents' must be a list"
                     ).jsonify()
 
                 if "questions" not in kp_data:
                     return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}') missing required field: 'questions'"
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') missing required field: 'questions'"
                     ).jsonify()
 
                 if not isinstance(kp_data["questions"], list):
                     return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}') field 'questions' must be a list"
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') field 'questions' must be a list"
                     ).jsonify()
 
                 # Validate questions
                 for q_idx, question_data in enumerate(kp_data["questions"]):
                     if not isinstance(question_data, dict):
                         return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} must be an object"
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} must be an object"
                         ).jsonify()
 
                     if "prompt" not in question_data:
                         return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} missing required field: 'prompt'"
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} missing required field: 'prompt'"
                         ).jsonify()
 
                     if "choices" not in question_data:
                         return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} (prompt: '{question_data.get('prompt', 'unknown')}') missing required field: 'choices'"
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data.get('prompt', 'unknown')}') missing required field: 'choices'"
                         ).jsonify()
 
                     if not isinstance(question_data["choices"], list):
                         return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} (prompt: '{question_data['prompt']}') field 'choices' must be a list"
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}') field 'choices' must be a list"
                         ).jsonify()
 
                     if len(question_data["choices"]) < 2:
                         return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} (prompt: '{question_data['prompt']}') must have at least 2 choices"
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}') must have at least 2 choices"
                         ).jsonify()
 
                     # Validate choices and count correct answers
@@ -704,12 +707,12 @@ def validate_course() -> tuple[Any, int]:
                     for c_idx, choice_data in enumerate(question_data["choices"]):
                         if not isinstance(choice_data, dict):
                             return ValidationError(
-                                error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} must be an object"
+                                error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} must be an object"
                             ).jsonify()
 
                         if "text" not in choice_data:
                             return ValidationError(
-                                error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} missing required field: 'text'"
+                                error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} missing required field: 'text'"
                             ).jsonify()
 
                         if choice_data.get("correct", False):
@@ -718,7 +721,7 @@ def validate_course() -> tuple[Any, int]:
                     # Validate exactly one correct answer
                     if correct_count != 1:
                         return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (id: '{kp_data['id']}'), question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
                         ).jsonify()
 
         return ValidationSuccess(
