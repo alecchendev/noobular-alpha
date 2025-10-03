@@ -79,6 +79,16 @@ def init_database() -> None:
         UNIQUE(question_id)
     )""")
 
+    # Create prerequisites table
+    cursor.execute("""CREATE TABLE IF NOT EXISTS prerequisites (
+        id INTEGER PRIMARY KEY,
+        knowledge_point_id INTEGER NOT NULL,
+        prerequisite_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points (id),
+        FOREIGN KEY (prerequisite_id) REFERENCES knowledge_points (id)
+    )""")
+
     print("✅ Database tables created successfully!")
     conn.close()
 
@@ -144,6 +154,7 @@ class KnowledgePoint:
     id: int
     name: str
     description: str
+    prerequisites: List[int]
     contents: List[Content]
     questions: List[Question]
 
@@ -238,6 +249,7 @@ def load_course_by_route(route: str) -> Optional[Course]:
                 id=-1,
                 name=kp_data["name"],
                 description=kp_data["description"],
+                prerequisites=[],  # Will be resolved after all KPs are loaded
                 contents=contents,
                 questions=questions,
             )
@@ -273,6 +285,10 @@ def load_courses_to_database() -> None:
                 print(f"Course {yaml_file.name} already loaded (unchanged), skipping")
                 continue
 
+            # Load YAML data to get prerequisite names
+            with open(yaml_file, "r") as f:
+                course_data = yaml.safe_load(f) or {}
+
             course = load_course_by_route(yaml_file.stem)
             if not course:
                 continue
@@ -284,8 +300,11 @@ def load_courses_to_database() -> None:
             )
             course_id = cursor.lastrowid
 
+            # Map knowledge point names to database IDs for prerequisite resolution
+            kp_name_to_db_id = {}
+
             # Insert lessons
-            for lesson in course.lessons:
+            for lesson_idx, lesson in enumerate(course.lessons):
                 cursor.execute(
                     "INSERT OR REPLACE INTO lessons (course_id, title) VALUES (?, ?)",
                     (course_id, lesson.title),
@@ -293,7 +312,7 @@ def load_courses_to_database() -> None:
                 lesson_id = cursor.lastrowid
 
                 # Insert knowledge points, contents, and questions
-                for knowledge_point in lesson.knowledge_points:
+                for kp_idx, knowledge_point in enumerate(lesson.knowledge_points):
                     cursor.execute(
                         """INSERT OR REPLACE INTO knowledge_points
                                      (lesson_id, name, description)
@@ -301,6 +320,7 @@ def load_courses_to_database() -> None:
                         (lesson_id, knowledge_point.name, knowledge_point.description),
                     )
                     knowledge_point_db_id = cursor.lastrowid
+                    kp_name_to_db_id[knowledge_point.name] = knowledge_point_db_id
 
                     # Insert contents
                     for content in knowledge_point.contents:
@@ -328,6 +348,24 @@ def load_courses_to_database() -> None:
                                              (question_id, text, is_correct)
                                              VALUES (?, ?, ?)""",
                                 (question_id, choice.text, choice.correct or False),
+                            )
+
+            # Insert prerequisites (after all knowledge points are created)
+            for lesson_idx, lesson_data in enumerate(course_data.get("lessons", [])):
+                for kp_data in lesson_data.get("knowledge_points", []):
+                    kp_name = kp_data["name"]
+                    kp_db_id = kp_name_to_db_id.get(kp_name)
+                    if not kp_db_id:
+                        continue
+
+                    for prerequisite_name in kp_data.get("prerequisites", []):
+                        prerequisite_db_id = kp_name_to_db_id.get(prerequisite_name)
+                        if prerequisite_db_id:
+                            cursor.execute(
+                                """INSERT OR REPLACE INTO prerequisites
+                                             (knowledge_point_id, prerequisite_id)
+                                             VALUES (?, ?)""",
+                                (kp_db_id, prerequisite_db_id),
                             )
 
         print("✅ Courses loaded into database successfully!")
@@ -361,6 +399,14 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
 
         knowledge_points = []
         for kp_db_id, kp_name, kp_description in kp_rows:
+            # Get prerequisites for this knowledge point
+            cursor.execute(
+                "SELECT prerequisite_id FROM prerequisites WHERE knowledge_point_id = ?",
+                (kp_db_id,),
+            )
+            prerequisite_rows = cursor.fetchall()
+            prerequisites = [prereq_id for (prereq_id,) in prerequisite_rows]
+
             # Get contents for this knowledge point
             cursor.execute(
                 "SELECT id, text FROM contents WHERE knowledge_point_id = ?",
@@ -411,6 +457,7 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
                     id=kp_db_id,
                     name=kp_name,
                     description=kp_description,
+                    prerequisites=prerequisites,
                     contents=contents,
                     questions=questions,
                 )
@@ -617,6 +664,13 @@ def validate_course() -> tuple[Any, int]:
         if not isinstance(course_data["lessons"], list):
             return ValidationError(error="Field 'lessons' must be a list").jsonify()
 
+        # Collect all knowledge point names for prerequisite validation
+        all_kp_names = set()
+        for lesson_data in course_data.get("lessons", []):
+            for kp_data in lesson_data.get("knowledge_points", []):
+                if "name" in kp_data:
+                    all_kp_names.add(kp_data["name"])
+
         for lesson_idx, lesson_data in enumerate(course_data["lessons"]):
             if not isinstance(lesson_data, dict):
                 return ValidationError(
@@ -674,6 +728,30 @@ def validate_course() -> tuple[Any, int]:
                     return ValidationError(
                         error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') field 'questions' must be a list"
                     ).jsonify()
+
+                # Validate prerequisites
+                if "prerequisites" not in kp_data:
+                    return ValidationError(
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') missing required field: 'prerequisites'"
+                    ).jsonify()
+
+                if not isinstance(kp_data["prerequisites"], list):
+                    return ValidationError(
+                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') field 'prerequisites' must be a list"
+                    ).jsonify()
+
+                for prereq_idx, prerequisite_name in enumerate(
+                    kp_data["prerequisites"]
+                ):
+                    if not isinstance(prerequisite_name, str):
+                        return ValidationError(
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), prerequisite {prereq_idx} must be a string"
+                        ).jsonify()
+
+                    if prerequisite_name not in all_kp_names:
+                        return ValidationError(
+                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), prerequisite '{prerequisite_name}' does not exist in this course"
+                        ).jsonify()
 
                 # Validate questions
                 for q_idx, question_data in enumerate(kp_data["questions"]):
