@@ -31,7 +31,7 @@
             hx-include="#knowledge-point-{{ knowledge_point_index }}-question-form-{{ question_index }}"
             hx-swap="outerHTML"
         >Submit</button>
-    {% else %}
+    {% elif not last_passed_knowledge_point %}
         {% include 'next_button.html' %}
     {% endif %}
 {% endif %}

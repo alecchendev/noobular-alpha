@@ -142,6 +142,10 @@ class Question:
     choices: List[Choice]
     answer: Optional[Answer]
 
+    def correct_choice(self) -> Choice:
+        # Assumes there is a correct choice (should be validated upon course load)
+        return next(choice for choice in self.choices if choice.correct)
+
 
 @dataclass
 class Content:
@@ -157,6 +161,17 @@ class KnowledgePoint:
     prerequisites: List[int]
     contents: List[Content]
     questions: List[Question]
+
+    def last_consecutive_correct_answers(self) -> int:
+        last_correct_count = 0
+        for question in self.questions[::-1]:
+            if question.answer is None:
+                continue
+            if question.answer.choice_id == question.correct_choice().id:
+                last_correct_count += 1
+            else:
+                break
+        return last_correct_count
 
 
 @dataclass
@@ -629,6 +644,10 @@ def index() -> str:
     return render_template("index.html", courses=courses)
 
 
+# number of answers correct in a row to let you skip the rest of the questions
+CORRECT_COUNT_THRESHOLD = 2
+
+
 @app.route("/course/<int:course_id>")
 def course_page(course_id: int) -> str:
     course = load_course_from_db(course_id)
@@ -639,7 +658,15 @@ def course_page(course_id: int) -> str:
     completed_kp_ids = set()
     for lesson in course.lessons:
         for kp in lesson.knowledge_points:
-            if all(question.answer is not None for question in kp.questions):
+            # Either all questions have been answered, or last X questions were
+            # answered correctly in a row
+            answered_questions = [
+                question for question in kp.questions if question.answer
+            ]
+            if len(answered_questions) == len(kp.questions):
+                completed_kp_ids.add(kp.id)
+                continue
+            if kp.last_consecutive_correct_answers() >= CORRECT_COUNT_THRESHOLD:
                 completed_kp_ids.add(kp.id)
 
     next_lessons = []
@@ -750,6 +777,12 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         "INSERT OR REPLACE INTO answers (question_id, choice_id) VALUES (?, ?)",
         (question.id, user_choice.id),
     )
+    answer_id = cursor.lastrowid
+    assert answer_id is not None
+    # Important that we populate this so our check for the correct answer is right
+    lesson.knowledge_points[kp_index].questions[question_index].answer = Answer(
+        id=answer_id, question_id=question.id, choice_id=user_choice.id
+    )
     db.commit()
 
     is_correct = user_choice.correct
@@ -768,6 +801,18 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         i,
         len(knowledge_point.contents) + len(knowledge_point.questions),
     )
+
+    # skip next button if we got the last two correct and this is the last knowledge point
+    last_kp = kp_index == len(lesson.knowledge_points) - 1
+    assert i >= len(knowledge_point.contents)
+    completed_kp = (
+        lesson.knowledge_points[kp_index].last_consecutive_correct_answers()
+        >= CORRECT_COUNT_THRESHOLD
+    )
+    if last_kp and completed_kp:
+        # make i the last index to make the next_button_html not render
+        i = len(knowledge_point.contents) + len(knowledge_point.questions) - 1
+
     # Render next button with logic handled in template
     next_button_html = render_template(
         "next_button.html",
@@ -851,6 +896,30 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
     assert kp_index < len(lesson.knowledge_points)
     i = int(i_str)
 
+    knowledge_point = lesson.knowledge_points[kp_index]
+    completed_kp = (
+        lesson.knowledge_points[kp_index].last_consecutive_correct_answers()
+        >= CORRECT_COUNT_THRESHOLD
+    )
+    is_question = i >= len(knowledge_point.contents)
+    last_passed_knowledge_point = False
+    if completed_kp and is_question:
+        # if it's the last kp, and it's the last already answered question, don't render submit button
+        last_kp = kp_index == len(lesson.knowledge_points) - 1
+        question_index = i - len(knowledge_point.contents)
+        answered_count = len(
+            [question for question in knowledge_point.questions if question.answer]
+        )
+        is_last_answered_question = question_index == answered_count - 1
+        if last_kp and is_last_answered_question:
+            last_passed_knowledge_point = True
+        # otherwise if this is an unanswered question, move on to next kp
+        elif question_index >= answered_count:
+            kp_index += 1
+            i = 0
+    # TODO: if you don't answer two in a row correct after X questions
+    # we need to push you back a little to better master prerequisites
+
     return render_template(
         "knowledge_point.html",
         course=course,
@@ -858,6 +927,7 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
         knowledge_point=lesson.knowledge_points[kp_index],
         knowledge_point_index=kp_index,
         i=i,
+        last_passed_knowledge_point=last_passed_knowledge_point,
     )
 
 
