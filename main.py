@@ -197,7 +197,7 @@ class ValidationError:
 COURSES_DIRECTORY = Path("courses")
 
 
-def validate_and_parse_course(course_data: dict[str, Any]) -> Course:
+def validate_course(course_data: dict[str, Any]) -> None:
     """Validate course data and return a Course object. Raises ValueError on validation failure."""
     # Validate required fields
     if "title" not in course_data:
@@ -395,54 +395,6 @@ def validate_and_parse_course(course_data: dict[str, Any]) -> Course:
             f"Cannot visit all knowledge points in prerequisite graph. Some knowledge points are not reachable from root nodes because they form a loop: {' -> '.join(loop_rec_stack)}"
         )
 
-    # Build Course object
-    lessons = []
-    for lesson_data in course_data.get("lessons", []):
-        knowledge_points = []
-        for kp_data in lesson_data.get("knowledge_points", []):
-            contents = [
-                Content(id=-1, text=content_text)
-                for content_text in kp_data.get("contents", [])
-            ]
-
-            questions = []
-            for question_data in kp_data.get("questions", []):
-                choices = [
-                    Choice(
-                        id=-1, text=choice["text"], correct=choice.get("correct", False)
-                    )
-                    for choice in question_data.get("choices", [])
-                ]
-
-                questions.append(
-                    Question(
-                        id=-1,
-                        prompt=question_data["prompt"],
-                        choices=choices,
-                        answer=None,
-                    )
-                )
-
-            knowledge_point = KnowledgePoint(
-                id=-1,
-                name=kp_data["name"],
-                description=kp_data["description"],
-                prerequisites=[],
-                contents=contents,
-                questions=questions,
-            )
-            knowledge_points.append(knowledge_point)
-
-        lessons.append(
-            Lesson(
-                id=-1,
-                title=lesson_data["title"],
-                knowledge_points=knowledge_points,
-            )
-        )
-
-    return Course(id=-1, title=course_data["title"], lessons=lessons)
-
 
 def load_courses_to_database() -> None:
     """Load courses from YAML files into database"""
@@ -450,106 +402,116 @@ def load_courses_to_database() -> None:
         print("No courses directory found, skipping course loading")
         return
 
-    with sqlite3.connect(DATABASE) as conn:
-        cursor = conn.cursor()
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
 
-        for yaml_file in COURSES_DIRECTORY.glob("*.yaml"):
-            # Calculate file hash (MD5, 16 bytes)
-            with open(yaml_file, "rb") as f:
-                file_hash = hashlib.md5(f.read()).digest()
+    # Parse new courses (file hash isn't in DB)
+    courses: list[tuple[bytes, dict[str, Any]]] = []  # hash, course_data
+    for yaml_file in COURSES_DIRECTORY.glob("*.yaml"):
+        # Calculate file hash (MD5, 16 bytes)
+        with open(yaml_file, "rb") as f:
+            file_hash = hashlib.md5(f.read()).digest()
 
-            # Check if this file hash already exists
-            cursor.execute("SELECT id FROM courses WHERE file_hash = ?", (file_hash,))
-            if cursor.fetchone():
-                print(f"Course {yaml_file.name} already loaded (unchanged), skipping")
-                continue
+        # Check if this file hash already exists
+        cursor.execute("SELECT id FROM courses WHERE file_hash = ?", (file_hash,))
+        if cursor.fetchone():
+            print(f"Course {yaml_file.name} already loaded (unchanged), skipping")
+            continue
 
-            # Load YAML data
-            with open(yaml_file, "r") as f:
-                course_data = yaml.safe_load(f) or {}
+        with open(yaml_file, "r") as f:
+            course_data = yaml.safe_load(f) or {}
 
-            try:
-                course = validate_and_parse_course(course_data)
-            except ValueError as e:
-                print(f"Error validating {yaml_file.name}: {e}")
-                continue
+        try:
+            validate_course(course_data)
+        except ValueError as e:
+            print(f"Error validating {yaml_file.name}: {e}")
+            continue
+        courses.append((file_hash, course_data))
 
-            # Insert course with hash
+    # Insert into DB
+    for file_hash, course_data in courses:
+        # Insert course with hash
+        cursor.execute(
+            "INSERT OR REPLACE INTO courses (title, file_hash) VALUES (?, ?)",
+            (course_data["title"], file_hash),
+        )
+        course_id = cursor.lastrowid
+
+        # Map knowledge point names to database IDs for prerequisite resolution
+        kp_name_to_db_id: dict[str, int] = {}
+
+        # Insert lessons
+        for lesson_data in course_data.get("lessons", []):
             cursor.execute(
-                "INSERT OR REPLACE INTO courses (title, file_hash) VALUES (?, ?)",
-                (course.title, file_hash),
+                "INSERT OR REPLACE INTO lessons (course_id, title) VALUES (?, ?)",
+                (course_id, lesson_data["title"]),
             )
-            course_id = cursor.lastrowid
+            lesson_id = cursor.lastrowid
 
-            # Map knowledge point names to database IDs for prerequisite resolution
-            kp_name_to_db_id = {}
-
-            # Insert lessons
-            for lesson in course.lessons:
+            # Insert knowledge points, contents, and questions
+            for kp_data in lesson_data.get("knowledge_points", []):
                 cursor.execute(
-                    "INSERT OR REPLACE INTO lessons (course_id, title) VALUES (?, ?)",
-                    (course_id, lesson.title),
+                    """INSERT OR REPLACE INTO knowledge_points
+                                 (lesson_id, name, description)
+                                 VALUES (?, ?, ?)""",
+                    (lesson_id, kp_data["name"], kp_data["description"]),
                 )
-                lesson_id = cursor.lastrowid
+                knowledge_point_db_id = cursor.lastrowid
+                assert knowledge_point_db_id is not None
+                kp_name_to_db_id[kp_data["name"]] = knowledge_point_db_id
 
-                # Insert knowledge points, contents, and questions
-                for knowledge_point in lesson.knowledge_points:
+                # Insert contents
+                for content in kp_data["contents"]:
                     cursor.execute(
-                        """INSERT OR REPLACE INTO knowledge_points
-                                     (lesson_id, name, description)
-                                     VALUES (?, ?, ?)""",
-                        (lesson_id, knowledge_point.name, knowledge_point.description),
+                        """INSERT OR REPLACE INTO contents
+                                     (knowledge_point_id, text)
+                                     VALUES (?, ?)""",
+                        (knowledge_point_db_id, content),
                     )
-                    knowledge_point_db_id = cursor.lastrowid
-                    kp_name_to_db_id[knowledge_point.name] = knowledge_point_db_id
 
-                    # Insert contents
-                    for content in knowledge_point.contents:
+                # Insert questions and choices
+                for question_data in kp_data["questions"]:
+                    cursor.execute(
+                        """INSERT OR REPLACE INTO questions
+                                     (knowledge_point_id, prompt)
+                                     VALUES (?, ?)""",
+                        (knowledge_point_db_id, question_data["prompt"]),
+                    )
+                    question_id = cursor.lastrowid
+
+                    # Insert choices
+                    for choice_data in question_data["choices"]:
                         cursor.execute(
-                            """INSERT OR REPLACE INTO contents
-                                         (knowledge_point_id, text)
-                                         VALUES (?, ?)""",
-                            (knowledge_point_db_id, content.text),
+                            """INSERT OR REPLACE INTO choices
+                                         (question_id, text, is_correct)
+                                         VALUES (?, ?, ?)""",
+                            (
+                                question_id,
+                                choice_data["text"],
+                                choice_data.get("correct", False),
+                            ),
                         )
 
-                    # Insert questions and choices
-                    for question in knowledge_point.questions:
+        # Insert prerequisites (after all knowledge points are created)
+        for lesson_data in course_data.get("lessons", []):
+            for kp_data in lesson_data.get("knowledge_points", []):
+                kp_db_id = kp_name_to_db_id[kp_data["name"]]
+
+                for prerequisite_name in kp_data.get("prerequisites", []):
+                    prerequisite_db_id = kp_name_to_db_id.get(prerequisite_name)
+                    if prerequisite_db_id:
                         cursor.execute(
-                            """INSERT OR REPLACE INTO questions
-                                         (knowledge_point_id, prompt)
+                            """INSERT OR REPLACE INTO prerequisites
+                                         (knowledge_point_id, prerequisite_id)
                                          VALUES (?, ?)""",
-                            (knowledge_point_db_id, question.prompt),
+                            (kp_db_id, prerequisite_db_id),
                         )
-                        question_id = cursor.lastrowid
 
-                        # Insert choices
-                        for choice in question.choices:
-                            cursor.execute(
-                                """INSERT OR REPLACE INTO choices
-                                             (question_id, text, is_correct)
-                                             VALUES (?, ?, ?)""",
-                                (question_id, choice.text, choice.correct or False),
-                            )
+    conn.commit()
 
-            # Insert prerequisites (after all knowledge points are created)
-            for lesson_data in course_data.get("lessons", []):
-                for kp_data in lesson_data.get("knowledge_points", []):
-                    kp_name = kp_data["name"]
-                    kp_db_id = kp_name_to_db_id.get(kp_name)
-                    if not kp_db_id:
-                        continue
+    print("✅ Courses loaded into database successfully!")
 
-                    for prerequisite_name in kp_data.get("prerequisites", []):
-                        prerequisite_db_id = kp_name_to_db_id.get(prerequisite_name)
-                        if prerequisite_db_id:
-                            cursor.execute(
-                                """INSERT OR REPLACE INTO prerequisites
-                                             (knowledge_point_id, prerequisite_id)
-                                             VALUES (?, ?)""",
-                                (kp_db_id, prerequisite_db_id),
-                            )
-
-        print("✅ Courses loaded into database successfully!")
+    conn.close()
 
 
 def load_course_from_db(course_id: int) -> Optional[Course]:
@@ -651,8 +613,8 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
     return Course(id=course_id, title=course_title, lessons=lessons)
 
 
-def get_all_courses() -> List[Course]:
-    """Get all courses from the database"""
+@app.route("/")
+def index() -> str:
     db = get_db()
     cursor = db.cursor()
     cursor.execute("SELECT id FROM courses")
@@ -664,12 +626,6 @@ def get_all_courses() -> List[Course]:
         if course:
             courses.append(course)
 
-    return courses
-
-
-@app.route("/")
-def index() -> str:
-    courses = get_all_courses()
     return render_template("index.html", courses=courses)
 
 
@@ -826,7 +782,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
 
 
 @app.route("/validate-course", methods=["POST"])
-def validate_course() -> tuple[Any, int]:
+def validate() -> tuple[Any, int]:
     """Validate that a course file parses correctly"""
     data = request.get_json()
     if not data or "filename" not in data:
@@ -856,9 +812,9 @@ def validate_course() -> tuple[Any, int]:
             ).jsonify()
 
         # Use the validation helper function
-        course = validate_and_parse_course(course_data)
+        validate_course(course_data)
         return ValidationSuccess(
-            success=True, message=f"Course '{course.title}' is valid"
+            success=True, message=f"Course '{course_data['title']}' is valid"
         ).jsonify()
 
     except yaml.YAMLError as e:
