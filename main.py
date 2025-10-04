@@ -197,29 +197,214 @@ class ValidationError:
 COURSES_DIRECTORY = Path("courses")
 
 
-def load_course_by_route(route: str) -> Optional[Course]:
-    yaml_file = COURSES_DIRECTORY / f"{route}.yaml"
-    if not yaml_file.exists():
-        return None
+def validate_and_parse_course(course_data: dict[str, Any]) -> Course:
+    """Validate course data and return a Course object. Raises ValueError on validation failure."""
+    # Validate required fields
+    if "title" not in course_data:
+        raise ValueError("Missing required field: 'title'")
 
-    with open(yaml_file, "r") as f:
-        course_data = yaml.safe_load(f) or {}
+    if not isinstance(course_data["title"], str) or not course_data["title"].strip():
+        raise ValueError("Field 'title' must be a non-empty string")
 
-    title = course_data.get("title")
-    if not title:
-        raise ValueError(f"Course {yaml_file.name} missing required 'title' field")
+    # Validate lessons
+    if "lessons" not in course_data:
+        raise ValueError("Missing required field: 'lessons'")
 
+    if not isinstance(course_data["lessons"], list):
+        raise ValueError("Field 'lessons' must be a list")
+
+    # Collect all knowledge point names for prerequisite validation
+    all_kp_names = set()
+    for lesson_data in course_data.get("lessons", []):
+        for kp_data in lesson_data.get("knowledge_points", []):
+            if "name" in kp_data:
+                all_kp_names.add(kp_data["name"])
+
+    for lesson_idx, lesson_data in enumerate(course_data["lessons"]):
+        if not isinstance(lesson_data, dict):
+            raise ValueError(f"Lesson {lesson_idx} must be an object")
+
+        if "title" not in lesson_data:
+            raise ValueError(f"Lesson {lesson_idx} missing required field: 'title'")
+
+        if "knowledge_points" not in lesson_data:
+            raise ValueError(
+                f"Lesson {lesson_idx} ('{lesson_data.get('title', 'unnamed')}') missing required field: 'knowledge_points'"
+            )
+
+        if not isinstance(lesson_data["knowledge_points"], list):
+            raise ValueError(
+                f"Lesson {lesson_idx} ('{lesson_data['title']}') field 'knowledge_points' must be a list"
+            )
+
+        # Validate knowledge points
+        for kp_idx, kp_data in enumerate(lesson_data["knowledge_points"]):
+            if not isinstance(kp_data, dict):
+                raise ValueError(
+                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} must be an object"
+                )
+
+            if "name" not in kp_data:
+                raise ValueError(
+                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} missing required field: 'name'"
+                )
+
+            if "description" not in kp_data:
+                raise ValueError(
+                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data.get('name', 'unknown')}') missing required field: 'description'"
+                )
+
+            if "contents" not in kp_data:
+                raise ValueError(
+                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') missing required field: 'contents'"
+                )
+
+            if not isinstance(kp_data["contents"], list):
+                raise ValueError(
+                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') field 'contents' must be a list"
+                )
+
+            if "questions" not in kp_data:
+                raise ValueError(
+                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') missing required field: 'questions'"
+                )
+
+            if not isinstance(kp_data["questions"], list):
+                raise ValueError(
+                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') field 'questions' must be a list"
+                )
+
+            # Validate prerequisites
+            if "prerequisites" not in kp_data:
+                raise ValueError(
+                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') missing required field: 'prerequisites'"
+                )
+
+            if not isinstance(kp_data["prerequisites"], list):
+                raise ValueError(
+                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') field 'prerequisites' must be a list"
+                )
+
+            for prereq_idx, prerequisite_name in enumerate(kp_data["prerequisites"]):
+                if not isinstance(prerequisite_name, str):
+                    raise ValueError(
+                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), prerequisite {prereq_idx} must be a string"
+                    )
+
+                if prerequisite_name not in all_kp_names:
+                    raise ValueError(
+                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), prerequisite '{prerequisite_name}' does not exist in this course"
+                    )
+
+            # Validate questions
+            for q_idx, question_data in enumerate(kp_data["questions"]):
+                if not isinstance(question_data, dict):
+                    raise ValueError(
+                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} must be an object"
+                    )
+
+                if "prompt" not in question_data:
+                    raise ValueError(
+                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} missing required field: 'prompt'"
+                    )
+
+                if "choices" not in question_data:
+                    raise ValueError(
+                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data.get('prompt', 'unknown')}') missing required field: 'choices'"
+                    )
+
+                if not isinstance(question_data["choices"], list):
+                    raise ValueError(
+                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}') field 'choices' must be a list"
+                    )
+
+                if len(question_data["choices"]) < 2:
+                    raise ValueError(
+                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}') must have at least 2 choices"
+                    )
+
+                # Validate choices and count correct answers
+                correct_count = 0
+                for c_idx, choice_data in enumerate(question_data["choices"]):
+                    if not isinstance(choice_data, dict):
+                        raise ValueError(
+                            f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} must be an object"
+                        )
+
+                    if "text" not in choice_data:
+                        raise ValueError(
+                            f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} missing required field: 'text'"
+                        )
+
+                    if choice_data.get("correct", False):
+                        correct_count += 1
+
+                # Validate exactly one correct answer
+                if correct_count != 1:
+                    raise ValueError(
+                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
+                    )
+
+    # Validate prereq tree
+    kp_to_prereqs: dict[str, set[str]] = {}
+    prereq_to_kps: dict[str, set[str]] = {}
+    for lesson_data in course_data.get("lessons", []):
+        for kp_data in lesson_data.get("knowledge_points", []):
+            if kp_data["name"] not in kp_to_prereqs.keys():
+                kp_to_prereqs[kp_data["name"]] = set()
+            kp_to_prereqs[kp_data["name"]].update(kp_data["prerequisites"])
+            for prereq in kp_data["prerequisites"]:
+                if prereq not in prereq_to_kps.keys():
+                    prereq_to_kps[prereq] = set()
+                prereq_to_kps[prereq].add(kp_data["name"])
+
+    # Get roots
+    roots = [kp for kp, prereqs in kp_to_prereqs.items() if len(prereqs) == 0]
+
+    # Check cycles
+    def has_cycle_dfs(node: str, visited: set[str], rec_stack: list[str]) -> bool:
+        visited.add(node)
+        rec_stack.append(node)
+
+        for kp in prereq_to_kps.get(node, set()):
+            if kp not in visited:
+                if has_cycle_dfs(kp, visited, rec_stack):
+                    return True
+            elif kp in rec_stack:
+                rec_stack.append(kp)
+                return True
+
+        rec_stack.remove(node)
+        return False
+
+    visited_for_cycles: set[str] = set()
+    for kp_name in roots:
+        if kp_name not in visited_for_cycles:
+            rec_stack: list[str] = []
+            if has_cycle_dfs(kp_name, visited_for_cycles, rec_stack):
+                raise ValueError(
+                    f"Prerequisite cycle detected in prerequisite graph: {' -> '.join(rec_stack)}"
+                )
+
+    # Check every node got visited once
+    unreachable = set(kp_to_prereqs.keys()) - visited_for_cycles
+    if len(unreachable) != 0:
+        loop_rec_stack: list[str] = []
+        has_cycle_dfs(list(unreachable)[0], set(), loop_rec_stack)
+        raise ValueError(
+            f"Cannot visit all knowledge points in prerequisite graph. Some knowledge points are not reachable from root nodes because they form a loop: {' -> '.join(loop_rec_stack)}"
+        )
+
+    # Build Course object
     lessons = []
     for lesson_data in course_data.get("lessons", []):
         knowledge_points = []
         for kp_data in lesson_data.get("knowledge_points", []):
-            # Parse contents
             contents = [
                 Content(id=-1, text=content_text)
                 for content_text in kp_data.get("contents", [])
             ]
 
-            # Parse questions
             questions = []
             for question_data in kp_data.get("questions", []):
                 choices = [
@@ -228,13 +413,6 @@ def load_course_by_route(route: str) -> Optional[Course]:
                     )
                     for choice in question_data.get("choices", [])
                 ]
-
-                # Validate that there's exactly one correct choice
-                correct_count = sum(1 for choice in choices if choice.correct)
-                if correct_count != 1:
-                    raise ValueError(
-                        f"Question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
-                    )
 
                 questions.append(
                     Question(
@@ -249,7 +427,7 @@ def load_course_by_route(route: str) -> Optional[Course]:
                 id=-1,
                 name=kp_data["name"],
                 description=kp_data["description"],
-                prerequisites=[],  # Will be resolved after all KPs are loaded
+                prerequisites=[],
                 contents=contents,
                 questions=questions,
             )
@@ -262,7 +440,8 @@ def load_course_by_route(route: str) -> Optional[Course]:
                 knowledge_points=knowledge_points,
             )
         )
-    return Course(id=-1, title=title, lessons=lessons)
+
+    return Course(id=-1, title=course_data["title"], lessons=lessons)
 
 
 def load_courses_to_database() -> None:
@@ -285,12 +464,14 @@ def load_courses_to_database() -> None:
                 print(f"Course {yaml_file.name} already loaded (unchanged), skipping")
                 continue
 
-            # Load YAML data to get prerequisite names
+            # Load YAML data
             with open(yaml_file, "r") as f:
                 course_data = yaml.safe_load(f) or {}
 
-            course = load_course_by_route(yaml_file.stem)
-            if not course:
+            try:
+                course = validate_and_parse_course(course_data)
+            except ValueError as e:
+                print(f"Error validating {yaml_file.name}: {e}")
                 continue
 
             # Insert course with hash
@@ -674,221 +855,16 @@ def validate_course() -> tuple[Any, int]:
                 error="File is empty or contains no valid YAML"
             ).jsonify()
 
-        # Validate required fields
-        if "title" not in course_data:
-            return ValidationError(error="Missing required field: 'title'").jsonify()
-
-        if (
-            not isinstance(course_data["title"], str)
-            or not course_data["title"].strip()
-        ):
-            return ValidationError(
-                error="Field 'title' must be a non-empty string"
-            ).jsonify()
-
-        # Validate lessons
-        if "lessons" not in course_data:
-            return ValidationError(error="Missing required field: 'lessons'").jsonify()
-
-        if not isinstance(course_data["lessons"], list):
-            return ValidationError(error="Field 'lessons' must be a list").jsonify()
-
-        # Collect all knowledge point names for prerequisite validation
-        all_kp_names = set()
-        for lesson_data in course_data.get("lessons", []):
-            for kp_data in lesson_data.get("knowledge_points", []):
-                if "name" in kp_data:
-                    all_kp_names.add(kp_data["name"])
-
-        for lesson_idx, lesson_data in enumerate(course_data["lessons"]):
-            if not isinstance(lesson_data, dict):
-                return ValidationError(
-                    error=f"Lesson {lesson_idx} must be an object"
-                ).jsonify()
-
-            if "title" not in lesson_data:
-                return ValidationError(
-                    error=f"Lesson {lesson_idx} missing required field: 'title'"
-                ).jsonify()
-
-            if "knowledge_points" not in lesson_data:
-                return ValidationError(
-                    error=f"Lesson {lesson_idx} ('{lesson_data.get('title', 'unnamed')}') missing required field: 'knowledge_points'"
-                ).jsonify()
-
-            if not isinstance(lesson_data["knowledge_points"], list):
-                return ValidationError(
-                    error=f"Lesson {lesson_idx} ('{lesson_data['title']}') field 'knowledge_points' must be a list"
-                ).jsonify()
-
-            # Validate knowledge points
-            for kp_idx, kp_data in enumerate(lesson_data["knowledge_points"]):
-                if not isinstance(kp_data, dict):
-                    return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} must be an object"
-                    ).jsonify()
-
-                if "name" not in kp_data:
-                    return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} missing required field: 'name'"
-                    ).jsonify()
-
-                if "description" not in kp_data:
-                    return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data.get('name', 'unknown')}') missing required field: 'description'"
-                    ).jsonify()
-
-                if "contents" not in kp_data:
-                    return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') missing required field: 'contents'"
-                    ).jsonify()
-
-                if not isinstance(kp_data["contents"], list):
-                    return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') field 'contents' must be a list"
-                    ).jsonify()
-
-                if "questions" not in kp_data:
-                    return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') missing required field: 'questions'"
-                    ).jsonify()
-
-                if not isinstance(kp_data["questions"], list):
-                    return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') field 'questions' must be a list"
-                    ).jsonify()
-
-                # Validate prerequisites
-                if "prerequisites" not in kp_data:
-                    return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') missing required field: 'prerequisites'"
-                    ).jsonify()
-
-                if not isinstance(kp_data["prerequisites"], list):
-                    return ValidationError(
-                        error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') field 'prerequisites' must be a list"
-                    ).jsonify()
-
-                for prereq_idx, prerequisite_name in enumerate(
-                    kp_data["prerequisites"]
-                ):
-                    if not isinstance(prerequisite_name, str):
-                        return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), prerequisite {prereq_idx} must be a string"
-                        ).jsonify()
-
-                    if prerequisite_name not in all_kp_names:
-                        return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), prerequisite '{prerequisite_name}' does not exist in this course"
-                        ).jsonify()
-
-                # Validate questions
-                for q_idx, question_data in enumerate(kp_data["questions"]):
-                    if not isinstance(question_data, dict):
-                        return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} must be an object"
-                        ).jsonify()
-
-                    if "prompt" not in question_data:
-                        return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} missing required field: 'prompt'"
-                        ).jsonify()
-
-                    if "choices" not in question_data:
-                        return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data.get('prompt', 'unknown')}') missing required field: 'choices'"
-                        ).jsonify()
-
-                    if not isinstance(question_data["choices"], list):
-                        return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}') field 'choices' must be a list"
-                        ).jsonify()
-
-                    if len(question_data["choices"]) < 2:
-                        return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}') must have at least 2 choices"
-                        ).jsonify()
-
-                    # Validate choices and count correct answers
-                    correct_count = 0
-                    for c_idx, choice_data in enumerate(question_data["choices"]):
-                        if not isinstance(choice_data, dict):
-                            return ValidationError(
-                                error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} must be an object"
-                            ).jsonify()
-
-                        if "text" not in choice_data:
-                            return ValidationError(
-                                error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} missing required field: 'text'"
-                            ).jsonify()
-
-                        if choice_data.get("correct", False):
-                            correct_count += 1
-
-                    # Validate exactly one correct answer
-                    if correct_count != 1:
-                        return ValidationError(
-                            error=f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
-                        ).jsonify()
-
-        # Validate prereq tree
-        kp_to_prereqs: dict[str, set[str]] = {}
-        prereq_to_kps: dict[str, set[str]] = {}
-        for lesson_data in course_data.get("lessons", []):
-            for kp_data in lesson_data.get("knowledge_points", []):
-                if kp_data["name"] not in kp_to_prereqs.keys():
-                    kp_to_prereqs[kp_data["name"]] = set()
-                kp_to_prereqs[kp_data["name"]].update(kp_data["prerequisites"])
-                for prereq in kp_data["prerequisites"]:
-                    if prereq not in prereq_to_kps.keys():
-                        prereq_to_kps[prereq] = set()
-                    prereq_to_kps[prereq].add(kp_data["name"])
-
-        # Get roots
-        roots = [kp for kp, prereqs in kp_to_prereqs.items() if len(prereqs) == 0]
-
-        # Check cycles, i.e. depth first for each root, see if you visit already visited
-        def has_cycle_dfs(node: str, visited: set[str], rec_stack: list[str]) -> bool:
-            print(node)
-            visited.add(node)
-            rec_stack.append(node)
-
-            for kp in prereq_to_kps.get(node, set()):
-                if kp not in visited:
-                    if has_cycle_dfs(kp, visited, rec_stack):
-                        return True
-                elif kp in rec_stack:
-                    # Add so that upon returning, rec_stack includes the full cycle
-                    rec_stack.append(kp)
-                    return True
-
-            rec_stack.remove(node)
-            return False
-
-        visited_for_cycles: set[str] = set()
-        for kp_name in roots:
-            if kp_name not in visited_for_cycles:
-                rec_stack: list[str] = []
-                if has_cycle_dfs(kp_name, visited_for_cycles, rec_stack):
-                    return ValidationError(
-                        error=f"Prerequisite cycle detected in prerequisite graph: {' -> '.join(rec_stack)}"
-                    ).jsonify()
-
-        # Check every node got visited once
-        unreachable = set(kp_to_prereqs.keys()) - visited_for_cycles
-        if len(unreachable) != 0:
-            loop_rec_stack: list[str] = []
-            assert has_cycle_dfs(list(unreachable)[0], set(), loop_rec_stack)
-            return ValidationError(
-                error=f"Cannot visit all knowledge points in prerequisite graph. Some knowledge points are not reachable from root nodes because they form a loop: {' -> '.join(loop_rec_stack)}"
-            ).jsonify()
-
+        # Use the validation helper function
+        course = validate_and_parse_course(course_data)
         return ValidationSuccess(
-            success=True, message=f"Course '{course_data['title']}' is valid"
+            success=True, message=f"Course '{course.title}' is valid"
         ).jsonify()
 
     except yaml.YAMLError as e:
         return ValidationError(error=f"YAML parsing error: {str(e)}").jsonify()
+    except ValueError as e:
+        return ValidationError(error=str(e)).jsonify()
     except Exception as e:
         return ValidationError(
             error=f"Unexpected error: {str(e)}", status_code=500
