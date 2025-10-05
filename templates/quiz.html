@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quiz {{ quiz.id }} - {{ course.title }}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+    <h1>Quiz {{ quiz.id }}</h1>
+
+    <form hx-post="/course/{{ course.id }}/quiz/{{ quiz.id }}/submit"
+          hx-target="#submit-section"
+          hx-swap="outerHTML">
+        {% for question in quiz.questions %}
+            <p>{{ loop.index }}. {{ question.prompt }}</p>
+            {% for choice in question.choices %}
+                <div>
+                    <input type="radio" name="question_{{ question.id }}" value="{{ loop.index0 }}" required>
+                    {{ choice.text }}
+                </div>
+            {% endfor %}
+        {% endfor %}
+        <div id="submit-section">
+            <button type="submit">Submit Quiz</button>
+        </div>
+    </form>
+
+    <a href="/course/{{ course.id }}">← Back to Course</a>
+</body>
+</html>

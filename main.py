@@ -956,6 +956,11 @@ def validate() -> tuple[Any, int]:
 
 @app.route("/course/<int:course_id>/quiz/<int:quiz_id>")
 def quiz_page(course_id: int, quiz_id: int) -> str:
+    # Kinda unnecessary to just get the id + title needed, but whatever it's easy
+    course = load_course_from_db(course_id)
+    if not course:
+        abort(404)
+
     db = get_db()
     cursor = db.cursor()
 
@@ -966,20 +971,40 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
     if not cursor.fetchone():
         abort(404)
 
-    # For now, just display a stub page
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Quiz {quiz_id}</title>
-    </head>
-    <body>
-        <h1>Quiz {quiz_id}</h1>
-        <p>Quiz page - Coming soon!</p>
-        <a href="/course/{course_id}">← Back to Course</a>
-    </body>
-    </html>
-    """
+    # Load quiz questions
+    cursor.execute(
+        """SELECT q.id, q.prompt
+           FROM quiz_questions qq
+           JOIN questions q ON qq.question_id = q.id
+           WHERE qq.quiz_id = ?""",
+        (quiz_id,),
+    )
+    question_rows = cursor.fetchall()
+
+    questions = []
+    for q_id, q_prompt in question_rows:
+        # Load choices for this question
+        cursor.execute(
+            "SELECT id, text, is_correct FROM choices WHERE question_id = ?", (q_id,)
+        )
+        choices = [
+            Choice(id=c_id, text=c_text, correct=c_correct)
+            for c_id, c_text, c_correct in cursor.fetchall()
+        ]
+
+        questions.append(
+            Question(id=q_id, prompt=q_prompt, choices=choices, answer=None)
+        )
+
+    quiz = Quiz(id=quiz_id, course_id=course_id, questions=questions)
+
+    return render_template("quiz.html", course=course, quiz=quiz)
+
+
+@app.route("/course/<int:course_id>/quiz/<int:quiz_id>/submit", methods=["POST"])
+def quiz_submit(course_id: int, quiz_id: int) -> str:
+    # For now, just return a placeholder score
+    return "<div id='submit-section'><p>Quiz submitted! Score: Coming soon</p></div>"
 
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/next", methods=["POST"])
