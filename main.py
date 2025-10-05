@@ -94,6 +94,7 @@ def init_database() -> None:
         id INTEGER PRIMARY KEY,
         course_id INTEGER NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        started_at TIMESTAMP,
         FOREIGN KEY (course_id) REFERENCES courses (id)
     )""")
 
@@ -678,6 +679,8 @@ QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 5  # 15
 # number of questions in a quiz
 QUIZ_QUESTION_COUNT = 5
 assert QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD >= QUIZ_QUESTION_COUNT
+# number of minutes allowed for a quiz
+QUIZ_TIME_LIMIT_MINUTES = 15
 # TODO: have a cutoff of knowledge points before they must take a quiz
 
 
@@ -998,12 +1001,23 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
     db = get_db()
     cursor = db.cursor()
 
-    # Verify quiz exists and belongs to course
+    # Verify quiz exists and belongs to course, and set start time if not started
     cursor.execute(
-        "SELECT id FROM quizzes WHERE id = ? AND course_id = ?", (quiz_id, course_id)
+        "SELECT started_at FROM quizzes WHERE id = ? AND course_id = ?",
+        (quiz_id, course_id),
     )
-    if not cursor.fetchone():
+    quiz_row = cursor.fetchone()
+    if not quiz_row:
         abort(404)
+
+    # Set started_at if this is the first time loading the quiz
+    started_at = quiz_row[0]
+    if started_at is None:
+        cursor.execute(
+            "UPDATE quizzes SET started_at = CURRENT_TIMESTAMP WHERE id = ?", (quiz_id,)
+        )
+        db.commit()
+        # For template, we'll use JavaScript Date.now() since we just set it to current time
 
     # Load quiz questions
     cursor.execute(
@@ -1032,7 +1046,13 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
 
     quiz = Quiz(id=quiz_id, course_id=course_id, questions=questions)
 
-    return render_template("quiz.html", course=course, quiz=quiz)
+    return render_template(
+        "quiz.html",
+        course=course,
+        quiz=quiz,
+        started_at=started_at,
+        quiz_time_limit_minutes=QUIZ_TIME_LIMIT_MINUTES,
+    )
 
 
 @app.route("/course/<int:course_id>/quiz/<int:quiz_id>/submit", methods=["POST"])

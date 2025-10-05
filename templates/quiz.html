@@ -6,8 +6,10 @@
 </head>
 <body>
     <h1>Quiz {{ quiz.id }}</h1>
+    <p>Time remaining: <span id="timer"></span></p>
 
-    <form hx-post="/course/{{ course.id }}/quiz/{{ quiz.id }}/submit"
+    <form id="quiz-form"
+          hx-post="/course/{{ course.id }}/quiz/{{ quiz.id }}/submit"
           hx-target="#submit-section"
           hx-swap="outerHTML">
         {% for question in quiz.questions %}
@@ -25,5 +27,31 @@
     </form>
 
     <a href="/course/{{ course.id }}">← Back to Course</a>
+
+    <script>
+        const startTime = {% if started_at %}new Date("{{ started_at }}".replace(' ', 'T') + 'Z').getTime(){% else %}Date.now(){% endif %};
+        const timeLimitMs = {{ quiz_time_limit_minutes }} * 60 * 1000;
+        const endTime = startTime + timeLimitMs;
+        let submitted = false;
+
+        function updateTimer() {
+            const now = Date.now();
+            const remaining = endTime - now;
+
+            if (remaining <= 0 && !submitted) {
+                submitted = true;
+                document.getElementById('timer').textContent = '0:00';
+                htmx.trigger('#quiz-form', 'submit');
+                clearInterval(timerInterval);
+            } else {
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        updateTimer();
+        const timerInterval = setInterval(updateTimer, 1000);
+    </script>
 </body>
 </html>
