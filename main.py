@@ -674,7 +674,10 @@ CORRECT_COUNT_THRESHOLD = 2
 # percentage of wrong:right ratio to which you will fail and have to restart a lesson
 INCORRECT_RATIO_FAIL_THRESHOLD = 0.6  # 3/5
 # number of knowledge points completed before a quiz is ready
-QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 3  # 15
+QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 5  # 15
+# number of questions in a quiz
+QUIZ_QUESTION_COUNT = 5
+assert QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD >= QUIZ_QUESTION_COUNT
 # TODO: have a cutoff of knowledge points before they must take a quiz
 
 
@@ -741,21 +744,52 @@ def course_page(course_id: int) -> str:
     last_quiz_row = cursor.fetchone()
     last_quiz_time = last_quiz_row[0] if last_quiz_row else "1970-01-01 00:00:00"
 
-    # Count KPs completed after the last quiz using a single query
+    # Get KP IDs completed after the last quiz using a single query
     placeholders = ",".join("?" * len(completed_kp_ids))
     cursor.execute(
-        f"""SELECT COUNT(DISTINCT q.knowledge_point_id)
+        f"""SELECT DISTINCT q.knowledge_point_id
             FROM questions q
             JOIN answers a ON a.question_id = q.id
             WHERE q.knowledge_point_id IN ({placeholders})
             AND a.created_at > ?""",
         (*completed_kp_ids, last_quiz_time),
     )
-    completed_kps_since_last_quiz = cursor.fetchone()[0]
+    recent_completed_kp_ids = set(row[0] for row in cursor.fetchall())
 
     # Create a new quiz if threshold is met
-    if completed_kps_since_last_quiz >= QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD:
+    if len(recent_completed_kp_ids) >= QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD:
+        # Get recently completed KPs from the course data
+        import random
+
+        recent_kps: list[KnowledgePoint] = []
+        for lesson in course.lessons:
+            for kp in lesson.knowledge_points:
+                if kp.id in recent_completed_kp_ids:
+                    recent_kps.append(kp)
+
+        # Randomly select up to QUIZ_QUESTION_COUNT KPs
+        selected_kps = random.sample(recent_kps, QUIZ_QUESTION_COUNT)
+
+        # Collect one unanswered question from each selected KP
+        quiz_questions = []
+        for kp in selected_kps:
+            unanswered = [q for q in kp.questions if q.answer is None]
+            # TODO: consider separate bank for quiz questions, or better enforce
+            # assumption of large question bank upon course creation
+            assert len(unanswered) > 0
+            question = random.choice(unanswered)
+            quiz_questions.append(question.id)
+
+        # Create quiz, then insert all quiz questions in one query
+        assert len(quiz_questions) > 0
+
         cursor.execute("INSERT INTO quizzes (course_id) VALUES (?)", (course_id,))
+        quiz_id = cursor.lastrowid
+
+        cursor.executemany(
+            "INSERT INTO quiz_questions (quiz_id, question_id) VALUES (?, ?)",
+            zip([quiz_id] * len(quiz_questions), quiz_questions),
+        )
         db.commit()
 
     # Load all quizzes for this course
