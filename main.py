@@ -646,6 +646,8 @@ def index() -> str:
 
 # number of answers correct in a row to let you skip the rest of the questions
 CORRECT_COUNT_THRESHOLD = 2
+# percentage of wrong:right ratio to which you will fail and have to restart a lesson
+INCORRECT_RATIO_FAIL_THRESHOLD = 0.6  # 3/5
 
 
 @app.route("/course/<int:course_id>")
@@ -766,8 +768,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     answer_index = int(answer_str)
 
     # Validate the answer
-    knowledge_point = lesson.knowledge_points[kp_index]
-    question = knowledge_point.questions[question_index]
+    question = lesson.knowledge_points[kp_index].questions[question_index]
     user_choice = question.choices[answer_index]
 
     # Save the user's answer to the database
@@ -779,7 +780,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     )
     answer_id = cursor.lastrowid
     assert answer_id is not None
-    # Important that we populate this so our check for the correct answer is right
+    # Important that we populate this the rest of this handler can assume correct state
     lesson.knowledge_points[kp_index].questions[question_index].answer = Answer(
         id=answer_id, question_id=question.id, choice_id=user_choice.id
     )
@@ -790,28 +791,55 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         i for i, choice in enumerate(question.choices) if choice.correct
     )
     correct_answer_text = question.choices[correct_answer_index].text
+
     if is_correct:
         feedback = f"✅ Correct! The correct answer is: {correct_answer_text}"
     else:
         feedback = f"❌ Incorrect. The correct answer is: {correct_answer_text}"
 
-    print(
-        kp_index,
-        question_index,
-        i,
-        len(knowledge_point.contents) + len(knowledge_point.questions),
+    # Check if user has failed the knowledge point (3+ wrong answers)
+    knowledge_point = lesson.knowledge_points[kp_index]
+    incorrect_count = 0
+    answered_count = 0
+    for question in knowledge_point.questions:
+        if question.answer is None:
+            continue
+        answered_count += 1
+        incorrect_count += int(
+            question.answer.choice_id != question.correct_choice().id
+        )
+
+    failed_knowledge_point = (
+        answered_count >= 3
+        and incorrect_count / answered_count >= INCORRECT_RATIO_FAIL_THRESHOLD
     )
 
-    # Render next button with logic handled in template
-    next_button_html = render_template(
-        "next_button.html",
-        course=course,
-        lesson=lesson,
-        knowledge_point_index=kp_index,
-        i=i,
-    )
+    failure_message = ""
+    next_button_html = ""
+    if failed_knowledge_point:
+        # Delete all answers for questions in this lesson
+        for kp in lesson.knowledge_points:
+            for q in kp.questions:
+                if q.answer:
+                    cursor.execute("DELETE FROM answers WHERE id = ?", (q.answer.id,))
+        db.commit()
 
-    return f"<p>{feedback}</p>{next_button_html}"
+        failure_message = f"""
+        <div>
+            <p>❌ Your wrong:answered ratio for this knowledge point surpassed {INCORRECT_RATIO_FAIL_THRESHOLD * 100}%. You need to restart this lesson.</p>
+            <a href="/course/{course_id}/lesson/{lesson_id}" class="button">Restart Lesson</a>
+        </div>
+        """
+    else:
+        next_button_html = render_template(
+            "next_button.html",
+            course=course,
+            lesson=lesson,
+            knowledge_point_index=kp_index,
+            i=i,
+        )
+
+    return f"<p>{feedback}</p>{failure_message}{next_button_html}"
 
 
 @app.route("/validate-course", methods=["POST"])
@@ -895,8 +923,6 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
     if completed_kp and new_question:
         kp_index += 1
         i = 0
-    # TODO: if you don't answer two in a row correct after X questions
-    # we need to push you back a little to better master prerequisites
 
     return render_template(
         "knowledge_point.html",
