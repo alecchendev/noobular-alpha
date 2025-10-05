@@ -89,6 +89,24 @@ def init_database() -> None:
         FOREIGN KEY (prerequisite_id) REFERENCES knowledge_points (id)
     )""")
 
+    # Create quizzes table
+    cursor.execute("""CREATE TABLE IF NOT EXISTS quizzes (
+        id INTEGER PRIMARY KEY,
+        course_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (course_id) REFERENCES courses (id)
+    )""")
+
+    # Create quiz_questions table (links quizzes to questions)
+    cursor.execute("""CREATE TABLE IF NOT EXISTS quiz_questions (
+        id INTEGER PRIMARY KEY,
+        quiz_id INTEGER NOT NULL,
+        question_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (quiz_id) REFERENCES quizzes (id),
+        FOREIGN KEY (question_id) REFERENCES questions (id)
+    )""")
+
     print("✅ Database tables created successfully!")
     conn.close()
 
@@ -186,6 +204,13 @@ class Course:
     id: int
     title: str
     lessons: List[Lesson]
+
+
+@dataclass
+class Quiz:
+    id: int
+    course_id: int
+    questions: List[Question]
 
 
 @dataclass
@@ -648,6 +673,9 @@ def index() -> str:
 CORRECT_COUNT_THRESHOLD = 2
 # percentage of wrong:right ratio to which you will fail and have to restart a lesson
 INCORRECT_RATIO_FAIL_THRESHOLD = 0.6  # 3/5
+# number of knowledge points completed before a quiz is ready
+QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 3  # 15
+# TODO: have a cutoff of knowledge points before they must take a quiz
 
 
 @app.route("/course/<int:course_id>")
@@ -701,12 +729,50 @@ def course_page(course_id: int) -> str:
 
         remaining_lessons.append(lesson)
 
+    # Check if we need to create a new quiz
+    db = get_db()
+    cursor = db.cursor()
+
+    # Get the creation time of the last quiz (or use epoch if no quizzes exist)
+    cursor.execute(
+        "SELECT created_at FROM quizzes WHERE course_id = ? ORDER BY created_at DESC LIMIT 1",
+        (course_id,),
+    )
+    last_quiz_row = cursor.fetchone()
+    last_quiz_time = last_quiz_row[0] if last_quiz_row else "1970-01-01 00:00:00"
+
+    # Count KPs completed after the last quiz using a single query
+    placeholders = ",".join("?" * len(completed_kp_ids))
+    cursor.execute(
+        f"""SELECT COUNT(DISTINCT q.knowledge_point_id)
+            FROM questions q
+            JOIN answers a ON a.question_id = q.id
+            WHERE q.knowledge_point_id IN ({placeholders})
+            AND a.created_at > ?""",
+        (*completed_kp_ids, last_quiz_time),
+    )
+    completed_kps_since_last_quiz = cursor.fetchone()[0]
+
+    # Create a new quiz if threshold is met
+    if completed_kps_since_last_quiz >= QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD:
+        cursor.execute("INSERT INTO quizzes (course_id) VALUES (?)", (course_id,))
+        db.commit()
+
+    # Load all quizzes for this course
+    cursor.execute("SELECT id FROM quizzes WHERE course_id = ?", (course_id,))
+    quiz_ids = [row[0] for row in cursor.fetchall()]
+
+    quizzes = []
+    for quiz_id in quiz_ids:
+        quizzes.append(Quiz(id=quiz_id, course_id=course_id, questions=[]))
+
     return render_template(
         "course.html",
         course=course,
         next_lessons=next_lessons,
         completed_lessons=completed_lessons,
         remaining_lessons=remaining_lessons,
+        quizzes=quizzes,
     )
 
 
@@ -886,6 +952,34 @@ def validate() -> tuple[Any, int]:
         return ValidationError(
             error=f"Unexpected error: {str(e)}", status_code=500
         ).jsonify()
+
+
+@app.route("/course/<int:course_id>/quiz/<int:quiz_id>")
+def quiz_page(course_id: int, quiz_id: int) -> str:
+    db = get_db()
+    cursor = db.cursor()
+
+    # Verify quiz exists and belongs to course
+    cursor.execute(
+        "SELECT id FROM quizzes WHERE id = ? AND course_id = ?", (quiz_id, course_id)
+    )
+    if not cursor.fetchone():
+        abort(404)
+
+    # For now, just display a stub page
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Quiz {quiz_id}</title>
+    </head>
+    <body>
+        <h1>Quiz {quiz_id}</h1>
+        <p>Quiz page - Coming soon!</p>
+        <a href="/course/{course_id}">← Back to Course</a>
+    </body>
+    </html>
+    """
 
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/next", methods=["POST"])

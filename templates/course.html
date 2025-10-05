@@ -44,10 +44,15 @@
     {% endif %}
 
     <h2>Quizzes</h2>
-    <p>No quizzes available yet</p>
-
-    <h2>Completed Quizzes</h2>
-    <p>No completed quizzes</p>
+    {% if quizzes|length > 0 %}
+        <ul>
+        {% for quiz in quizzes %}
+            <li><a href="/course/{{ course.id }}/quiz/{{ quiz.id }}">Quiz {{ loop.index }}</a></li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No quizzes available yet</p>
+    {% endif %}
 
     <a href="/">← Back to Course Catalog</a>
 </body>
