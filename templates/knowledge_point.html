@@ -1,37 +1,39 @@
-{% if i < knowledge_point.contents|length %}
-    <p class="content">{{ knowledge_point.contents[i].text }}</p>
-    {% include 'next_button.html' %}
-{% elif i < knowledge_point.contents|length + knowledge_point.questions|length %}
-    {% set question_index = i - knowledge_point.contents|length %}
-    {% set question = knowledge_point.questions[question_index] %}
-    <div class="question">
-        <p><strong>{{ question.prompt }}</strong></p>
-        <form id="knowledge-point-{{ knowledge_point_index }}-question-form-{{ question_index }}">
-            {% for choice in question.choices %}
-                <label>
-                    <input type="radio" name="answer" value="{{ loop.index0 }}" required
-                        {% if question.answer is not none %}
-                            disabled
-                            {% if choice.id == question.answer.choice_id %}checked{% endif %}
-                        {% endif %}
-                    >
-                    {{ choice.text }}
-                </label><br>
-            {% endfor %}
-            <p><small>Question {{ question_index + 1 }} of {{ knowledge_point.questions|length }}</small></p>
-        </form>
-    </div>
-    {% if question.answer is none %}
-        <button
-            id="submit-button"
-            type="submit"
-            hx-post="/course/{{ course.id }}/lesson/{{ lesson.id }}/submit"
-            hx-target="#submit-button"
-            hx-vals='{"knowledge_point_index": {{ knowledge_point_index }}, "question_index": {{ question_index }}, "i": {{ i }}}'
-            hx-include="#knowledge-point-{{ knowledge_point_index }}-question-form-{{ question_index }}"
-            hx-swap="outerHTML"
-        >Submit</button>
-    {% elif not last_passed_knowledge_point %}
+{% if knowledge_point_index < lesson.knowledge_points|length %}
+    {% set knowledge_point = lesson.knowledge_points[knowledge_point_index] %}
+    {% if i < knowledge_point.contents|length %}
+        <p class="content">{{ knowledge_point.contents[i].text }}</p>
         {% include 'next_button.html' %}
+    {% elif i < knowledge_point.contents|length + knowledge_point.questions|length %}
+        {% set question_index = i - knowledge_point.contents|length %}
+        {% set question = knowledge_point.questions[question_index] %}
+        <div class="question">
+            <p><strong>{{ question.prompt }}</strong></p>
+            <form id="knowledge-point-{{ knowledge_point_index }}-question-form-{{ question_index }}">
+                {% for choice in question.choices %}
+                    <label>
+                        <input type="radio" name="answer" value="{{ loop.index0 }}" required
+                            {% if question.answer is not none %}
+                                disabled
+                                {% if choice.id == question.answer.choice_id %}checked{% endif %}
+                            {% endif %}
+                        >
+                        {{ choice.text }}
+                    </label><br>
+                {% endfor %}
+            </form>
+        </div>
+        {% if question.answer is none %}
+            <button
+                id="submit-button"
+                type="submit"
+                hx-post="/course/{{ course.id }}/lesson/{{ lesson.id }}/submit"
+                hx-target="#submit-button"
+                hx-vals='{"knowledge_point_index": {{ knowledge_point_index }}, "question_index": {{ question_index }}, "i": {{ i }}}'
+                hx-include="#knowledge-point-{{ knowledge_point_index }}-question-form-{{ question_index }}"
+                hx-swap="outerHTML"
+            >Submit</button>
+        {% else %}
+            {% include 'next_button.html' %}
+        {% endif %}
     {% endif %}
 {% endif %}

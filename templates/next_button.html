@@ -1,17 +1,20 @@
-{% set kp_len = knowledge_point.contents|length + knowledge_point.questions|length %}
-{% if knowledge_point_index < lesson.knowledge_points|length - 1 or i < kp_len - 1 %}
-    {% set next_kp_index = knowledge_point_index %}
-    {% set next_i = i + 1 %}
-    {% if i == kp_len - 1 %}
-        {% set next_kp_index = knowledge_point_index + 1 %}
-        {% set next_i = 0 %}
-    {% endif %}
+{% if knowledge_point_index < lesson.knowledge_points|length %}
+    {% set knowledge_point = lesson.knowledge_points[knowledge_point_index] %}
+    {% set kp_len = knowledge_point.contents|length + knowledge_point.questions|length %}
+    {% if knowledge_point_index < lesson.knowledge_points|length - 1 or i < kp_len - 1 %}
+        {% set next_kp_index = knowledge_point_index %}
+        {% set next_i = i + 1 %}
+        {% if i == kp_len - 1 %}
+            {% set next_kp_index = knowledge_point_index + 1 %}
+            {% set next_i = 0 %}
+        {% endif %}
 
-    <button
-        id="submit-button"
-        hx-post="/course/{{ course.id }}/lesson/{{ lesson.id }}/next"
-        hx-target="#submit-button"
-        hx-vals='{"knowledge_point_index": {{ next_kp_index }}, "i": {{ next_i }}}'
-        hx-swap="outerHTML"
-    >Next</button>
+        <button
+            id="submit-button"
+            hx-post="/course/{{ course.id }}/lesson/{{ lesson.id }}/next"
+            hx-target="#submit-button"
+            hx-vals='{"knowledge_point_index": {{ next_kp_index }}, "i": {{ next_i }}}'
+            hx-swap="outerHTML"
+        >Next</button>
+    {% endif %}
 {% endif %}
