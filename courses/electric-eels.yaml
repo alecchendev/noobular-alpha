@@ -1,0 +1,957 @@
+title: "How Electric Eels Generate Electricity"
+lessons:
+  - title: "Basic Chemistry Foundations"
+    knowledge_points:
+      - name: "atoms-and-ions"
+        description: "Understanding atomic structure, electrons, and how atoms become ions"
+        prerequisites: []
+        contents:
+          - "Atoms are made of protons (positive charge), neutrons (no charge), and electrons (negative charge). Protons and neutrons sit in the nucleus, while electrons orbit around it."
+          - "An atom normally has equal numbers of protons and electrons, making it electrically neutral. When an atom loses or gains electrons, it becomes an ion."
+          - "If an atom loses electrons, it has more protons than electrons, so it becomes positively charged (a cation). If it gains electrons, it becomes negatively charged (an anion)."
+          - "The number of electrons lost or gained determines the ion's charge. Losing 1 electron = +1 charge, losing 2 = +2 charge, gaining 1 = -1 charge, etc."
+        questions:
+          - prompt: "A sodium atom has 11 protons and 11 electrons. It loses 1 electron. What is its charge?"
+            choices:
+              - text: "+1"
+                correct: true
+              - text: "-1"
+              - text: "0"
+              - text: "+11"
+          - prompt: "A chlorine atom gains 1 electron. It now has 17 protons and 18 electrons. What is its charge?"
+            choices:
+              - text: "-1"
+                correct: true
+              - text: "+1"
+              - text: "0"
+              - text: "-17"
+          - prompt: "An ion has 12 protons and 10 electrons. What is its charge?"
+            choices:
+              - text: "+2"
+                correct: true
+              - text: "-2"
+              - text: "+10"
+              - text: "0"
+          - prompt: "Which particle in an atom carries a negative charge?"
+            choices:
+              - text: "Electron"
+                correct: true
+              - text: "Proton"
+              - text: "Neutron"
+              - text: "Nucleus"
+          - prompt: "A calcium atom loses 2 electrons. It had 20 protons and 20 electrons. How many electrons does it have now?"
+            choices:
+              - text: "18"
+                correct: true
+              - text: "22"
+              - text: "20"
+              - text: "2"
+          - prompt: "An atom has 8 protons and 10 electrons. Is this a cation or anion?"
+            choices:
+              - text: "Anion (negatively charged)"
+                correct: true
+              - text: "Cation (positively charged)"
+              - text: "Neutral atom"
+              - text: "Cannot determine"
+          - prompt: "If a neutral atom has 19 protons, how many electrons must it have?"
+            choices:
+              - text: "19"
+                correct: true
+              - text: "18"
+              - text: "20"
+              - text: "0"
+
+      - name: "common-biological-ions"
+        description: "Identifying key ions in biological systems and their charges"
+        prerequisites: ["atoms-and-ions"]
+        contents:
+          - "Sodium (Na+) is formed when a sodium atom loses 1 electron. It's a positively charged ion with a +1 charge."
+          - "Potassium (K+) is formed when a potassium atom loses 1 electron. It also has a +1 charge."
+          - "Chloride (Cl-) is formed when a chlorine atom gains 1 electron. It has a -1 charge."
+          - "Calcium (Ca2+) loses 2 electrons, giving it a +2 charge. These ions are critical for biological processes."
+        questions:
+          - prompt: "What is the charge on a sodium ion (Na+)?"
+            choices:
+              - text: "+1"
+                correct: true
+              - text: "-1"
+              - text: "+2"
+              - text: "0"
+          - prompt: "Which ion has a negative charge?"
+            choices:
+              - text: "Cl-"
+                correct: true
+              - text: "Na+"
+              - text: "K+"
+              - text: "Ca2+"
+          - prompt: "A potassium ion has a charge of +1. How many electrons did the potassium atom lose?"
+            choices:
+              - text: "1"
+                correct: true
+              - text: "2"
+              - text: "0"
+              - text: "3"
+          - prompt: "Which two ions both have a +1 charge?"
+            choices:
+              - text: "Na+ and K+"
+                correct: true
+              - text: "Na+ and Cl-"
+              - text: "K+ and Ca2+"
+              - text: "Cl- and Ca2+"
+          - prompt: "If calcium loses 2 electrons, what is its charge?"
+            choices:
+              - text: "+2"
+                correct: true
+              - text: "+1"
+              - text: "-2"
+              - text: "0"
+          - prompt: "Which ion would be attracted to a positively charged region?"
+            choices:
+              - text: "Cl- (negative ion)"
+                correct: true
+              - text: "Na+ (positive ion)"
+              - text: "K+ (positive ion)"
+              - text: "Ca2+ (positive ion)"
+          - prompt: "How many electrons did chlorine gain to become Cl-?"
+            choices:
+              - text: "1"
+                correct: true
+              - text: "2"
+              - text: "0"
+              - text: "17"
+
+      - name: "ion-concentration"
+        description: "Understanding ion concentrations and gradients across membranes"
+        prerequisites: ["common-biological-ions"]
+        contents:
+          - "Concentration measures how much of a substance is dissolved in a solution, usually in millimoles per liter (mM)."
+          - "A concentration gradient exists when the concentration of an ion is different on two sides of a barrier (like a cell membrane)."
+          - "Ions naturally want to move from high concentration to low concentration (down their gradient) by diffusion."
+          - "In cells, Na+ is usually high outside (~145 mM) and low inside (~12 mM). K+ is the opposite: high inside (~140 mM) and low outside (~4 mM)."
+        questions:
+          - prompt: "If Na+ concentration is 145 mM outside and 12 mM inside, which direction does the concentration gradient point?"
+            choices:
+              - text: "From outside to inside (inward)"
+                correct: true
+              - text: "From inside to outside (outward)"
+              - text: "No gradient exists"
+              - text: "Cannot determine"
+          - prompt: "K+ concentration is 140 mM inside and 4 mM outside. If a channel opens, which way will K+ naturally flow?"
+            choices:
+              - text: "Out of the cell"
+                correct: true
+              - text: "Into the cell"
+              - text: "No movement"
+              - text: "Depends on temperature"
+          - prompt: "Which side of the cell membrane has higher Na+ concentration?"
+            choices:
+              - text: "Outside"
+                correct: true
+              - text: "Inside"
+              - text: "Equal on both sides"
+              - text: "Varies by cell type"
+          - prompt: "If Cl- is 120 mM outside and 4 mM inside, there is a gradient pointing in which direction?"
+            choices:
+              - text: "Inward (outside to inside)"
+                correct: true
+              - text: "Outward (inside to outside)"
+              - text: "No gradient"
+              - text: "Bidirectional"
+          - prompt: "Ions moving from 100 mM to 10 mM are moving in which direction relative to their gradient?"
+            choices:
+              - text: "Down the gradient"
+                correct: true
+              - text: "Against the gradient"
+              - text: "Perpendicular to the gradient"
+              - text: "Not moving"
+          - prompt: "To move Na+ from inside (12 mM) to outside (145 mM) requires:"
+            choices:
+              - text: "Energy (moving against gradient)"
+                correct: true
+              - text: "No energy (moving down gradient)"
+              - text: "Equal concentration"
+              - text: "A negative charge"
+          - prompt: "Which ion has higher concentration inside the cell?"
+            choices:
+              - text: "K+"
+                correct: true
+              - text: "Na+"
+              - text: "Cl-"
+              - text: "All are higher outside"
+
+  - title: "Electricity Fundamentals"
+    knowledge_points:
+      - name: "electric-charge-and-current"
+        description: "Understanding charge, charge movement, and electric current"
+        prerequisites: ["atoms-and-ions"]
+        contents:
+          - "Electric charge is a fundamental property carried by particles. Protons have positive charge, electrons have negative charge."
+          - "Like charges repel (+ repels +, - repels -). Opposite charges attract (+ attracts -)."
+          - "Electric current is the flow of charged particles. When positive charges move in one direction, or negative charges move in the opposite direction, current flows."
+          - "Current is measured in amperes (A). 1 ampere = 1 coulomb of charge passing per second. Biological currents are usually microamperes (μA) or smaller."
+        questions:
+          - prompt: "Two positive charges are brought near each other. What happens?"
+            choices:
+              - text: "They repel each other"
+                correct: true
+              - text: "They attract each other"
+              - text: "Nothing happens"
+              - text: "They become neutral"
+          - prompt: "A positive charge and a negative charge are near each other. What happens?"
+            choices:
+              - text: "They attract each other"
+                correct: true
+              - text: "They repel each other"
+              - text: "Nothing happens"
+              - text: "They both become positive"
+          - prompt: "Na+ ions flow from left to right. Which way does current flow?"
+            choices:
+              - text: "Left to right (same as Na+ movement)"
+                correct: true
+              - text: "Right to left (opposite to Na+ movement)"
+              - text: "No current flows"
+              - text: "Current flows in both directions"
+          - prompt: "Electrons flow from left to right. Which way does current flow?"
+            choices:
+              - text: "Right to left (opposite to electron movement)"
+                correct: true
+              - text: "Left to right (same as electron movement)"
+              - text: "No current flows"
+              - text: "Perpendicular to electron flow"
+          - prompt: "What causes electric current?"
+            choices:
+              - text: "Movement of charged particles"
+                correct: true
+              - text: "Stationary charges"
+              - text: "Neutral particles moving"
+              - text: "Temperature changes"
+          - prompt: "If 2 coulombs pass through a point in 1 second, the current is:"
+            choices:
+              - text: "2 amperes"
+                correct: true
+              - text: "1 ampere"
+              - text: "0.5 amperes"
+              - text: "4 amperes"
+          - prompt: "Both K+ flowing out and Na+ flowing in contribute to current. Why?"
+            choices:
+              - text: "Both involve movement of charged particles"
+                correct: true
+              - text: "They cancel each other out"
+              - text: "Only Na+ creates current"
+              - text: "Only K+ creates current"
+
+      - name: "voltage-and-potential"
+        description: "Understanding voltage as electrical potential difference"
+        prerequisites: ["electric-charge-and-current"]
+        contents:
+          - "Voltage (electric potential difference) is the force that pushes charges to move. It's measured in volts (V) or millivolts (mV)."
+          - "Voltage exists between two points. If point A is at +50 mV and point B is at -50 mV, the voltage difference is 100 mV."
+          - "Positive charges naturally move from high voltage to low voltage. Negative charges move from low voltage to high voltage."
+          - "Higher voltage difference = stronger push on charges. No voltage difference = no push, no current (if resistance is constant)."
+        questions:
+          - prompt: "Point A is at +30 mV, point B is at -70 mV. What is the voltage difference?"
+            choices:
+              - text: "100 mV"
+                correct: true
+              - text: "40 mV"
+              - text: "-40 mV"
+              - text: "70 mV"
+          - prompt: "If there's a voltage of 80 mV across a membrane, which way will Na+ ions be pushed?"
+            choices:
+              - text: "From high voltage to low voltage"
+                correct: true
+              - text: "From low voltage to high voltage"
+              - text: "No movement"
+              - text: "Perpendicular to voltage"
+          - prompt: "The inside of a cell is at -70 mV, outside is at 0 mV. Voltage difference is:"
+            choices:
+              - text: "70 mV (outside is higher)"
+                correct: true
+              - text: "-70 mV"
+              - text: "0 mV"
+              - text: "140 mV"
+          - prompt: "Two points are both at +40 mV. What is the voltage between them?"
+            choices:
+              - text: "0 mV (no difference)"
+                correct: true
+              - text: "40 mV"
+              - text: "80 mV"
+              - text: "-40 mV"
+          - prompt: "Negative ions (Cl-) will naturally move toward which voltage?"
+            choices:
+              - text: "Higher voltage (positive region)"
+                correct: true
+              - text: "Lower voltage (negative region)"
+              - text: "They don't respond to voltage"
+              - text: "Perpendicular to voltage"
+          - prompt: "What happens if you increase voltage difference across a membrane?"
+            choices:
+              - text: "Stronger push on ions, more current (if channels open)"
+                correct: true
+              - text: "Weaker push on ions"
+              - text: "No effect on ion movement"
+              - text: "Ions stop moving"
+          - prompt: "A battery is 1.5 V. Inside a cell membrane is typically:"
+            choices:
+              - text: "About -70 mV (much less than a battery)"
+                correct: true
+              - text: "About -70 V"
+              - text: "1.5 V"
+              - text: "0 V"
+
+      - name: "resistance-and-conductance"
+        description: "Understanding what allows or prevents current flow"
+        prerequisites: ["voltage-and-potential"]
+        contents:
+          - "Resistance opposes current flow. High resistance = hard for current to flow. Low resistance = easy for current to flow. Measured in ohms (Ω)."
+          - "Conductance is the opposite of resistance - it measures how easily current flows. High conductance = low resistance."
+          - "Ohm's Law: Current = Voltage / Resistance (I = V/R). For the same voltage, higher resistance means less current."
+          - "In cells, ion channels control resistance. Closed channels = high resistance (no current). Open channels = low resistance (current flows)."
+        questions:
+          - prompt: "A membrane has 100 mV voltage and 10 MΩ resistance. Using Ohm's law (I = V/R), what happens if resistance doubles to 20 MΩ?"
+            choices:
+              - text: "Current is cut in half"
+                correct: true
+              - text: "Current doubles"
+              - text: "Current stays the same"
+              - text: "Current quadruples"
+          - prompt: "If voltage is 50 mV and resistance is 5 MΩ, what is the current?"
+            choices:
+              - text: "10 units (50/5)"
+                correct: true
+              - text: "45 units"
+              - text: "55 units"
+              - text: "250 units"
+          - prompt: "Ion channels close in a membrane. What happens to resistance?"
+            choices:
+              - text: "Resistance increases"
+                correct: true
+              - text: "Resistance decreases"
+              - text: "Resistance stays the same"
+              - text: "Resistance becomes zero"
+          - prompt: "Same voltage is applied to two membranes. Membrane A has lower resistance than B. Which has more current?"
+            choices:
+              - text: "Membrane A (lower resistance = more current)"
+                correct: true
+              - text: "Membrane B"
+              - text: "Same current"
+              - text: "Neither has current"
+          - prompt: "What allows current to flow through a cell membrane?"
+            choices:
+              - text: "Open ion channels (low resistance pathway)"
+                correct: true
+              - text: "Closed ion channels"
+              - text: "Lipid bilayer (high resistance)"
+              - text: "ATP molecules"
+          - prompt: "Voltage increases from 50 mV to 100 mV, resistance stays constant. What happens to current?"
+            choices:
+              - text: "Current doubles"
+                correct: true
+              - text: "Current is halved"
+              - text: "Current stays the same"
+              - text: "Current becomes zero"
+          - prompt: "A perfect conductor has what resistance?"
+            choices:
+              - text: "Zero (no resistance)"
+                correct: true
+              - text: "Infinite"
+              - text: "1 ohm"
+              - text: "Negative resistance"
+
+  - title: "Cell Biology Basics"
+    knowledge_points:
+      - name: "cell-membrane-structure"
+        description: "Understanding the lipid bilayer and its properties"
+        prerequisites: ["common-biological-ions"]
+        contents:
+          - "The cell membrane is made of a lipid bilayer - two layers of fat molecules (phospholipids) with their tails facing inward."
+          - "The lipid bilayer is hydrophobic (water-fearing) in the middle. This means water and ions cannot easily pass through it."
+          - "The membrane acts as a barrier, separating inside from outside and maintaining different ion concentrations on each side."
+          - "For ions to cross the membrane, they need special proteins - channels or transporters - embedded in the bilayer."
+        questions:
+          - prompt: "Why can't Na+ ions easily cross the lipid bilayer?"
+            choices:
+              - text: "The lipid middle is hydrophobic and repels charged ions"
+                correct: true
+              - text: "The membrane is too thick"
+              - text: "Ions are too large"
+              - text: "The membrane is positively charged"
+          - prompt: "What is the primary structure of the cell membrane?"
+            choices:
+              - text: "Lipid bilayer (two layers of fat molecules)"
+                correct: true
+              - text: "Single layer of proteins"
+              - text: "Carbohydrate wall"
+              - text: "DNA double helix"
+          - prompt: "Which property of the lipid bilayer prevents ion movement?"
+            choices:
+              - text: "Hydrophobic interior"
+                correct: true
+              - text: "Hydrophilic exterior"
+              - text: "Positive charge"
+              - text: "Thickness of 1 meter"
+          - prompt: "K+ is concentrated at 140 mM inside vs 4 mM outside. What maintains this difference?"
+            choices:
+              - text: "The membrane barrier (and active transport)"
+                correct: true
+              - text: "K+ doesn't want to move"
+              - text: "Gravity"
+              - text: "Temperature"
+          - prompt: "How do ions cross the cell membrane?"
+            choices:
+              - text: "Through protein channels or transporters"
+                correct: true
+              - text: "Directly through the lipid bilayer"
+              - text: "By dissolving the membrane"
+              - text: "They cannot cross at all"
+          - prompt: "The membrane is described as selectively permeable. What does this mean?"
+            choices:
+              - text: "Some things can cross (via proteins), others cannot"
+                correct: true
+              - text: "Everything can cross freely"
+              - text: "Nothing can cross"
+              - text: "Only water can cross"
+          - prompt: "What would happen if the membrane suddenly became fully permeable to all ions?"
+            choices:
+              - text: "Ion gradients would disappear (ions equalize)"
+                correct: true
+              - text: "Ion gradients would increase"
+              - text: "Nothing would change"
+              - text: "Cell would become positively charged"
+
+      - name: "membrane-proteins"
+        description: "Understanding channels and pumps in the membrane"
+        prerequisites: ["cell-membrane-structure"]
+        contents:
+          - "Ion channels are proteins that form pores through the membrane. When open, specific ions can flow through down their gradient."
+          - "Channels are selective - Na+ channels allow Na+ but not K+. K+ channels allow K+ but not Na+."
+          - "Pumps (transporters) actively move ions against their gradient using energy (ATP). They can create and maintain concentration differences."
+          - "The Na+/K+ pump is crucial: it pumps 3 Na+ out and 2 K+ in, using 1 ATP. This maintains the gradients needed for electrical signals."
+        questions:
+          - prompt: "A Na+ channel opens. Na+ is 145 mM outside, 12 mM inside. What happens?"
+            choices:
+              - text: "Na+ flows into the cell (down its gradient)"
+                correct: true
+              - text: "Na+ flows out of the cell"
+              - text: "No movement"
+              - text: "K+ flows in"
+          - prompt: "What is the main difference between a channel and a pump?"
+            choices:
+              - text: "Channels allow passive flow; pumps use energy to move ions against gradients"
+                correct: true
+              - text: "Channels use ATP; pumps don't"
+              - text: "Channels move ions against gradients; pumps allow passive flow"
+              - text: "No difference"
+          - prompt: "The Na+/K+ pump moves 3 Na+ out and 2 K+ in. What does it require?"
+            choices:
+              - text: "ATP (energy)"
+                correct: true
+              - text: "No energy (passive)"
+              - text: "Light"
+              - text: "Heat"
+          - prompt: "Why is the Na+/K+ pump moving ions 'against' their gradients?"
+            choices:
+              - text: "Na+ is pumped to where it's already high; K+ pumped to where it's already high"
+                correct: true
+              - text: "It moves ions down their gradients"
+              - text: "It doesn't create gradients"
+              - text: "Gradients don't matter for pumps"
+          - prompt: "A K+ channel opens. K+ is 140 mM inside, 4 mM outside. What happens?"
+            choices:
+              - text: "K+ flows out of the cell"
+                correct: true
+              - text: "K+ flows into the cell"
+              - text: "Na+ flows in"
+              - text: "No ion movement"
+          - prompt: "What makes ion channels selective?"
+            choices:
+              - text: "Pore size and chemical properties allow only specific ions through"
+                correct: true
+              - text: "All ions can pass through any channel"
+              - text: "Channels have no selectivity"
+              - text: "Only size matters"
+          - prompt: "If the Na+/K+ pump stops working, what eventually happens to ion gradients?"
+            choices:
+              - text: "Gradients dissipate (Na+ and K+ equalize across membrane)"
+                correct: true
+              - text: "Gradients increase"
+              - text: "Nothing changes"
+              - text: "Only Na+ gradient is affected"
+
+  - title: "Membrane Potential Basics"
+    knowledge_points:
+      - name: "resting-membrane-potential"
+        description: "Understanding why cells have negative voltage inside"
+        prerequisites: ["membrane-proteins", "voltage-and-potential"]
+        contents:
+          - "The resting membrane potential is the voltage across the membrane when a cell is at rest, typically around -70 mV (inside negative relative to outside)."
+          - "This negative voltage exists because: (1) Na+/K+ pump creates gradients, (2) K+ channels are open at rest, (3) K+ flows out, leaving negative charge behind."
+          - "When K+ (positive) exits through open channels, it leaves behind negative proteins and other anions that cannot cross the membrane."
+          - "An equilibrium is reached: K+ wants to leave (concentration gradient) but is held back by electrical attraction to the negative interior."
+        questions:
+          - prompt: "At rest, is the inside of a cell positive or negative relative to outside?"
+            choices:
+              - text: "Negative (about -70 mV)"
+                correct: true
+              - text: "Positive"
+              - text: "Neutral (0 mV)"
+              - text: "Varies randomly"
+          - prompt: "Which ion's movement primarily creates the resting potential?"
+            choices:
+              - text: "K+ leaving through open channels"
+                correct: true
+              - text: "Na+ entering"
+              - text: "Cl- entering"
+              - text: "Ca2+ entering"
+          - prompt: "Why does the inside become negative when K+ leaves?"
+            choices:
+              - text: "Positive charge (K+) exits, leaving negative charge behind"
+                correct: true
+              - text: "K+ carries negative charge with it"
+              - text: "Negative charge enters from outside"
+              - text: "The membrane creates negative charge"
+          - prompt: "At resting potential, why doesn't all K+ leave the cell?"
+            choices:
+              - text: "Electrical attraction pulls K+ back (inside is negative)"
+                correct: true
+              - text: "K+ channels close completely"
+              - text: "K+ cannot cross the membrane"
+              - text: "There's no concentration gradient"
+          - prompt: "The Na+/K+ pump's role in resting potential is to:"
+            choices:
+              - text: "Maintain Na+ and K+ gradients that drive ion flow"
+                correct: true
+              - text: "Directly create the -70 mV"
+              - text: "Block K+ channels"
+              - text: "Eliminate all ion movement"
+          - prompt: "If K+ channels close at rest, what happens to membrane potential?"
+            choices:
+              - text: "Becomes less negative (closer to 0 mV)"
+                correct: true
+              - text: "Becomes more negative"
+              - text: "Stays at -70 mV"
+              - text: "Becomes positive"
+          - prompt: "What two forces act on K+ at resting potential?"
+            choices:
+              - text: "Concentration gradient (outward) and electrical gradient (inward)"
+                correct: true
+              - text: "Both push inward"
+              - text: "Both push outward"
+              - text: "No forces act on K+"
+
+      - name: "depolarization-and-hyperpolarization"
+        description: "Understanding changes in membrane potential"
+        prerequisites: ["resting-membrane-potential"]
+        contents:
+          - "Depolarization means the membrane becomes less negative (moves toward 0 mV or positive). Example: -70 mV → -50 mV → 0 mV → +30 mV."
+          - "Hyperpolarization means the membrane becomes more negative (moves away from 0). Example: -70 mV → -80 mV → -90 mV."
+          - "Na+ entering the cell causes depolarization (brings positive charge in, makes inside less negative)."
+          - "K+ leaving the cell causes hyperpolarization (removes positive charge, makes inside more negative)."
+        questions:
+          - prompt: "Membrane potential changes from -70 mV to -50 mV. This is called:"
+            choices:
+              - text: "Depolarization (less negative)"
+                correct: true
+              - text: "Hyperpolarization"
+              - text: "Repolarization"
+              - text: "No change"
+          - prompt: "Membrane potential changes from -70 mV to -90 mV. This is:"
+            choices:
+              - text: "Hyperpolarization (more negative)"
+                correct: true
+              - text: "Depolarization"
+              - text: "Neutral state"
+              - text: "Resting potential"
+          - prompt: "Na+ channels open and Na+ rushes into the cell. What happens to membrane potential?"
+            choices:
+              - text: "Depolarizes (becomes less negative/more positive)"
+                correct: true
+              - text: "Hyperpolarizes (becomes more negative)"
+              - text: "No change"
+              - text: "Becomes exactly 0 mV"
+          - prompt: "K+ channels open more than usual, K+ flows out. What happens?"
+            choices:
+              - text: "Hyperpolarization (more negative)"
+                correct: true
+              - text: "Depolarization (less negative)"
+              - text: "No effect"
+              - text: "Membrane potential becomes positive"
+          - prompt: "Which change represents depolarization?"
+            choices:
+              - text: "-80 mV to -60 mV"
+                correct: true
+              - text: "-60 mV to -80 mV"
+              - text: "-70 mV to -70 mV"
+              - text: "0 mV to -20 mV"
+          - prompt: "To depolarize a cell, which ion should enter?"
+            choices:
+              - text: "Na+ (positive ion entering)"
+                correct: true
+              - text: "K+ (exiting causes opposite effect)"
+              - text: "Cl- (negative ion)"
+              - text: "No ion needed"
+          - prompt: "At +30 mV, is the membrane depolarized relative to rest (-70 mV)?"
+            choices:
+              - text: "Yes, it's much less negative (depolarized)"
+                correct: true
+              - text: "No, it's hyperpolarized"
+              - text: "It's at resting potential"
+              - text: "Cannot determine"
+
+      - name: "action-potential-mechanism"
+        description: "Understanding how action potentials work"
+        prerequisites: ["depolarization-and-hyperpolarization", "resistance-and-conductance"]
+        contents:
+          - "An action potential is a rapid depolarization and repolarization. It's an all-or-nothing electrical signal that travels along nerves and muscle cells."
+          - "Steps: (1) Stimulus opens Na+ channels → Na+ rushes in → depolarization to +30 mV. (2) Na+ channels close, K+ channels open → K+ exits → repolarization back to -70 mV."
+          - "Voltage-gated channels open/close based on membrane potential. Na+ channels open when membrane reaches threshold (about -55 mV)."
+          - "The action potential propagates: depolarization at one spot triggers Na+ channels to open in adjacent regions, creating a wave of depolarization."
+        questions:
+          - prompt: "What triggers voltage-gated Na+ channels to open?"
+            choices:
+              - text: "Membrane potential reaching threshold (about -55 mV)"
+                correct: true
+              - text: "ATP"
+              - text: "Temperature increase"
+              - text: "Light"
+          - prompt: "During the rising phase of an action potential (going to +30 mV), which ion flows?"
+            choices:
+              - text: "Na+ flows in"
+                correct: true
+              - text: "K+ flows out"
+              - text: "Cl- flows in"
+              - text: "Ca2+ flows out"
+          - prompt: "During repolarization (returning to -70 mV), which ion flows?"
+            choices:
+              - text: "K+ flows out"
+                correct: true
+              - text: "Na+ flows in"
+              - text: "Na+ flows out"
+              - text: "No ions flow"
+          - prompt: "What makes an action potential 'all-or-nothing'?"
+            choices:
+              - text: "Either threshold is reached and full action potential occurs, or nothing happens"
+                correct: true
+              - text: "It can be any size"
+              - text: "Only half the channels open"
+              - text: "It requires all Na+ to enter"
+          - prompt: "How does an action potential travel along a nerve?"
+            choices:
+              - text: "Depolarization at one spot opens channels in adjacent regions"
+                correct: true
+              - text: "Ions physically travel the length of the nerve"
+              - text: "ATP pushes it along"
+              - text: "It doesn't travel"
+          - prompt: "At the peak of action potential (+30 mV), what must happen to return to rest?"
+            choices:
+              - text: "Na+ channels close and K+ channels open"
+                correct: true
+              - text: "Na+ channels stay open"
+              - text: "All channels close permanently"
+              - text: "Pump must activate"
+          - prompt: "Threshold is -55 mV. A stimulus brings membrane to -60 mV. What happens?"
+            choices:
+              - text: "No action potential (didn't reach threshold)"
+                correct: true
+              - text: "Full action potential"
+              - text: "Partial action potential"
+              - text: "Cell dies"
+
+  - title: "Electric Eel Anatomy"
+    knowledge_points:
+      - name: "eel-body-structure"
+        description: "Understanding where electric organs are located in the eel"
+        prerequisites: ["action-potential-mechanism"]
+        contents:
+          - "Electric eels have three electric organs: the main organ (strongest discharge), Hunter's organ (medium), and Sach's organ (weakest, for navigation)."
+          - "These organs make up about 80% of the eel's body length, located along the tail region."
+          - "Each organ is composed of thousands of specialized cells called electrocytes stacked in series (like batteries in a flashlight)."
+          - "The eel's nervous system controls when all electrocytes fire simultaneously, creating the electric discharge."
+        questions:
+          - prompt: "What percentage of an electric eel's body is made of electric organs?"
+            choices:
+              - text: "About 80%"
+                correct: true
+              - text: "About 20%"
+              - text: "About 50%"
+              - text: "About 5%"
+          - prompt: "What are the specialized cells in electric organs called?"
+            choices:
+              - text: "Electrocytes"
+                correct: true
+              - text: "Neurons"
+              - text: "Muscle cells"
+              - text: "Electrodes"
+          - prompt: "How many electric organs does an electric eel have?"
+            choices:
+              - text: "Three (main, Hunter's, Sach's)"
+                correct: true
+              - text: "One"
+              - text: "Two"
+              - text: "Five"
+          - prompt: "Which organ produces the strongest discharge?"
+            choices:
+              - text: "Main organ"
+                correct: true
+              - text: "Hunter's organ"
+              - text: "Sach's organ"
+              - text: "All produce equal discharge"
+          - prompt: "Where are the electric organs located?"
+            choices:
+              - text: "Along the tail region"
+                correct: true
+              - text: "In the head"
+              - text: "In the heart"
+              - text: "In the fins"
+          - prompt: "Sach's organ is primarily used for:"
+            choices:
+              - text: "Navigation (weak discharge)"
+                correct: true
+              - text: "Hunting (strong discharge)"
+              - text: "Defense"
+              - text: "Reproduction"
+          - prompt: "Electrocytes are arranged in what pattern?"
+            choices:
+              - text: "Stacked in series (like batteries)"
+                correct: true
+              - text: "Random arrangement"
+              - text: "Single row"
+              - text: "Circular pattern"
+
+      - name: "electrocyte-structure"
+        description: "Understanding the modified muscle cells that generate electricity"
+        prerequisites: ["eel-body-structure"]
+        contents:
+          - "Electrocytes are modified muscle cells - they evolved from muscle tissue but lost the ability to contract. Instead, they specialize in generating voltage."
+          - "Each electrocyte is like a disk or coin, with distinct front (anterior) and back (posterior) faces."
+          - "The front face has voltage-gated Na+ channels and can generate an action potential. The back face does not - it only has the Na+/K+ pump."
+          - "This asymmetry is crucial: when activated, the front face depolarizes (+65 mV) while the back stays at rest (-85 mV), creating a voltage difference of 150 mV across the cell."
+        questions:
+          - prompt: "What did electrocytes evolve from?"
+            choices:
+              - text: "Muscle cells"
+                correct: true
+              - text: "Nerve cells"
+              - text: "Skin cells"
+              - text: "Blood cells"
+          - prompt: "What ability did electrocytes lose during evolution?"
+            choices:
+              - text: "Ability to contract/move"
+                correct: true
+              - text: "Ability to generate voltage"
+              - text: "Ability to use ATP"
+              - text: "Ability to maintain gradients"
+          - prompt: "Which face of the electrocyte has voltage-gated Na+ channels?"
+            choices:
+              - text: "Front (anterior) face"
+                correct: true
+              - text: "Back (posterior) face"
+              - text: "Both faces"
+              - text: "Neither face"
+          - prompt: "When activated, the front face reaches about +65 mV. The back face stays at -85 mV. What's the voltage across the cell?"
+            choices:
+              - text: "150 mV (65 - (-85) = 150)"
+                correct: true
+              - text: "20 mV"
+              - text: "65 mV"
+              - text: "85 mV"
+          - prompt: "Why is asymmetry important in electrocytes?"
+            choices:
+              - text: "One side depolarizes, the other doesn't, creating larger voltage difference"
+                correct: true
+              - text: "Both sides must be identical"
+              - text: "Asymmetry prevents function"
+              - text: "No asymmetry exists"
+          - prompt: "What does the back face of the electrocyte primarily have?"
+            choices:
+              - text: "Na+/K+ pump (no voltage-gated channels)"
+                correct: true
+              - text: "Voltage-gated Na+ channels"
+              - text: "No proteins at all"
+              - text: "Only K+ channels"
+          - prompt: "The electrocyte shape is described as:"
+            choices:
+              - text: "Disk or coin-like"
+                correct: true
+              - text: "Spherical"
+              - text: "Long and thin like a nerve"
+              - text: "Cubic"
+
+  - title: "Generating High Voltage"
+    knowledge_points:
+      - name: "single-electrocyte-discharge"
+        description: "Understanding how one electrocyte produces 150 mV"
+        prerequisites: ["electrocyte-structure"]
+        contents:
+          - "At rest: Both faces are negative inside. Front is about -85 mV, back is about -85 mV. No voltage difference across the cell."
+          - "When a nerve signal arrives: The front face receives the signal and its voltage-gated Na+ channels open. Na+ rushes in, depolarizing the front to about +65 mV."
+          - "The back face doesn't receive the signal and has no voltage-gated Na+ channels, so it stays at -85 mV."
+          - "Result: Front is +65 mV, back is -85 mV. The voltage difference is 150 mV. This is like a 150 mV battery."
+        questions:
+          - prompt: "At rest, what is the approximate voltage of the front face?"
+            choices:
+              - text: "-85 mV"
+                correct: true
+              - text: "+65 mV"
+              - text: "0 mV"
+              - text: "+150 mV"
+          - prompt: "When stimulated, why does the front face depolarize?"
+            choices:
+              - text: "Voltage-gated Na+ channels open, Na+ enters"
+                correct: true
+              - text: "K+ channels open"
+              - text: "The pump activates"
+              - text: "ATP is released"
+          - prompt: "Why doesn't the back face depolarize when the eel fires?"
+            choices:
+              - text: "It has no voltage-gated Na+ channels to open"
+                correct: true
+              - text: "It lacks a membrane"
+              - text: "It's made of different material"
+              - text: "The nerve signal reaches it too"
+          - prompt: "After activation, front is +65 mV and back is -85 mV. Calculate the voltage difference:"
+            choices:
+              - text: "150 mV"
+                correct: true
+              - text: "20 mV"
+              - text: "65 mV"
+              - text: "0 mV"
+          - prompt: "What triggers the front face to depolarize?"
+            choices:
+              - text: "Nerve signal from the eel's nervous system"
+                correct: true
+              - text: "Spontaneous activity"
+              - text: "Back face signal"
+              - text: "Water temperature"
+          - prompt: "One electrocyte acts like a battery of what voltage?"
+            choices:
+              - text: "150 mV (0.15 V)"
+                correct: true
+              - text: "1.5 V"
+              - text: "600 V"
+              - text: "1 mV"
+          - prompt: "At rest, is there voltage difference across a single electrocyte?"
+            choices:
+              - text: "No (both sides at -85 mV)"
+                correct: true
+              - text: "Yes (150 mV difference)"
+              - text: "Yes (300 mV difference)"
+              - text: "Only during sleep"
+
+      - name: "voltage-summation-in-series"
+        description: "Understanding how electrocytes add voltages to create high voltage"
+        prerequisites: ["single-electrocyte-discharge"]
+        contents:
+          - "When batteries or voltage sources are connected in series (+ to -), their voltages add up. Two 1.5 V batteries in series = 3 V total."
+          - "Electrocytes are stacked in series inside the electric organ. One electrocyte's positive face connects to the next one's negative face."
+          - "Each electrocyte contributes 150 mV. With 1000 electrocytes in series: 1000 × 150 mV = 150,000 mV = 150 V."
+          - "Electric eels have about 5,000-6,000 electrocytes in series. This creates: 5,000 × 150 mV = 750 V (though actual measured voltage is around 600 V due to some losses)."
+        questions:
+          - prompt: "Two 150 mV electrocytes are connected in series. What is the total voltage?"
+            choices:
+              - text: "300 mV"
+                correct: true
+              - text: "150 mV"
+              - text: "75 mV"
+              - text: "0 mV"
+          - prompt: "If 1000 electrocytes (each 150 mV) are in series, total voltage is:"
+            choices:
+              - text: "150 V (150,000 mV)"
+                correct: true
+              - text: "150 mV"
+              - text: "1.5 V"
+              - text: "1500 V"
+          - prompt: "How do electrocytes connect to add voltage?"
+            choices:
+              - text: "In series (+ of one to - of next)"
+                correct: true
+              - text: "In parallel (all + together, all - together)"
+              - text: "Randomly"
+              - text: "They don't connect"
+          - prompt: "An eel has 6,000 electrocytes at 150 mV each. Theoretical maximum voltage:"
+            choices:
+              - text: "900 V (6000 × 0.15 V)"
+                correct: true
+              - text: "600 V"
+              - text: "150 V"
+              - text: "6 V"
+          - prompt: "Why is actual eel voltage (600 V) less than theoretical maximum (900 V)?"
+            choices:
+              - text: "Some voltage is lost to resistance/inefficiency"
+                correct: true
+              - text: "Not all electrocytes fire"
+              - text: "Eels can't count to 6000"
+              - text: "Water absorbs voltage"
+          - prompt: "What happens if you double the number of electrocytes in series?"
+            choices:
+              - text: "Voltage doubles"
+                correct: true
+              - text: "Voltage stays the same"
+              - text: "Voltage halves"
+              - text: "Current doubles"
+          - prompt: "Connecting voltage sources in parallel (instead of series) would:"
+            choices:
+              - text: "Keep voltage the same, not add them"
+                correct: true
+              - text: "Add voltages like series"
+              - text: "Multiply voltages"
+              - text: "Create infinite voltage"
+
+      - name: "synchronized-discharge"
+        description: "Understanding how the eel controls the discharge"
+        prerequisites: ["voltage-summation-in-series"]
+        contents:
+          - "For maximum voltage, all electrocytes must fire simultaneously. If they fire at different times, voltages don't add properly."
+          - "The eel's brain sends a signal down a specialized nerve (like a command center). This nerve branches to reach all electrocytes at nearly the same time."
+          - "The nerve signal causes all front faces to receive the trigger simultaneously, opening all Na+ channels at once."
+          - "This synchronized firing creates the full 600+ volt discharge. The eel can control when to fire (hunting, defense) and can fire multiple times in succession."
+        questions:
+          - prompt: "Why must all electrocytes fire at the same time?"
+            choices:
+              - text: "For voltages to add properly to maximum effect"
+                correct: true
+              - text: "They don't need to fire together"
+              - text: "Only one electrocyte fires at a time"
+              - text: "Timing doesn't matter"
+          - prompt: "What triggers all electrocytes to discharge simultaneously?"
+            choices:
+              - text: "Nerve signal from the brain reaching all cells at once"
+                correct: true
+              - text: "Random spontaneous activity"
+              - text: "Temperature change"
+              - text: "Light signal"
+          - prompt: "If half the electrocytes fire and half don't, what happens to voltage?"
+            choices:
+              - text: "Voltage is roughly halved (only firing cells contribute)"
+                correct: true
+              - text: "Voltage doubles"
+              - text: "Voltage stays at 600 V"
+              - text: "No voltage is produced"
+          - prompt: "The eel can control its discharge for:"
+            choices:
+              - text: "Hunting, defense, and navigation"
+                correct: true
+              - text: "Only hunting"
+              - text: "Only defense"
+              - text: "It cannot control the discharge"
+          - prompt: "How does the brain signal reach all electrocytes simultaneously?"
+            choices:
+              - text: "Specialized nerve branches to all cells at once"
+                correct: true
+              - text: "Each cell has its own brain"
+              - text: "Signals travel through water"
+              - text: "Chemical diffusion"
+          - prompt: "Can an electric eel fire multiple shocks in a row?"
+            choices:
+              - text: "Yes, it can discharge multiple times"
+                correct: true
+              - text: "No, only once per day"
+              - text: "No, only once in lifetime"
+              - text: "Only twice total"
+          - prompt: "What would happen if nerve signals arrived at different times to different electrocytes?"
+            choices:
+              - text: "Reduced total voltage (mistimed firing)"
+                correct: true
+              - text: "Increased voltage"
+              - text: "No effect"
+              - text: "Permanent damage"

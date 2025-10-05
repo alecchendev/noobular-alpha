@@ -658,7 +658,6 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
                     quizzed_questions=quizzed_questions,
                 )
             )
-            print(kp_db_id, kp_name, quizzed_question_ids)
 
         lessons.append(
             Lesson(id=lesson_id, title=lesson_title, knowledge_points=knowledge_points)
@@ -762,7 +761,6 @@ def course_page(course_id: int) -> str:
 
     # Get KP IDs completed after the last quiz using a single query
     # Exclude questions that are quiz questions
-    print(completed_kp_ids)
     placeholders = ",".join("?" * len(completed_kp_ids))
     cursor.execute(
         f"""SELECT DISTINCT q.knowledge_point_id
@@ -775,7 +773,6 @@ def course_page(course_id: int) -> str:
         (*completed_kp_ids, last_quiz_time),
     )
     recent_completed_kp_ids = set(row[0] for row in cursor.fetchall())
-    print(recent_completed_kp_ids)
 
     # Create a new quiz if threshold is met
     if len(recent_completed_kp_ids) >= QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD:
