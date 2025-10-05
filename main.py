@@ -1,4 +1,4 @@
-from flask import Flask, render_template, abort, request, g, jsonify
+from flask import Flask, render_template, abort, request, g, jsonify, redirect
 import yaml
 import sqlite3
 import hashlib
@@ -179,7 +179,8 @@ class KnowledgePoint:
     description: str
     prerequisites: List[int]
     contents: List[Content]
-    questions: List[Question]
+    questions: List[Question]  # Does not include questions used in a quiz
+    quizzed_questions: List[Question]  # Includes questions used in a quiz
 
     def last_consecutive_correct_answers(self) -> int:
         last_correct_count = 0
@@ -212,6 +213,7 @@ class Quiz:
     id: int
     course_id: int
     questions: List[Question]
+    started_at: Optional[str]
 
 
 @dataclass
@@ -606,7 +608,14 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
             )
             question_rows = cursor.fetchall()
 
+            cursor.execute(
+                """SELECT q.id FROM quiz_questions qq JOIN questions q on qq.question_id = q.id WHERE q.knowledge_point_id = ?""",
+                (kp_db_id,),
+            )
+            quizzed_question_ids = set(row[0] for row in cursor.fetchall())
+
             questions = []
+            quizzed_questions = []
             for question_id, prompt in question_rows:
                 # Get choices for this question
                 cursor.execute(
@@ -630,11 +639,13 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
                     id, question_id, choice_id = answer_row
                     answer = Answer(id=id, question_id=question_id, choice_id=choice_id)
 
-                questions.append(
-                    Question(
-                        id=question_id, prompt=prompt, choices=choices, answer=answer
-                    )
+                question = Question(
+                    id=question_id, prompt=prompt, choices=choices, answer=answer
                 )
+                if question.id in quizzed_question_ids:
+                    quizzed_questions.append(question)
+                else:
+                    questions.append(question)
 
             knowledge_points.append(
                 KnowledgePoint(
@@ -644,8 +655,10 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
                     prerequisites=prerequisites,
                     contents=contents,
                     questions=questions,
+                    quizzed_questions=quizzed_questions,
                 )
             )
+            print(kp_db_id, kp_name, quizzed_question_ids)
 
         lessons.append(
             Lesson(id=lesson_id, title=lesson_title, knowledge_points=knowledge_points)
@@ -699,10 +712,10 @@ def course_page(course_id: int) -> str:
             answered_questions = [
                 question for question in kp.questions if question.answer
             ]
-            if len(answered_questions) == len(kp.questions):
-                completed_kp_ids.add(kp.id)
-                continue
-            if kp.last_consecutive_correct_answers() >= CORRECT_COUNT_THRESHOLD:
+            if (
+                len(answered_questions) == len(kp.questions)
+                or kp.last_consecutive_correct_answers() >= CORRECT_COUNT_THRESHOLD
+            ):
                 completed_kp_ids.add(kp.id)
 
     next_lessons = []
@@ -748,16 +761,21 @@ def course_page(course_id: int) -> str:
     last_quiz_time = last_quiz_row[0] if last_quiz_row else "1970-01-01 00:00:00"
 
     # Get KP IDs completed after the last quiz using a single query
+    # Exclude questions that are quiz questions
+    print(completed_kp_ids)
     placeholders = ",".join("?" * len(completed_kp_ids))
     cursor.execute(
         f"""SELECT DISTINCT q.knowledge_point_id
             FROM questions q
             JOIN answers a ON a.question_id = q.id
+            LEFT JOIN quiz_questions qq ON qq.question_id = q.id
             WHERE q.knowledge_point_id IN ({placeholders})
-            AND a.created_at > ?""",
+            AND a.created_at > ?
+            AND qq.question_id IS NULL""",
         (*completed_kp_ids, last_quiz_time),
     )
     recent_completed_kp_ids = set(row[0] for row in cursor.fetchall())
+    print(recent_completed_kp_ids)
 
     # Create a new quiz if threshold is met
     if len(recent_completed_kp_ids) >= QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD:
@@ -797,11 +815,33 @@ def course_page(course_id: int) -> str:
 
     # Load all quizzes for this course
     cursor.execute("SELECT id FROM quizzes WHERE course_id = ?", (course_id,))
-    quiz_ids = [row[0] for row in cursor.fetchall()]
+    quiz_rows = cursor.fetchall()
 
-    quizzes = []
-    for quiz_id in quiz_ids:
-        quizzes.append(Quiz(id=quiz_id, course_id=course_id, questions=[]))
+    # Separate quizzes into available and completed
+    from datetime import datetime, timedelta
+
+    available_quizzes = []
+    completed_quizzes = []
+
+    for (quiz_id,) in quiz_rows:
+        quiz = load_quiz(quiz_id, course_id)
+        if not quiz:
+            continue
+
+        # Check if quiz is completed (time is up OR has any answers)
+        has_answers = any(q.answer is not None for q in quiz.questions)
+        time_is_up = False
+
+        if quiz.started_at:
+            start_time = datetime.fromisoformat(quiz.started_at)
+            end_time = start_time + timedelta(minutes=QUIZ_TIME_LIMIT_MINUTES)
+            now = datetime.now()
+            time_is_up = now > end_time
+
+        if has_answers or time_is_up:
+            completed_quizzes.append(quiz)
+        else:
+            available_quizzes.append(quiz)
 
     return render_template(
         "course.html",
@@ -809,7 +849,8 @@ def course_page(course_id: int) -> str:
         next_lessons=next_lessons,
         completed_lessons=completed_lessons,
         remaining_lessons=remaining_lessons,
-        quizzes=quizzes,
+        available_quizzes=available_quizzes,
+        completed_quizzes=completed_quizzes,
     )
 
 
@@ -991,33 +1032,21 @@ def validate() -> tuple[Any, int]:
         ).jsonify()
 
 
-@app.route("/course/<int:course_id>/quiz/<int:quiz_id>")
-def quiz_page(course_id: int, quiz_id: int) -> str:
-    # Kinda unnecessary to just get the id + title needed, but whatever it's easy
-    course = load_course_from_db(course_id)
-    if not course:
-        abort(404)
-
+def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
+    """Load a quiz with its questions, choices, and answers from the database"""
     db = get_db()
     cursor = db.cursor()
 
-    # Verify quiz exists and belongs to course, and set start time if not started
+    # Verify quiz exists and belongs to course, and get started_at
     cursor.execute(
         "SELECT started_at FROM quizzes WHERE id = ? AND course_id = ?",
         (quiz_id, course_id),
     )
     quiz_row = cursor.fetchone()
     if not quiz_row:
-        abort(404)
+        return None
 
-    # Set started_at if this is the first time loading the quiz
     started_at = quiz_row[0]
-    if started_at is None:
-        cursor.execute(
-            "UPDATE quizzes SET started_at = CURRENT_TIMESTAMP WHERE id = ?", (quiz_id,)
-        )
-        db.commit()
-        # For template, we'll use JavaScript Date.now() since we just set it to current time
 
     # Load quiz questions
     cursor.execute(
@@ -1040,25 +1069,113 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
             for c_id, c_text, c_correct in cursor.fetchall()
         ]
 
-        questions.append(
-            Question(id=q_id, prompt=q_prompt, choices=choices, answer=None)
+        # Load answer if exists
+        cursor.execute(
+            "SELECT id, choice_id FROM answers WHERE question_id = ?", (q_id,)
+        )
+        answer_row = cursor.fetchone()
+        answer = (
+            Answer(id=answer_row[0], question_id=q_id, choice_id=answer_row[1])
+            if answer_row
+            else None
         )
 
-    quiz = Quiz(id=quiz_id, course_id=course_id, questions=questions)
+        questions.append(
+            Question(id=q_id, prompt=q_prompt, choices=choices, answer=answer)
+        )
+
+    return Quiz(
+        id=quiz_id, course_id=course_id, questions=questions, started_at=started_at
+    )
+
+
+@app.route("/course/<int:course_id>/quiz/<int:quiz_id>")
+def quiz_page(course_id: int, quiz_id: int) -> str:
+    course = load_course_from_db(course_id)
+    if not course:
+        abort(404)
+
+    # Load quiz using helper function
+    quiz = load_quiz(quiz_id, course_id)
+    if not quiz:
+        abort(404)
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Set started_at if this is the first time loading the quiz
+    if quiz.started_at is None:
+        cursor.execute(
+            "UPDATE quizzes SET started_at = CURRENT_TIMESTAMP WHERE id = ?", (quiz_id,)
+        )
+        db.commit()
+
+    # Check if quiz has been submitted (all questions have answers)
+    is_submitted = all(q.answer is not None for q in quiz.questions)
+
+    # Calculate score if submitted
+    score = None
+    if is_submitted:
+        correct_count = sum(
+            1
+            for q in quiz.questions
+            if q.answer and q.answer.choice_id == q.correct_choice().id
+        )
+        total_questions = len(quiz.questions)
+        score_percentage = (
+            (correct_count / total_questions * 100) if total_questions > 0 else 0
+        )
+        score = f"{correct_count}/{total_questions} ({score_percentage:.0f}%)"
 
     return render_template(
         "quiz.html",
         course=course,
         quiz=quiz,
-        started_at=started_at,
         quiz_time_limit_minutes=QUIZ_TIME_LIMIT_MINUTES,
+        is_submitted=is_submitted,
+        score=score,
     )
 
 
 @app.route("/course/<int:course_id>/quiz/<int:quiz_id>/submit", methods=["POST"])
-def quiz_submit(course_id: int, quiz_id: int) -> str:
-    # For now, just return a placeholder score
-    return "<div id='submit-section'><p>Quiz submitted! Score: Coming soon</p></div>"
+def quiz_submit(course_id: int, quiz_id: int) -> Any:
+    quiz = load_quiz(quiz_id, course_id)
+    if not quiz or quiz.started_at is None:
+        abort(404)
+
+    # Validate submission time (within 10 seconds of expected end time)
+    from datetime import datetime, timedelta
+
+    start_time = datetime.fromisoformat(quiz.started_at)
+    expected_end_time = start_time + timedelta(minutes=QUIZ_TIME_LIMIT_MINUTES)
+    now = datetime.now()
+
+    # Check if submission is within 10 seconds after expected end time
+    if now > expected_end_time + timedelta(seconds=10):
+        abort(400)  # Bad request - time limit exceeded
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Process and store answers
+    for question in quiz.questions:
+        answer_key = f"question_{question.id}"
+        if answer_key in request.form:
+            choice_index = int(request.form[answer_key])
+
+            if choice_index < len(question.choices):
+                choice_id = question.choices[choice_index].id
+
+                # Store the answer
+                cursor.execute(
+                    "INSERT OR REPLACE INTO answers (question_id, choice_id) VALUES (?, ?)",
+                    (question.id, choice_id),
+                )
+
+    db.commit()
+
+    # Redirect to quiz page to show results
+    return redirect(f"/course/{course_id}/quiz/{quiz_id}")
 
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/next", methods=["POST"])

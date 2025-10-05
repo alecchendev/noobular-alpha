@@ -43,15 +43,26 @@
         <p>No remaining lessons</p>
     {% endif %}
 
-    <h2>Quizzes</h2>
-    {% if quizzes|length > 0 %}
+    <h2>Available Quizzes</h2>
+    {% if available_quizzes|length > 0 %}
         <ul>
-        {% for quiz in quizzes %}
-            <li><a href="/course/{{ course.id }}/quiz/{{ quiz.id }}">Quiz {{ loop.index }}</a></li>
+        {% for quiz in available_quizzes %}
+            <li><a href="/course/{{ course.id }}/quiz/{{ quiz.id }}">Quiz {{ quiz.id }}</a></li>
         {% endfor %}
         </ul>
     {% else %}
         <p>No quizzes available yet</p>
+    {% endif %}
+
+    <h2>Completed Quizzes</h2>
+    {% if completed_quizzes|length > 0 %}
+        <ul>
+        {% for quiz in completed_quizzes %}
+            <li><a href="/course/{{ course.id }}/quiz/{{ quiz.id }}">Quiz {{ quiz.id }}</a></li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No completed quizzes</p>
     {% endif %}
 
     <a href="/">← Back to Course Catalog</a>
