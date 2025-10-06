@@ -1,0 +1,11 @@
+Create a comprehensive course about <topic>.
+Check with me on an outline first.
+This course should include all prerequisites needed to understand this topic.
+See yaml files in courses directory for existing structure.
+Make sure there are at least <number> questions per knowledge point.
+Knowledge points should try to lean towards active problem solving instead of just regurgitating information.
+Lessons and knowledge points should be atomic and scaffolded such that we are not introducing too much information at once.
+Correct vs. incorrect choices should be in a random order, and should not include hints.
+Expand or condense material in any way you see fit to better facilitate learning.
+
+Note to self: make sure thinking mode is on. In the future provide the math academy way pdf if possible.
