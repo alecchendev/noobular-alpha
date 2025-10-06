@@ -475,7 +475,7 @@ def load_courses_to_database() -> None:
     for file_hash, course_data in courses:
         # Insert course with hash
         cursor.execute(
-            "INSERT OR REPLACE INTO courses (title, file_hash) VALUES (?, ?)",
+            "INSERT INTO courses (title, file_hash) VALUES (?, ?)",
             (course_data["title"], file_hash),
         )
         course_id = cursor.lastrowid
@@ -486,7 +486,7 @@ def load_courses_to_database() -> None:
         # Insert lessons
         for lesson_data in course_data.get("lessons", []):
             cursor.execute(
-                "INSERT OR REPLACE INTO lessons (course_id, title) VALUES (?, ?)",
+                "INSERT INTO lessons (course_id, title) VALUES (?, ?)",
                 (course_id, lesson_data["title"]),
             )
             lesson_id = cursor.lastrowid
@@ -494,7 +494,7 @@ def load_courses_to_database() -> None:
             # Insert knowledge points, contents, and questions
             for kp_data in lesson_data.get("knowledge_points", []):
                 cursor.execute(
-                    """INSERT OR REPLACE INTO knowledge_points
+                    """INSERT INTO knowledge_points
                                  (lesson_id, name, description)
                                  VALUES (?, ?, ?)""",
                     (lesson_id, kp_data["name"], kp_data["description"]),
@@ -506,7 +506,7 @@ def load_courses_to_database() -> None:
                 # Insert contents
                 for content in kp_data["contents"]:
                     cursor.execute(
-                        """INSERT OR REPLACE INTO contents
+                        """INSERT INTO contents
                                      (knowledge_point_id, text)
                                      VALUES (?, ?)""",
                         (knowledge_point_db_id, content),
@@ -515,7 +515,7 @@ def load_courses_to_database() -> None:
                 # Insert questions and choices
                 for question_data in kp_data["questions"]:
                     cursor.execute(
-                        """INSERT OR REPLACE INTO questions
+                        """INSERT INTO questions
                                      (knowledge_point_id, prompt)
                                      VALUES (?, ?)""",
                         (knowledge_point_db_id, question_data["prompt"]),
@@ -525,7 +525,7 @@ def load_courses_to_database() -> None:
                     # Insert choices
                     for choice_data in question_data["choices"]:
                         cursor.execute(
-                            """INSERT OR REPLACE INTO choices
+                            """INSERT INTO choices
                                          (question_id, text, is_correct)
                                          VALUES (?, ?, ?)""",
                             (
@@ -544,7 +544,7 @@ def load_courses_to_database() -> None:
                     prerequisite_db_id = kp_name_to_db_id.get(prerequisite_name)
                     if prerequisite_db_id:
                         cursor.execute(
-                            """INSERT OR REPLACE INTO prerequisites
+                            """INSERT INTO prerequisites
                                          (knowledge_point_id, prerequisite_id)
                                          VALUES (?, ?)""",
                             (kp_db_id, prerequisite_db_id),
