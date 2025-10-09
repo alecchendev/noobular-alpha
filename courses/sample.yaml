@@ -1,0 +1,16 @@
+title: "Course Title"
+lessons:
+  - title: "Lesson Title"
+    knowledge_points:
+      - name: "knowledge-point-id"
+        description: "Brief description of this knowledge point"
+        prerequisites: []  # or ["other-knowledge-point-id"]
+        contents:
+          - "First point or explanation"
+          - "Second point or explanation"
+        questions:
+          - prompt: "Question text?"
+            choices:
+              - text: "Choice 1"
+              - text: "Choice 2"
+                correct: true  # Must have exactly 1 correct answer
