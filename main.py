@@ -3,7 +3,7 @@ import yaml
 import sqlite3
 import hashlib
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 import random
 from dataclasses import dataclass
 
@@ -769,6 +769,28 @@ assert QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD >= QUIZ_QUESTION_COUNT
 # number of minutes allowed for a quiz
 QUIZ_TIME_LIMIT_MINUTES = 15
 # TODO: have a cutoff of knowledge points before they must take a quiz
+# number of knowledge points completed before a review will surface
+# (if the knowledge point is completed and has no postreqs)
+REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD = 2  # 8
+
+
+def knowledge_point_ids_completed_after_time(
+    cursor: sqlite3.Cursor, completed_kp_ids: List[int], time: str
+) -> List[int]:
+    placeholders = ",".join("?" * len(completed_kp_ids))
+    cursor.execute(
+        f"""SELECT DISTINCT q.knowledge_point_id
+            FROM questions q
+            JOIN answers a ON a.question_id = q.id
+            LEFT JOIN quiz_questions qq ON qq.question_id = q.id
+            LEFT JOIN review_questions rq ON rq.question_id = q.id
+            WHERE q.knowledge_point_id IN ({placeholders})
+            AND a.created_at > ?
+            AND qq.question_id IS NULL
+            AND rq.question_id is NULL""",
+        (*completed_kp_ids, time),
+    )
+    return [row[0] for row in cursor.fetchall()]
 
 
 @app.route("/course/<int:course_id>")
@@ -837,20 +859,9 @@ def course_page(course_id: int) -> str:
     # Get KP IDs completed after the last quiz using a single query
     # Exclude questions that are quiz questions
     # Exclude questions that are review questions
-    placeholders = ",".join("?" * len(completed_kp_ids))
-    cursor.execute(
-        f"""SELECT DISTINCT q.knowledge_point_id
-            FROM questions q
-            JOIN answers a ON a.question_id = q.id
-            LEFT JOIN quiz_questions qq ON qq.question_id = q.id
-            LEFT JOIN review_questions rq ON rq.question_id = q.id
-            WHERE q.knowledge_point_id IN ({placeholders})
-            AND a.created_at > ?
-            AND qq.question_id IS NULL
-            AND rq.question_id is NULL""",
-        (*completed_kp_ids, last_quiz_time),
+    recent_completed_kp_ids = knowledge_point_ids_completed_after_time(
+        cursor, list(completed_kp_ids), last_quiz_time
     )
-    recent_completed_kp_ids = set(row[0] for row in cursor.fetchall())
 
     # Create a new quiz if threshold is met
     if len(recent_completed_kp_ids) >= QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD:
@@ -917,7 +928,74 @@ def course_page(course_id: int) -> str:
         else:
             available_quizzes.append(quiz)
 
+    # Create a new review if needed
+    # Get completed kps with no postreqs
+    # If they haven't had any review yet (TODO fix later, should be able to have multiple)
+    # if it's been X knowledge points completed since then
+    id_to_knowledge_points: Dict[int, KnowledgePoint] = {}
+    for lesson in course.lessons:
+        for knowledge_point in lesson.knowledge_points:
+            id_to_knowledge_points[knowledge_point.id] = knowledge_point
+    postreqs: Dict[int, List[int]] = {id: [] for id in id_to_knowledge_points.keys()}
+    for id, knowledge_point in id_to_knowledge_points.items():
+        for prereq in knowledge_point.prerequisites:
+            postreqs[prereq].append(id)
+    completed_kp_no_post_reqs = [
+        kp
+        for id, kp in id_to_knowledge_points.items()
+        if id in completed_kp_ids and len(postreqs[id]) == 0
+    ]
+    cursor.execute(
+        """SELECT
+            kp.id as knowledge_point_id,
+            kp.name,
+            MAX(a.created_at) as last_answered_at
+        FROM knowledge_points kp
+        JOIN lessons l ON kp.lesson_id = l.id
+        JOIN questions q ON q.knowledge_point_id = kp.id
+        LEFT JOIN answers a ON a.question_id = q.id
+        LEFT JOIN quiz_questions qq ON qq.question_id = q.id
+        LEFT JOIN review_questions rq ON rq.question_id = q.id
+        WHERE l.course_id = ?
+        AND qq.question_id IS NULL
+        AND rq.question_id IS NULL
+        GROUP BY kp.id, kp.name
+        HAVING MAX(a.created_at) IS NOT NULL
+        ORDER BY last_answered_at DESC""",
+        (course_id,),
+    )
+    answered_kp_id_to_completed_time: Dict[int, str] = {
+        row[0]: row[2] for row in cursor.fetchall()
+    }
+
+    cursor.execute(
+        """SELECT r.id, r.knowledge_point_id
+           FROM reviews r
+           JOIN knowledge_points kp ON r.knowledge_point_id = kp.id
+           JOIN lessons l ON kp.lesson_id = l.id
+           WHERE l.course_id = ?""",
+        (course_id,),
+    )
+    kp_ids_with_reviews = set(kp_id for _, kp_id in cursor.fetchall())
+
+    for knowledge_point in completed_kp_no_post_reqs:
+        if knowledge_point.id in kp_ids_with_reviews:
+            continue
+        assert knowledge_point.id in answered_kp_id_to_completed_time.keys()
+        completed_time = answered_kp_id_to_completed_time[knowledge_point.id]
+        completed_kp_ids_after_kp = knowledge_point_ids_completed_after_time(
+            cursor, list(completed_kp_ids), completed_time
+        )
+        if len(completed_kp_ids_after_kp) >= REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD:
+            cursor.execute(
+                "INSERT INTO reviews (knowledge_point_id) VALUES (?)",
+                (knowledge_point.id,),
+            )
+    db.commit()
+
     # Load all reviews for this course using a single query with JOINs
+    db = get_db()
+    cursor = db.cursor()
     cursor.execute(
         """SELECT r.id, r.knowledge_point_id
            FROM reviews r
@@ -933,18 +1011,7 @@ def course_page(course_id: int) -> str:
 
     for review_id, kp_id in review_rows:
         # Find the knowledge point
-        knowledge_point = None
-        for lesson in course.lessons:
-            for kp in lesson.knowledge_points:
-                if kp.id == kp_id:
-                    knowledge_point = kp
-                    break
-            if knowledge_point:
-                break
-
-        if not knowledge_point:
-            continue
-
+        knowledge_point = id_to_knowledge_points[kp_id]
         review = Review(id=review_id, knowledge_point=knowledge_point)
 
         # Either all questions have been answered, or last X questions were
