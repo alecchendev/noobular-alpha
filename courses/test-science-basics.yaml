@@ -1,0 +1,265 @@
+title: "Science Basics"
+lessons:
+  - title: "Physics Fundamentals"
+    knowledge_points:
+      - name: "forces-and-motion"
+        description: "Understanding basic forces and motion"
+        prerequisites: []
+        contents:
+          - "Forces cause objects to accelerate."
+          - "Newton's first law: Objects in motion stay in motion unless acted upon."
+          - "Velocity is speed with direction."
+        questions:
+          - prompt: "What happens when you push an object?"
+            choices:
+              - text: "It stays still"
+              - text: "correct"
+                correct: true
+              - text: "It disappears"
+              - text: "Nothing"
+          - prompt: "What is velocity?"
+            choices:
+              - text: "Just speed"
+              - text: "correct"
+                correct: true
+              - text: "Time divided by distance"
+              - text: "Mass times acceleration"
+          - prompt: "According to Newton's first law, what happens to a moving object with no forces?"
+            choices:
+              - text: "It stops immediately"
+              - text: "correct"
+                correct: true
+              - text: "It speeds up"
+              - text: "It changes direction"
+          - prompt: "What is acceleration?"
+            choices:
+              - text: "correct"
+                correct: true
+              - text: "Total distance"
+              - text: "Constant speed"
+              - text: "Force times mass"
+          - prompt: "If you push harder on an object, what happens?"
+            choices:
+              - text: "Nothing changes"
+              - text: "correct"
+                correct: true
+              - text: "It slows down"
+              - text: "It becomes heavier"
+          - prompt: "What unit measures force?"
+            choices:
+              - text: "Meters"
+              - text: "correct"
+                correct: true
+              - text: "Kilograms"
+              - text: "Seconds"
+          - prompt: "What is inertia?"
+            choices:
+              - text: "correct"
+                correct: true
+              - text: "Speed of an object"
+              - text: "Weight of an object"
+              - text: "Direction of movement"
+          - prompt: "What happens when two forces balance?"
+            choices:
+              - text: "The object accelerates"
+              - text: "correct"
+                correct: true
+              - text: "The object explodes"
+              - text: "Nothing exists"
+
+      - name: "energy-basics"
+        description: "Understanding different forms of energy"
+        prerequisites: []
+        contents:
+          - "Energy is the ability to do work."
+          - "Kinetic energy is energy of motion."
+          - "Potential energy is stored energy."
+        questions:
+          - prompt: "What is kinetic energy?"
+            choices:
+              - text: "Stored energy"
+              - text: "correct"
+                correct: true
+              - text: "Heat energy"
+              - text: "Light energy"
+          - prompt: "What is potential energy?"
+            choices:
+              - text: "Energy of motion"
+              - text: "correct"
+                correct: true
+              - text: "Sound energy"
+              - text: "Electrical energy"
+          - prompt: "A ball at the top of a hill has what type of energy?"
+            choices:
+              - text: "Kinetic"
+              - text: "correct"
+                correct: true
+              - text: "Thermal"
+              - text: "Chemical"
+          - prompt: "A moving car has what type of energy?"
+            choices:
+              - text: "Potential"
+              - text: "correct"
+                correct: true
+              - text: "Nuclear"
+              - text: "Magnetic"
+          - prompt: "Energy cannot be created or destroyed, only ___?"
+            choices:
+              - text: "correct"
+                correct: true
+              - text: "Eliminated"
+              - text: "Stopped"
+              - text: "Reversed"
+          - prompt: "What unit measures energy?"
+            choices:
+              - text: "Watts"
+              - text: "correct"
+                correct: true
+              - text: "Newtons"
+              - text: "Meters"
+          - prompt: "Which has more kinetic energy: fast or slow object?"
+            choices:
+              - text: "Slow"
+              - text: "correct"
+                correct: true
+              - text: "Same"
+              - text: "Neither has energy"
+          - prompt: "Food contains what type of energy?"
+            choices:
+              - text: "Kinetic"
+              - text: "correct"
+                correct: true
+              - text: "Nuclear"
+              - text: "Magnetic"
+
+  - title: "Chemistry Foundations"
+    knowledge_points:
+      - name: "atoms-and-elements"
+        description: "Understanding atoms and elements"
+        prerequisites: []
+        contents:
+          - "Atoms are the building blocks of matter."
+          - "Elements are pure substances made of one type of atom."
+          - "The periodic table organizes all elements."
+        questions:
+          - prompt: "What is an atom?"
+            choices:
+              - text: "A molecule"
+              - text: "correct"
+                correct: true
+              - text: "A type of energy"
+              - text: "A chemical reaction"
+          - prompt: "What is an element?"
+            choices:
+              - text: "A mixture"
+              - text: "correct"
+                correct: true
+              - text: "A compound"
+              - text: "A solution"
+          - prompt: "How many elements are on the periodic table?"
+            choices:
+              - text: "About 50"
+              - text: "correct"
+                correct: true
+              - text: "About 200"
+              - text: "Infinite"
+          - prompt: "What is the smallest particle of an element?"
+            choices:
+              - text: "Molecule"
+              - text: "correct"
+                correct: true
+              - text: "Cell"
+              - text: "Neutron"
+          - prompt: "Gold is an example of what?"
+            choices:
+              - text: "Compound"
+              - text: "correct"
+                correct: true
+              - text: "Mixture"
+              - text: "Alloy"
+          - prompt: "What organizes all known elements?"
+            choices:
+              - text: "Dictionary"
+              - text: "correct"
+                correct: true
+              - text: "Encyclopedia"
+              - text: "Atlas"
+          - prompt: "Can you break down an element into simpler substances?"
+            choices:
+              - text: "Yes, easily"
+              - text: "correct"
+                correct: true
+              - text: "Sometimes"
+              - text: "Only with heat"
+          - prompt: "What makes elements different from each other?"
+            choices:
+              - text: "Color"
+              - text: "correct"
+                correct: true
+              - text: "Size"
+              - text: "Weight"
+
+      - name: "compounds-and-molecules"
+        description: "Understanding compounds and molecules"
+        prerequisites: []
+        contents:
+          - "Molecules are groups of atoms bonded together."
+          - "Compounds are substances made of different elements."
+          - "Water (H₂O) is a common compound."
+        questions:
+          - prompt: "What is a molecule?"
+            choices:
+              - text: "Single atom"
+              - text: "correct"
+                correct: true
+              - text: "Type of element"
+              - text: "Pure substance"
+          - prompt: "What is a compound?"
+            choices:
+              - text: "Pure element"
+              - text: "correct"
+                correct: true
+              - text: "Single atom"
+              - text: "Mixture"
+          - prompt: "Water is made of which elements?"
+            choices:
+              - text: "Carbon and oxygen"
+              - text: "correct"
+                correct: true
+              - text: "Nitrogen and oxygen"
+              - text: "Helium and oxygen"
+          - prompt: "What is H₂O?"
+            choices:
+              - text: "Hydrogen gas"
+              - text: "correct"
+                correct: true
+              - text: "Oxygen"
+              - text: "Carbon dioxide"
+          - prompt: "Can you separate compounds into elements?"
+            choices:
+              - text: "No, never"
+              - text: "correct"
+                correct: true
+              - text: "Only physically"
+              - text: "They're already separate"
+          - prompt: "Table salt (NaCl) contains which elements?"
+            choices:
+              - text: "Nitrogen and chlorine"
+              - text: "correct"
+                correct: true
+              - text: "Carbon and chlorine"
+              - text: "Sodium and calcium"
+          - prompt: "What holds atoms together in a molecule?"
+            choices:
+              - text: "Gravity"
+              - text: "correct"
+                correct: true
+              - text: "Magnets"
+              - text: "Electricity"
+          - prompt: "Is O₂ (oxygen gas) a compound?"
+            choices:
+              - text: "Yes, it has 2 atoms"
+              - text: "correct"
+                correct: true
+              - text: "Sometimes"
+              - text: "It's a mixture"

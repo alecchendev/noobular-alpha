@@ -8,7 +8,9 @@
     <h1>{{ course.title }}</h1>
 
     <h2>Diagnostic Quiz</h2>
-    <p>No diagnostic quiz available yet</p>
+    <ul>
+        <li><a href="/course/{{ course.id }}/diagnostic/{{ diagnostic_id }}">Diagnostic Quiz</a></li>
+    </ul>
 
     <h2>Next Lessons</h2>
     {% if next_lessons|length > 0 %}

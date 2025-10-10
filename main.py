@@ -127,6 +127,24 @@ def init_database() -> None:
         FOREIGN KEY (question_id) REFERENCES questions (id)
     )""")
 
+    # Create diagnostics table
+    cursor.execute("""CREATE TABLE IF NOT EXISTS diagnostics (
+        id INTEGER PRIMARY KEY,
+        course_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (course_id) REFERENCES courses (id)
+    )""")
+
+    # Create diagnostic_questions table (links diagnostics to questions)
+    cursor.execute("""CREATE TABLE IF NOT EXISTS diagnostic_questions (
+        id INTEGER PRIMARY KEY,
+        diagnostic_id INTEGER NOT NULL,
+        question_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (diagnostic_id) REFERENCES diagnostics (id),
+        FOREIGN KEY (question_id) REFERENCES questions (id)
+    )""")
+
     print("✅ Database tables created successfully!")
     conn.close()
 
@@ -226,9 +244,12 @@ class KnowledgePoint:
     description: str
     prerequisites: List[int]
     contents: List[Content]
-    questions: List[Question]  # Does not include questions used in a quiz or review
+    questions: List[
+        Question
+    ]  # Does not include questions used in a quiz, review, or diagnostic
     quizzed_questions: List[Question]  # Includes questions used in a quiz
     reviewed_questions: List[Question]  # Includes questions used in a review
+    diagnostic_questions: List[Question]  # Includes questions used in a diagnostic
 
     def last_consecutive_correct_answers(self) -> int:
         return last_consecutive_correct_answers(self.questions)
@@ -674,11 +695,25 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
                 row[0]: i for i, row in enumerate(cursor.fetchall())
             }
 
+            cursor.execute(
+                """SELECT q.id FROM diagnostic_questions dq JOIN questions q on dq.question_id = q.id WHERE q.knowledge_point_id = ?""",
+                (kp_db_id,),
+            )
+            # We need to keep these in order so that when we answer later with
+            # the index, we can find the right question. Later we should
+            # probably just submit based on the question id.
+            diagnostic_question_id_to_idx = {
+                row[0]: i for i, row in enumerate(cursor.fetchall())
+            }
+
             questions = []
             quizzed_questions = []
             reviewed_questions: list[Question] = [Question(-1, "", [], None, -1)] * len(
                 reviewed_question_id_to_idx
             )
+            diagnostic_questions: list[Question] = [
+                Question(-1, "", [], None, -1)
+            ] * len(diagnostic_question_id_to_idx)
             for question_id, prompt in question_rows:
                 # Get choices for this question
                 cursor.execute(
@@ -715,9 +750,14 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
                     reviewed_questions[reviewed_question_id_to_idx[question.id]] = (
                         question
                     )
+                elif question.id in diagnostic_question_id_to_idx.keys():
+                    diagnostic_questions[diagnostic_question_id_to_idx[question.id]] = (
+                        question
+                    )
                 else:
                     questions.append(question)
             assert all(q.id != -1 for q in reviewed_questions)
+            assert all(q.id != -1 for q in diagnostic_questions)
 
             knowledge_points.append(
                 KnowledgePoint(
@@ -729,6 +769,7 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
                     questions=questions,
                     quizzed_questions=quizzed_questions,
                     reviewed_questions=reviewed_questions,
+                    diagnostic_questions=diagnostic_questions,
                 )
             )
 
@@ -755,6 +796,8 @@ def index() -> str:
     return render_template("index.html", courses=courses)
 
 
+# Max number of knowledge points in a course
+MAX_COURSE_KNOWLEDGE_POINT_COUNT = 1000
 # number of answers correct in a row to let you skip the rest of the questions
 CORRECT_COUNT_THRESHOLD = 2
 # number of answers correct in a row to let you skip the rest of the questions
@@ -784,10 +827,12 @@ def knowledge_point_ids_completed_after_time(
             JOIN answers a ON a.question_id = q.id
             LEFT JOIN quiz_questions qq ON qq.question_id = q.id
             LEFT JOIN review_questions rq ON rq.question_id = q.id
+            LEFT JOIN diagnostic_questions dq ON dq.question_id = q.id
             WHERE q.knowledge_point_id IN ({placeholders})
             AND a.created_at > ?
             AND qq.question_id IS NULL
-            AND rq.question_id is NULL""",
+            AND rq.question_id is NULL
+            AND dq.question_id is NULL""",
         (*completed_kp_ids, time),
     )
     return [row[0] for row in cursor.fetchall()]
@@ -847,6 +892,19 @@ def course_page(course_id: int) -> str:
     # Check if we need to create a new quiz
     db = get_db()
     cursor = db.cursor()
+
+    # Create a diagnostic if one doesn't exist for this course
+    cursor.execute(
+        "SELECT id FROM diagnostics WHERE course_id = ?",
+        (course_id,),
+    )
+    diagnostic_row = cursor.fetchone()
+    if not diagnostic_row:
+        cursor.execute("INSERT INTO diagnostics (course_id) VALUES (?)", (course_id,))
+        db.commit()
+        diagnostic_id = cursor.lastrowid
+    else:
+        diagnostic_id = diagnostic_row[0]
 
     # Get the creation time of the last quiz (or use epoch if no quizzes exist)
     cursor.execute(
@@ -956,9 +1014,11 @@ def course_page(course_id: int) -> str:
         LEFT JOIN answers a ON a.question_id = q.id
         LEFT JOIN quiz_questions qq ON qq.question_id = q.id
         LEFT JOIN review_questions rq ON rq.question_id = q.id
+        LEFT JOIN diagnostic_questions dq ON dq.question_id = q.id
         WHERE l.course_id = ?
         AND qq.question_id IS NULL
         AND rq.question_id IS NULL
+        AND dq.question_id IS NULL
         GROUP BY kp.id, kp.name
         HAVING MAX(a.created_at) IS NOT NULL
         ORDER BY last_answered_at DESC""",
@@ -994,8 +1054,6 @@ def course_page(course_id: int) -> str:
     db.commit()
 
     # Load all reviews for this course using a single query with JOINs
-    db = get_db()
-    cursor = db.cursor()
     cursor.execute(
         """SELECT r.id, r.knowledge_point_id
            FROM reviews r
@@ -1043,6 +1101,7 @@ def course_page(course_id: int) -> str:
         completed_quizzes=completed_quizzes,
         available_reviews=available_reviews,
         completed_reviews=completed_reviews,
+        diagnostic_id=diagnostic_id,
     )
 
 
@@ -1496,7 +1555,13 @@ def review_page(course_id: int, review_id: int) -> str:
         question = create_review_question(review_id, knowledge_point)
 
     return render_template(
-        "review.html", course=course, review=review, question=question, i=0
+        "question_page.html",
+        page_title=f"Review: {knowledge_point.name}",
+        course=course,
+        entity_type="review",
+        entity_id=review.id,
+        question=question,
+        i=0,
     )
 
 
@@ -1583,9 +1648,10 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
         assert new_question is not None
 
     next_button_html = render_template(
-        "review_next_button.html",
+        "question_next_button.html",
         course=course,
-        review=Review(id=review_id, knowledge_point=knowledge_point),
+        entity_type="review",
+        entity_id=review_id,
         i=i,
     )
 
@@ -1633,12 +1699,294 @@ def review_next_question(course_id: int, review_id: int) -> str:
 
     question = knowledge_point.reviewed_questions[i]
 
-    review = Review(id=review_id, knowledge_point=knowledge_point)
+    return render_template(
+        "question_form.html",
+        course=course,
+        entity_type="review",
+        entity_id=review_id,
+        question=question,
+        i=i,
+    )
+
+
+def create_diagnostic_question(
+    db: sqlite3.Connection, cursor: sqlite3.Cursor, diagnostic_id: int, course: Course
+) -> Optional[Question]:
+    # Start from root nodes
+    # Traverse questions that are answered correctly in the diagnostic
+    # If none left, we're done
+    # If any left, pick at random
+    knowledge_points: list[KnowledgePoint] = sum(
+        [lesson.knowledge_points for lesson in course.lessons], []
+    )
+    id_to_knowledge_points: Dict[int, KnowledgePoint] = {
+        kp.id: kp for kp in knowledge_points
+    }
+    root_knowledge_point_ids: list[int] = [
+        kp.id for kp in knowledge_points if len(kp.prerequisites) == 0
+    ]
+    postreqs: Dict[int, List[int]] = {kp.id: [] for kp in knowledge_points}
+    for knowledge_point in knowledge_points:
+        for prereq in knowledge_point.prerequisites:
+            postreqs[prereq].append(knowledge_point.id)
+
+    next_knowledge_point_ids = []
+    queue = [id for id in root_knowledge_point_ids]
+    visited = set(queue)
+    for _ in range(MAX_COURSE_KNOWLEDGE_POINT_COUNT):
+        if len(queue) == 0:
+            break
+        kp_id = queue.pop(0)
+        kp = id_to_knowledge_points[kp_id]
+        # if not already in diagnostic, add
+        if len(kp.diagnostic_questions) == 0:
+            next_knowledge_point_ids.append(kp_id)
+            continue
+        # assume only 1 diagnostic for now -> only 1 question per kp in 1 diagnostic
+        assert len(kp.diagnostic_questions) == 1
+        # it should be answered already if we've gotten to the condition
+        # of creating a new question
+        diagnostic_question = kp.diagnostic_questions[0]
+        assert diagnostic_question.answer is not None
+        # if completed, visit post reqs
+        if (
+            diagnostic_question.answer.choice_id
+            == diagnostic_question.correct_choice().id
+        ):
+            new_kp_ids = [kp_id for kp_id in postreqs if kp_id not in visited]
+            queue.extend(new_kp_ids)
+            visited.update(new_kp_ids)
+        # if failed, continue
+    if len(next_knowledge_point_ids) == 0:
+        return None
+
+    next_knowledge_point = id_to_knowledge_points[next_knowledge_point_ids[0]]
+
+    unanswered = [q for q in next_knowledge_point.questions if q.answer is None]
+    assert len(unanswered) > 0
+    selected_question = random.choice(unanswered)
+
+    # Create review_question entry
+    cursor.execute(
+        "INSERT INTO diagnostic_questions (diagnostic_id, question_id) VALUES (?, ?)",
+        (diagnostic_id, selected_question.id),
+    )
+    db.commit()
+
+    return selected_question
+
+
+@app.route("/course/<int:course_id>/diagnostic/<int:diagnostic_id>")
+def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
+    course = load_course_from_db(course_id)
+    if not course:
+        abort(404)
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Verify diagnostic exists and belongs to course
+    cursor.execute(
+        "SELECT id FROM diagnostics WHERE id = ? AND course_id = ?",
+        (diagnostic_id, course_id),
+    )
+    if not cursor.fetchone():
+        abort(404)
+
+    # Get diagnostic questions
+    cursor.execute(
+        """SELECT question_id FROM diagnostic_questions
+           WHERE diagnostic_id = ?
+           ORDER BY id""",
+        (diagnostic_id,),
+    )
+    diagnostic_question_ids = [row[0] for row in cursor.fetchall()]
+    id_to_diagnostic_questions: Dict[int, Question] = {}
+    for lesson in course.lessons:
+        for knowledge_point in lesson.knowledge_points:
+            for question in knowledge_point.diagnostic_questions:
+                id_to_diagnostic_questions[question.id] = question
+    diagnostic_questions = [
+        id_to_diagnostic_questions[id] for id in diagnostic_question_ids
+    ]
+
+    # Get or create first diagnostic question (i=0)
+    first_question = None
+    if len(diagnostic_questions) > 0:
+        first_question = diagnostic_questions[0]
+    else:
+        first_question = create_diagnostic_question(db, cursor, diagnostic_id, course)
+    assert first_question is not None
 
     return render_template(
-        "review_question.html",
+        "question_page.html",
+        page_title="Diagnostic",
         course=course,
-        review=review,
+        entity_type="diagnostic",
+        entity_id=diagnostic_id,
+        question=first_question,
+        i=0,
+    )
+
+
+@app.route(
+    "/course/<int:course_id>/diagnostic/<int:diagnostic_id>/submit", methods=["POST"]
+)
+def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
+    course = load_course_from_db(course_id)
+    if not course:
+        abort(404)
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Verify diagnostic exists
+    cursor.execute(
+        "SELECT id FROM diagnostics WHERE id = ? AND course_id = ?",
+        (diagnostic_id, course_id),
+    )
+    if not cursor.fetchone():
+        abort(404)
+
+    i_str = request.form.get("i")
+    answer_str = request.form.get("answer")
+    if i_str is None or answer_str is None:
+        abort(404)
+
+    i = int(i_str)
+    answer_index = int(answer_str)
+
+    # Get diagnostic questions
+    cursor.execute(
+        """SELECT question_id FROM diagnostic_questions
+           WHERE diagnostic_id = ?
+           ORDER BY id""",
+        (diagnostic_id,),
+    )
+    diagnostic_question_ids = [row[0] for row in cursor.fetchall()]
+
+    if i >= len(diagnostic_question_ids):
+        abort(404)
+
+    question_id = diagnostic_question_ids[i]
+
+    # Find the question in the course
+    question_lesson_idx = None
+    question_kp_idx = None
+    question_idx = None
+    question = None
+    for lesson_idx, lesson in enumerate(course.lessons):
+        for kp_idx, kp in enumerate(lesson.knowledge_points):
+            for q_idx, q in enumerate(kp.diagnostic_questions):
+                if q.id == question_id:
+                    question = q
+                    question_lesson_idx = lesson_idx
+                    question_kp_idx = kp_idx
+                    question_idx = q_idx
+
+    if not question:
+        abort(404)
+    assert question_lesson_idx is not None
+    assert question_kp_idx is not None
+    assert question_idx is not None
+
+    user_choice = question.choices[answer_index]
+
+    # Save the user's answer to the database
+    cursor.execute(
+        "INSERT INTO answers (question_id, choice_id) VALUES (?, ?)",
+        (question.id, user_choice.id),
+    )
+    answer_id = cursor.lastrowid
+    assert answer_id is not None
+    db.commit()
+    # Important that we populate this the rest of this handler can assume correct state
+    course.lessons[question_lesson_idx].knowledge_points[
+        question_kp_idx
+    ].diagnostic_questions[question_idx].answer = Answer(
+        id=answer_id, question_id=question.id, choice_id=user_choice.id
+    )
+
+    is_correct = user_choice.correct
+    correct_answer_index = next(
+        idx for idx, choice in enumerate(question.choices) if choice.correct
+    )
+    correct_answer_text = question.choices[correct_answer_index].text
+
+    if is_correct:
+        feedback = f"✅ Correct! The correct answer is: {correct_answer_text}"
+    else:
+        feedback = f"❌ Incorrect. The correct answer is: {correct_answer_text}"
+
+    # Create new question if more questions are needed
+    # For now, just create one new question
+    create_diagnostic_question(db, cursor, diagnostic_id, course)
+
+    next_button_html = render_template(
+        "question_next_button.html",
+        course=course,
+        entity_type="diagnostic",
+        entity_id=diagnostic_id,
+        i=i,
+    )
+
+    return f"<p>{feedback}</p>{next_button_html}"
+
+
+@app.route(
+    "/course/<int:course_id>/diagnostic/<int:diagnostic_id>/next", methods=["POST"]
+)
+def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
+    course = load_course_from_db(course_id)
+    if not course:
+        abort(404)
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Verify diagnostic exists
+    cursor.execute(
+        "SELECT id FROM diagnostics WHERE id = ? AND course_id = ?",
+        (diagnostic_id, course_id),
+    )
+    if not cursor.fetchone():
+        abort(404)
+
+    i_str = request.form.get("i")
+    if not i_str:
+        abort(404)
+    i = int(i_str)
+
+    # Get diagnostic questions
+    cursor.execute(
+        """SELECT question_id FROM diagnostic_questions
+           WHERE diagnostic_id = ?
+           ORDER BY id""",
+        (diagnostic_id,),
+    )
+    diagnostic_question_ids = [row[0] for row in cursor.fetchall()]
+
+    if i >= len(diagnostic_question_ids):
+        # No more questions left, we're done
+        return ""
+
+    question_id = diagnostic_question_ids[i]
+
+    # Find the question in the course
+    question = None
+    for lesson in course.lessons:
+        for kp in lesson.knowledge_points:
+            for q in kp.diagnostic_questions:
+                if q.id == question_id:
+                    question = q
+
+    assert question is not None
+
+    return render_template(
+        "question_form.html",
+        course=course,
+        entity_type="diagnostic",
+        entity_id=diagnostic_id,
         question=question,
         i=i,
     )

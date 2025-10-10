@@ -1,7 +1,7 @@
 {% if question %}
     <div class="question">
         <p><strong>{{ question.prompt }}</strong></p>
-        <form id="review-question-form-{{ i }}">
+        <form id="question-form-{{ i }}">
             {% for choice in question.choices %}
                 <label>
                     <input type="radio" name="answer" value="{{ loop.index0 }}" required
@@ -19,13 +19,13 @@
         <button
             id="submit-button"
             type="submit"
-            hx-post="/course/{{ course.id }}/review/{{ review.id }}/submit"
+            hx-post="/course/{{ course.id }}/{{ entity_type }}/{{ entity_id }}/submit"
             hx-target="#submit-button"
             hx-vals='{"i": {{ i }}}'
-            hx-include="#review-question-form-{{ i }}"
+            hx-include="#question-form-{{ i }}"
             hx-swap="outerHTML"
         >Submit</button>
     {% else %}
-        {% include 'review_next_button.html' %}
+        {% include 'question_next_button.html' %}
     {% endif %}
 {% endif %}
