@@ -4,6 +4,7 @@ import sqlite3
 import hashlib
 from pathlib import Path
 from typing import Any, List, Optional
+import random
 from dataclasses import dataclass
 
 
@@ -108,6 +109,24 @@ def init_database() -> None:
         FOREIGN KEY (question_id) REFERENCES questions (id)
     )""")
 
+    # Create reviews table
+    cursor.execute("""CREATE TABLE IF NOT EXISTS reviews (
+        id INTEGER PRIMARY KEY,
+        knowledge_point_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points (id)
+    )""")
+
+    # Create review_questions table (links reviews to questions)
+    cursor.execute("""CREATE TABLE IF NOT EXISTS review_questions (
+        id INTEGER PRIMARY KEY,
+        review_id INTEGER NOT NULL,
+        question_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (review_id) REFERENCES reviews (id),
+        FOREIGN KEY (question_id) REFERENCES questions (id)
+    )""")
+
     print("✅ Database tables created successfully!")
     conn.close()
 
@@ -160,6 +179,7 @@ class Question:
     prompt: str
     choices: List[Choice]
     answer: Optional[Answer]
+    knowledge_point_id: int
 
     def correct_choice(self) -> Choice:
         # Assumes there is a correct choice (should be validated upon course load)
@@ -172,6 +192,18 @@ class Content:
     text: str
 
 
+def last_consecutive_correct_answers(questions: List[Question]) -> int:
+    last_correct_count = 0
+    for question in questions[::-1]:
+        if question.answer is None:
+            continue
+        if question.answer.choice_id == question.correct_choice().id:
+            last_correct_count += 1
+        else:
+            break
+    return last_correct_count
+
+
 @dataclass
 class KnowledgePoint:
     id: int
@@ -179,19 +211,15 @@ class KnowledgePoint:
     description: str
     prerequisites: List[int]
     contents: List[Content]
-    questions: List[Question]  # Does not include questions used in a quiz
+    questions: List[Question]  # Does not include questions used in a quiz or review
     quizzed_questions: List[Question]  # Includes questions used in a quiz
+    reviewed_questions: List[Question]  # Includes questions used in a review
 
     def last_consecutive_correct_answers(self) -> int:
-        last_correct_count = 0
-        for question in self.questions[::-1]:
-            if question.answer is None:
-                continue
-            if question.answer.choice_id == question.correct_choice().id:
-                last_correct_count += 1
-            else:
-                break
-        return last_correct_count
+        return last_consecutive_correct_answers(self.questions)
+
+    def last_consecutive_correct_review_answers(self) -> int:
+        return last_consecutive_correct_answers(self.reviewed_questions)
 
 
 @dataclass
@@ -214,6 +242,12 @@ class Quiz:
     course_id: int
     questions: List[Question]
     started_at: Optional[str]
+
+
+@dataclass
+class Review:
+    id: int
+    knowledge_point: KnowledgePoint
 
 
 @dataclass
@@ -614,8 +648,22 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
             )
             quizzed_question_ids = set(row[0] for row in cursor.fetchall())
 
+            cursor.execute(
+                """SELECT q.id FROM review_questions rq JOIN questions q on rq.question_id = q.id WHERE q.knowledge_point_id = ?""",
+                (kp_db_id,),
+            )
+            # We need to keep these in order so that when we answer later with
+            # the index, we can find the right question. Later we should
+            # probably just submit based on the question id.
+            reviewed_question_id_to_idx = {
+                row[0]: i for i, row in enumerate(cursor.fetchall())
+            }
+
             questions = []
             quizzed_questions = []
+            reviewed_questions: list[Question] = [Question(-1, "", [], None, -1)] * len(
+                reviewed_question_id_to_idx
+            )
             for question_id, prompt in question_rows:
                 # Get choices for this question
                 cursor.execute(
@@ -640,12 +688,21 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
                     answer = Answer(id=id, question_id=question_id, choice_id=choice_id)
 
                 question = Question(
-                    id=question_id, prompt=prompt, choices=choices, answer=answer
+                    id=question_id,
+                    prompt=prompt,
+                    choices=choices,
+                    answer=answer,
+                    knowledge_point_id=kp_db_id,
                 )
                 if question.id in quizzed_question_ids:
                     quizzed_questions.append(question)
+                elif question.id in reviewed_question_id_to_idx.keys():
+                    reviewed_questions[reviewed_question_id_to_idx[question.id]] = (
+                        question
+                    )
                 else:
                     questions.append(question)
+            assert all(q.id != -1 for q in reviewed_questions)
 
             knowledge_points.append(
                 KnowledgePoint(
@@ -656,6 +713,7 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
                     contents=contents,
                     questions=questions,
                     quizzed_questions=quizzed_questions,
+                    reviewed_questions=reviewed_questions,
                 )
             )
 
@@ -684,12 +742,14 @@ def index() -> str:
 
 # number of answers correct in a row to let you skip the rest of the questions
 CORRECT_COUNT_THRESHOLD = 2
+# number of answers correct in a row to let you skip the rest of the questions
+REVIEW_CORRECT_COUNT_THRESHOLD = 3
 # percentage of wrong:right ratio to which you will fail and have to restart a lesson
 INCORRECT_RATIO_FAIL_THRESHOLD = 0.6  # 3/5
 # number of knowledge points completed before a quiz is ready
-QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 5  # 15
+QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 2  # 15
 # number of questions in a quiz
-QUIZ_QUESTION_COUNT = 5
+QUIZ_QUESTION_COUNT = 2
 assert QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD >= QUIZ_QUESTION_COUNT
 # number of minutes allowed for a quiz
 QUIZ_TIME_LIMIT_MINUTES = 15
@@ -761,15 +821,18 @@ def course_page(course_id: int) -> str:
 
     # Get KP IDs completed after the last quiz using a single query
     # Exclude questions that are quiz questions
+    # Exclude questions that are review questions
     placeholders = ",".join("?" * len(completed_kp_ids))
     cursor.execute(
         f"""SELECT DISTINCT q.knowledge_point_id
             FROM questions q
             JOIN answers a ON a.question_id = q.id
             LEFT JOIN quiz_questions qq ON qq.question_id = q.id
+            LEFT JOIN review_questions rq ON rq.question_id = q.id
             WHERE q.knowledge_point_id IN ({placeholders})
             AND a.created_at > ?
-            AND qq.question_id IS NULL""",
+            AND qq.question_id IS NULL
+            AND rq.question_id is NULL""",
         (*completed_kp_ids, last_quiz_time),
     )
     recent_completed_kp_ids = set(row[0] for row in cursor.fetchall())
@@ -777,7 +840,6 @@ def course_page(course_id: int) -> str:
     # Create a new quiz if threshold is met
     if len(recent_completed_kp_ids) >= QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD:
         # Get recently completed KPs from the course data
-        import random
 
         recent_kps: list[KnowledgePoint] = []
         for lesson in course.lessons:
@@ -840,6 +902,55 @@ def course_page(course_id: int) -> str:
         else:
             available_quizzes.append(quiz)
 
+    # Load all reviews for this course using a single query with JOINs
+    cursor.execute(
+        """SELECT r.id, r.knowledge_point_id
+           FROM reviews r
+           JOIN knowledge_points kp ON r.knowledge_point_id = kp.id
+           JOIN lessons l ON kp.lesson_id = l.id
+           WHERE l.course_id = ?""",
+        (course_id,),
+    )
+    review_rows = cursor.fetchall()
+
+    available_reviews = []
+    completed_reviews = []
+
+    for review_id, kp_id in review_rows:
+        # Find the knowledge point
+        knowledge_point = None
+        for lesson in course.lessons:
+            for kp in lesson.knowledge_points:
+                if kp.id == kp_id:
+                    knowledge_point = kp
+                    break
+            if knowledge_point:
+                break
+
+        if not knowledge_point:
+            continue
+
+        review = Review(id=review_id, knowledge_point=knowledge_point)
+
+        # Either all questions have been answered, or last X questions were
+        # answered correctly in a row
+        answered_questions = [
+            question
+            for question in knowledge_point.reviewed_questions
+            if question.answer
+        ]
+        if (
+            (
+                len(knowledge_point.reviewed_questions) > 0
+                and len(answered_questions) == len(knowledge_point.reviewed_questions)
+            )
+            or knowledge_point.last_consecutive_correct_review_answers()
+            >= REVIEW_CORRECT_COUNT_THRESHOLD
+        ):
+            completed_reviews.append(review)
+        else:
+            available_reviews.append(review)
+
     return render_template(
         "course.html",
         course=course,
@@ -848,6 +959,8 @@ def course_page(course_id: int) -> str:
         remaining_lessons=remaining_lessons,
         available_quizzes=available_quizzes,
         completed_quizzes=completed_quizzes,
+        available_reviews=available_reviews,
+        completed_reviews=completed_reviews,
     )
 
 
@@ -916,7 +1029,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     db = get_db()
     cursor = db.cursor()
     cursor.execute(
-        "INSERT OR REPLACE INTO answers (question_id, choice_id) VALUES (?, ?)",
+        "INSERT INTO answers (question_id, choice_id) VALUES (?, ?)",
         (question.id, user_choice.id),
     )
     answer_id = cursor.lastrowid
@@ -1047,7 +1160,7 @@ def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
 
     # Load quiz questions
     cursor.execute(
-        """SELECT q.id, q.prompt
+        """SELECT q.id, q.prompt, q.knowledge_point_id
            FROM quiz_questions qq
            JOIN questions q ON qq.question_id = q.id
            WHERE qq.quiz_id = ?""",
@@ -1056,7 +1169,7 @@ def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
     question_rows = cursor.fetchall()
 
     questions = []
-    for q_id, q_prompt in question_rows:
+    for q_id, q_prompt, q_kp_id in question_rows:
         # Load choices for this question
         cursor.execute(
             "SELECT id, text, is_correct FROM choices WHERE question_id = ?", (q_id,)
@@ -1078,7 +1191,13 @@ def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
         )
 
         questions.append(
-            Question(id=q_id, prompt=q_prompt, choices=choices, answer=answer)
+            Question(
+                id=q_id,
+                prompt=q_prompt,
+                choices=choices,
+                answer=answer,
+                knowledge_point_id=q_kp_id,
+            )
         )
 
     return Quiz(
@@ -1154,6 +1273,9 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
     db = get_db()
     cursor = db.cursor()
 
+    # Collect knowledge point IDs for incorrect answers
+    incorrect_kp_ids = set()
+
     # Process and store answers
     for question in quiz.questions:
         answer_key = f"question_{question.id}"
@@ -1168,6 +1290,15 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
                     "INSERT OR REPLACE INTO answers (question_id, choice_id) VALUES (?, ?)",
                     (question.id, choice_id),
                 )
+
+                # Check if answer is incorrect
+                is_correct = question.choices[choice_index].correct
+                if not is_correct:
+                    incorrect_kp_ids.add(question.knowledge_point_id)
+
+    # Create reviews for incorrect knowledge points
+    for kp_id in incorrect_kp_ids:
+        cursor.execute("INSERT INTO reviews (knowledge_point_id) VALUES (?)", (kp_id,))
 
     db.commit()
 
@@ -1216,6 +1347,217 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
         course=course,
         lesson=lesson,
         knowledge_point_index=kp_index,
+        i=i,
+    )
+
+
+def create_review_question(
+    review_id: int, knowledge_point: KnowledgePoint
+) -> Optional[Question]:
+    db = get_db()
+    cursor = db.cursor()
+
+    if len(knowledge_point.questions) == 0:
+        return None  # No more questions available
+
+    # Pick a random question
+    unanswered = [q for q in knowledge_point.questions if q.answer is None]
+    selected_question = random.choice(unanswered)
+
+    # Create review_question entry
+    cursor.execute(
+        "INSERT INTO review_questions (review_id, question_id) VALUES (?, ?)",
+        (review_id, selected_question.id),
+    )
+    db.commit()
+
+    return selected_question
+
+
+@app.route("/course/<int:course_id>/review/<int:review_id>")
+def review_page(course_id: int, review_id: int) -> str:
+    course = load_course_from_db(course_id)
+    if not course:
+        abort(404)
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Get the knowledge_point_id for this review
+    cursor.execute("SELECT knowledge_point_id FROM reviews WHERE id = ?", (review_id,))
+    review_row = cursor.fetchone()
+    if not review_row:
+        abort(404)
+
+    kp_id = review_row[0]
+
+    # Find the knowledge point in the course
+    knowledge_point = None
+    for lesson in course.lessons:
+        for kp in lesson.knowledge_points:
+            if kp.id == kp_id:
+                knowledge_point = kp
+                break
+        if knowledge_point:
+            break
+
+    if not knowledge_point:
+        abort(404)
+
+    review = Review(id=review_id, knowledge_point=knowledge_point)
+
+    # Get or create first review question (i=0)
+    question = None
+    if len(knowledge_point.reviewed_questions) > 0:
+        question = knowledge_point.reviewed_questions[0]
+    else:
+        question = create_review_question(review_id, knowledge_point)
+
+    return render_template(
+        "review.html", course=course, review=review, question=question, i=0
+    )
+
+
+@app.route("/course/<int:course_id>/review/<int:review_id>/submit", methods=["POST"])
+def review_submit_answer(course_id: int, review_id: int) -> str:
+    course = load_course_from_db(course_id)
+    if not course:
+        abort(404)
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Get the knowledge_point_id for this review
+    cursor.execute("SELECT knowledge_point_id FROM reviews WHERE id = ?", (review_id,))
+    review_row = cursor.fetchone()
+    if not review_row:
+        abort(404)
+
+    kp_id = review_row[0]
+
+    # Find the knowledge point in the course
+    knowledge_point = None
+    for lesson in course.lessons:
+        for kp in lesson.knowledge_points:
+            if kp.id == kp_id:
+                knowledge_point = kp
+                break
+        if knowledge_point:
+            break
+
+    if not knowledge_point:
+        abort(404)
+
+    i_str = request.form.get("i")
+    answer_str = request.form.get("answer")
+    if i_str is None or answer_str is None:
+        abort(404)
+
+    i = int(i_str)
+    answer_index = int(answer_str)
+
+    # Get the question at this index
+    if i >= len(knowledge_point.reviewed_questions):
+        print(f"Tried to submit answer for reviewed question index out of bounds: {i}")
+        abort(404)
+    print(i)
+    print(knowledge_point.reviewed_questions)
+    question = knowledge_point.reviewed_questions[i]
+
+    user_choice = question.choices[answer_index]
+
+    # Save the user's answer to the database
+    print(question.id)
+    cursor.execute(
+        "INSERT INTO answers (question_id, choice_id) VALUES (?, ?)",
+        (question.id, user_choice.id),
+    )
+    answer_id = cursor.lastrowid
+    assert answer_id is not None
+    # Important that we populate this the rest of this handler can assume correct state
+    knowledge_point.reviewed_questions[i].answer = Answer(
+        id=answer_id, question_id=question.id, choice_id=user_choice.id
+    )
+    db.commit()
+
+    is_correct = user_choice.correct
+    correct_answer_index = next(
+        idx for idx, choice in enumerate(question.choices) if choice.correct
+    )
+    correct_answer_text = question.choices[correct_answer_index].text
+
+    if is_correct:
+        feedback = f"✅ Correct! The correct answer is: {correct_answer_text}"
+    else:
+        feedback = f"❌ Incorrect. The correct answer is: {correct_answer_text}"
+
+    # Create new question if needed (haven't answered enough correct in a row, and unanswered questions left)
+    if (
+        knowledge_point.last_consecutive_correct_review_answers()
+        < REVIEW_CORRECT_COUNT_THRESHOLD
+        and len([q for q in knowledge_point.questions if q.answer is None]) > 0
+    ):
+        new_question = create_review_question(review_id, knowledge_point)
+        assert new_question is not None
+
+    next_button_html = render_template(
+        "review_next_button.html",
+        course=course,
+        review=Review(id=review_id, knowledge_point=knowledge_point),
+        i=i,
+    )
+
+    return f"<p>{feedback}</p>{next_button_html}"
+
+
+@app.route("/course/<int:course_id>/review/<int:review_id>/next", methods=["POST"])
+def review_next_question(course_id: int, review_id: int) -> str:
+    course = load_course_from_db(course_id)
+    if not course:
+        abort(404)
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Get the knowledge_point_id for this review
+    cursor.execute("SELECT knowledge_point_id FROM reviews WHERE id = ?", (review_id,))
+    review_row = cursor.fetchone()
+    if not review_row:
+        abort(404)
+
+    kp_id = review_row[0]
+
+    # Find the knowledge point in the course
+    knowledge_point = None
+    for lesson in course.lessons:
+        for kp in lesson.knowledge_points:
+            if kp.id == kp_id:
+                knowledge_point = kp
+                break
+        if knowledge_point:
+            break
+
+    if not knowledge_point:
+        abort(404)
+
+    i_str = request.form.get("i")
+    if not i_str:
+        abort(404)
+    i = int(i_str)
+
+    if i >= len(knowledge_point.reviewed_questions):
+        # No more questions left, we're done
+        return ""
+
+    question = knowledge_point.reviewed_questions[i]
+
+    review = Review(id=review_id, knowledge_point=knowledge_point)
+
+    return render_template(
+        "review_question.html",
+        course=course,
+        review=review,
+        question=question,
         i=i,
     )
 

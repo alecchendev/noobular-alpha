@@ -65,6 +65,28 @@
         <p>No completed quizzes</p>
     {% endif %}
 
+    <h2>Available Reviews</h2>
+    {% if available_reviews|length > 0 %}
+        <ul>
+        {% for review in available_reviews %}
+            <li><a href="/course/{{ course.id }}/review/{{ review.id }}">Review: {{ review.knowledge_point.name }}</a></li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No reviews available</p>
+    {% endif %}
+
+    <h2>Completed Reviews</h2>
+    {% if completed_reviews|length > 0 %}
+        <ul>
+        {% for review in completed_reviews %}
+            <li><a href="/course/{{ course.id }}/review/{{ review.id }}">Review: {{ review.knowledge_point.name }}</a></li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No completed reviews</p>
+    {% endif %}
+
     <a href="/">← Back to Course Catalog</a>
 </body>
 </html>

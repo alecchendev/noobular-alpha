@@ -1,0 +1,31 @@
+{% if question %}
+    <div class="question">
+        <p><strong>{{ question.prompt }}</strong></p>
+        <form id="review-question-form-{{ i }}">
+            {% for choice in question.choices %}
+                <label>
+                    <input type="radio" name="answer" value="{{ loop.index0 }}" required
+                        {% if question.answer is not none %}
+                            disabled
+                            {% if choice.id == question.answer.choice_id %}checked{% endif %}
+                        {% endif %}
+                    >
+                    {{ choice.text }}
+                </label><br>
+            {% endfor %}
+        </form>
+    </div>
+    {% if question.answer is none %}
+        <button
+            id="submit-button"
+            type="submit"
+            hx-post="/course/{{ course.id }}/review/{{ review.id }}/submit"
+            hx-target="#submit-button"
+            hx-vals='{"i": {{ i }}}'
+            hx-include="#review-question-form-{{ i }}"
+            hx-swap="outerHTML"
+        >Submit</button>
+    {% else %}
+        {% include 'review_next_button.html' %}
+    {% endif %}
+{% endif %}

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Review: {{ review.knowledge_point.name }} - {{ course.title }}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+    <h1>Review: {{ review.knowledge_point.name }}</h1>
+    <p><strong>Course:</strong> {{ course.title }}</p>
+    <p><em>{{ review.knowledge_point.description }}</em></p>
+
+    {% include 'review_question.html' %}
+
+    <a href="/course/{{ course.id }}">← Back to {{ course.title }}</a>
+</body>
+</html>

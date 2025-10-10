@@ -1,0 +1,161 @@
+title: "Test Course for Reviews"
+lessons:
+  - title: "Test Lesson"
+    knowledge_points:
+      - name: "basic-math"
+        description: "Basic arithmetic operations"
+        prerequisites: []
+        contents:
+          - "Addition is combining two or more numbers together."
+          - "Subtraction is taking one number away from another."
+          - "Multiplication is repeated addition."
+        questions:
+          - prompt: "What is 2 + 2?"
+            choices:
+              - text: "3"
+              - text: "4"
+                correct: true
+              - text: "5"
+              - text: "6"
+          - prompt: "What is 5 - 3?"
+            choices:
+              - text: "1"
+              - text: "2"
+                correct: true
+              - text: "3"
+              - text: "8"
+          - prompt: "What is 3 × 4?"
+            choices:
+              - text: "7"
+              - text: "10"
+              - text: "12"
+                correct: true
+              - text: "15"
+          - prompt: "What is 10 ÷ 2?"
+            choices:
+              - text: "3"
+              - text: "5"
+                correct: true
+              - text: "8"
+              - text: "20"
+          - prompt: "What is 7 + 8?"
+            choices:
+              - text: "14"
+              - text: "15"
+                correct: true
+              - text: "16"
+              - text: "17"
+          - prompt: "What is 20 - 7?"
+            choices:
+              - text: "11"
+              - text: "12"
+              - text: "13"
+                correct: true
+              - text: "14"
+          - prompt: "What is 6 × 7?"
+            choices:
+              - text: "36"
+              - text: "40"
+              - text: "42"
+                correct: true
+              - text: "48"
+          - prompt: "What is 18 ÷ 3?"
+            choices:
+              - text: "5"
+              - text: "6"
+                correct: true
+              - text: "7"
+              - text: "9"
+          - prompt: "What is 9 + 6?"
+            choices:
+              - text: "13"
+              - text: "14"
+              - text: "15"
+                correct: true
+              - text: "16"
+          - prompt: "What is 25 - 10?"
+            choices:
+              - text: "10"
+              - text: "15"
+                correct: true
+              - text: "20"
+              - text: "35"
+
+      - name: "simple-fractions"
+        description: "Understanding basic fractions"
+        prerequisites: ["basic-math"]
+        contents:
+          - "A fraction represents a part of a whole."
+          - "The top number is called the numerator."
+          - "The bottom number is called the denominator."
+        questions:
+          - prompt: "What is 1/2 of 10?"
+            choices:
+              - text: "3"
+              - text: "5"
+                correct: true
+              - text: "7"
+              - text: "10"
+          - prompt: "What is 1/4 of 12?"
+            choices:
+              - text: "2"
+              - text: "3"
+                correct: true
+              - text: "4"
+              - text: "6"
+          - prompt: "Which fraction is larger: 1/2 or 1/4?"
+            choices:
+              - text: "1/4"
+              - text: "1/2"
+                correct: true
+              - text: "They are equal"
+              - text: "Cannot determine"
+          - prompt: "What is 1/3 of 9?"
+            choices:
+              - text: "2"
+              - text: "3"
+                correct: true
+              - text: "4"
+              - text: "6"
+          - prompt: "What is 2/5 of 10?"
+            choices:
+              - text: "2"
+              - text: "3"
+              - text: "4"
+                correct: true
+              - text: "5"
+          - prompt: "What is 3/4 of 8?"
+            choices:
+              - text: "4"
+              - text: "5"
+              - text: "6"
+                correct: true
+              - text: "7"
+          - prompt: "Which fraction equals 0.5?"
+            choices:
+              - text: "1/3"
+              - text: "1/2"
+                correct: true
+              - text: "1/4"
+              - text: "2/3"
+          - prompt: "What is 1/2 + 1/2?"
+            choices:
+              - text: "1/4"
+              - text: "2/4"
+              - text: "1"
+                correct: true
+              - text: "2"
+          - prompt: "What is 1/5 of 20?"
+            choices:
+              - text: "2"
+              - text: "4"
+                correct: true
+              - text: "5"
+              - text: "10"
+          - prompt: "Which is the numerator in 3/7?"
+            choices:
+              - text: "7"
+              - text: "3"
+                correct: true
+              - text: "Both"
+              - text: "Neither"
