@@ -846,6 +846,7 @@ def course_page(course_id: int) -> str:
 
     # Build a map of knowledge point ID to completion status
     completed_kp_ids = set()
+    completed_kp_via_diagnostic_ids = set()
     for lesson in course.lessons:
         for kp in lesson.knowledge_points:
             # Either all questions have been answered, or last X questions were
@@ -858,6 +859,12 @@ def course_page(course_id: int) -> str:
                 or kp.last_consecutive_correct_answers() >= CORRECT_COUNT_THRESHOLD
             ):
                 completed_kp_ids.add(kp.id)
+            passed_diagnostic = len(kp.diagnostic_questions) > 0 and all(
+                q.answer is not None and q.answer.choice_id == q.correct_choice().id
+                for q in kp.diagnostic_questions
+            )
+            if passed_diagnostic:
+                completed_kp_via_diagnostic_ids.add(kp.id)
 
     next_lessons = []
     completed_lessons = []
@@ -865,7 +872,8 @@ def course_page(course_id: int) -> str:
     for lesson in course.lessons:
         # Check if lesson is completed
         lesson_completed = all(
-            kp.id in completed_kp_ids for kp in lesson.knowledge_points
+            kp.id in completed_kp_ids.union(completed_kp_via_diagnostic_ids)
+            for kp in lesson.knowledge_points
         )
 
         if lesson_completed:
