@@ -159,6 +159,21 @@ def close_db_connection(error: Any) -> None:
     close_db()
 
 
+@app.before_request
+def log_request() -> None:
+    """Log incoming request details"""
+    parts = []
+    if request.args:
+        parts.append(f"params={dict(request.args)}")
+    if request.form:
+        parts.append(f"form={dict(request.form)}")
+    if request.is_json and request.get_json():
+        parts.append(f"json={request.get_json()}")
+
+    if parts:
+        print(f"Request data: {', '.join(parts)}")
+
+
 @dataclass
 class Answer:
     id: int
