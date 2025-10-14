@@ -509,6 +509,97 @@ def validate_course(course_data: dict[str, Any]) -> None:
         )
 
 
+def check_course_exists(cursor: sqlite3.Cursor, file_hash: bytes) -> bool:
+    cursor.execute("SELECT id FROM courses WHERE file_hash = ?", (file_hash,))
+    if cursor.fetchone():
+        return True
+    return False
+
+
+def save_course(
+    cursor: sqlite3.Cursor, course_data: dict[str, Any], file_hash: bytes
+) -> int:
+    # Insert course with hash
+    cursor.execute(
+        "INSERT INTO courses (title, file_hash) VALUES (?, ?)",
+        (course_data["title"], file_hash),
+    )
+    course_id = cursor.lastrowid
+    assert course_id is not None
+
+    # Map knowledge point names to database IDs for prerequisite resolution
+    kp_name_to_db_id: dict[str, int] = {}
+
+    # Insert lessons
+    for lesson_data in course_data.get("lessons", []):
+        cursor.execute(
+            "INSERT INTO lessons (course_id, title) VALUES (?, ?)",
+            (course_id, lesson_data["title"]),
+        )
+        lesson_id = cursor.lastrowid
+
+        # Insert knowledge points, contents, and questions
+        for kp_data in lesson_data.get("knowledge_points", []):
+            cursor.execute(
+                """INSERT INTO knowledge_points
+                             (lesson_id, name, description)
+                             VALUES (?, ?, ?)""",
+                (lesson_id, kp_data["name"], kp_data["description"]),
+            )
+            knowledge_point_db_id = cursor.lastrowid
+            assert knowledge_point_db_id is not None
+            kp_name_to_db_id[kp_data["name"]] = knowledge_point_db_id
+
+            # Insert contents
+            for content in kp_data["contents"]:
+                cursor.execute(
+                    """INSERT INTO contents
+                                 (knowledge_point_id, text)
+                                 VALUES (?, ?)""",
+                    (knowledge_point_db_id, content),
+                )
+
+            # Insert questions and choices
+            for question_data in kp_data["questions"]:
+                cursor.execute(
+                    """INSERT INTO questions
+                                 (knowledge_point_id, prompt)
+                                 VALUES (?, ?)""",
+                    (knowledge_point_db_id, question_data["prompt"]),
+                )
+                question_id = cursor.lastrowid
+
+                # Insert choices
+                for choice_data in question_data["choices"]:
+                    cursor.execute(
+                        """INSERT INTO choices
+                                     (question_id, text, is_correct)
+                                     VALUES (?, ?, ?)""",
+                        (
+                            question_id,
+                            choice_data["text"],
+                            choice_data.get("correct", False),
+                        ),
+                    )
+
+    # Insert prerequisites (after all knowledge points are created)
+    for lesson_data in course_data.get("lessons", []):
+        for kp_data in lesson_data.get("knowledge_points", []):
+            kp_db_id = kp_name_to_db_id[kp_data["name"]]
+
+            for prerequisite_name in kp_data.get("prerequisites", []):
+                prerequisite_db_id = kp_name_to_db_id.get(prerequisite_name)
+                if prerequisite_db_id:
+                    cursor.execute(
+                        """INSERT INTO prerequisites
+                                     (knowledge_point_id, prerequisite_id)
+                                     VALUES (?, ?)""",
+                        (kp_db_id, prerequisite_db_id),
+                    )
+
+    return course_id
+
+
 def load_courses_to_database() -> None:
     """Load courses from YAML files into database"""
     if not COURSES_DIRECTORY.is_dir():
@@ -521,18 +612,17 @@ def load_courses_to_database() -> None:
     # Parse new courses (file hash isn't in DB)
     courses: list[tuple[bytes, dict[str, Any]]] = []  # hash, course_data
     for yaml_file in COURSES_DIRECTORY.glob("*.yaml"):
+        with open(yaml_file, "r") as f:
+            course_data = yaml.safe_load(f) or {}
+
         # Calculate file hash (MD5, 16 bytes)
         with open(yaml_file, "rb") as f:
             file_hash = hashlib.md5(f.read()).digest()
 
         # Check if this file hash already exists
-        cursor.execute("SELECT id FROM courses WHERE file_hash = ?", (file_hash,))
-        if cursor.fetchone():
+        if check_course_exists(cursor, file_hash):
             print(f"Course {yaml_file.name} already loaded (unchanged), skipping")
             continue
-
-        with open(yaml_file, "r") as f:
-            course_data = yaml.safe_load(f) or {}
 
         try:
             validate_course(course_data)
@@ -543,82 +633,7 @@ def load_courses_to_database() -> None:
 
     # Insert into DB
     for file_hash, course_data in courses:
-        # Insert course with hash
-        cursor.execute(
-            "INSERT INTO courses (title, file_hash) VALUES (?, ?)",
-            (course_data["title"], file_hash),
-        )
-        course_id = cursor.lastrowid
-
-        # Map knowledge point names to database IDs for prerequisite resolution
-        kp_name_to_db_id: dict[str, int] = {}
-
-        # Insert lessons
-        for lesson_data in course_data.get("lessons", []):
-            cursor.execute(
-                "INSERT INTO lessons (course_id, title) VALUES (?, ?)",
-                (course_id, lesson_data["title"]),
-            )
-            lesson_id = cursor.lastrowid
-
-            # Insert knowledge points, contents, and questions
-            for kp_data in lesson_data.get("knowledge_points", []):
-                cursor.execute(
-                    """INSERT INTO knowledge_points
-                                 (lesson_id, name, description)
-                                 VALUES (?, ?, ?)""",
-                    (lesson_id, kp_data["name"], kp_data["description"]),
-                )
-                knowledge_point_db_id = cursor.lastrowid
-                assert knowledge_point_db_id is not None
-                kp_name_to_db_id[kp_data["name"]] = knowledge_point_db_id
-
-                # Insert contents
-                for content in kp_data["contents"]:
-                    cursor.execute(
-                        """INSERT INTO contents
-                                     (knowledge_point_id, text)
-                                     VALUES (?, ?)""",
-                        (knowledge_point_db_id, content),
-                    )
-
-                # Insert questions and choices
-                for question_data in kp_data["questions"]:
-                    cursor.execute(
-                        """INSERT INTO questions
-                                     (knowledge_point_id, prompt)
-                                     VALUES (?, ?)""",
-                        (knowledge_point_db_id, question_data["prompt"]),
-                    )
-                    question_id = cursor.lastrowid
-
-                    # Insert choices
-                    for choice_data in question_data["choices"]:
-                        cursor.execute(
-                            """INSERT INTO choices
-                                         (question_id, text, is_correct)
-                                         VALUES (?, ?, ?)""",
-                            (
-                                question_id,
-                                choice_data["text"],
-                                choice_data.get("correct", False),
-                            ),
-                        )
-
-        # Insert prerequisites (after all knowledge points are created)
-        for lesson_data in course_data.get("lessons", []):
-            for kp_data in lesson_data.get("knowledge_points", []):
-                kp_db_id = kp_name_to_db_id[kp_data["name"]]
-
-                for prerequisite_name in kp_data.get("prerequisites", []):
-                    prerequisite_db_id = kp_name_to_db_id.get(prerequisite_name)
-                    if prerequisite_db_id:
-                        cursor.execute(
-                            """INSERT INTO prerequisites
-                                         (knowledge_point_id, prerequisite_id)
-                                         VALUES (?, ?)""",
-                            (kp_db_id, prerequisite_db_id),
-                        )
+        save_course(cursor, course_data, file_hash)
 
     conn.commit()
 
@@ -784,16 +799,58 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
 def index() -> str:
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT id FROM courses")
-    course_ids = cursor.fetchall()
-
-    courses = []
-    for (course_id,) in course_ids:
-        course = load_course_from_db(course_id)
-        if course:
-            courses.append(course)
+    cursor.execute("SELECT id, title FROM courses")
+    courses = [(id, title) for id, title in cursor.fetchall()]
 
     return render_template("index.html", courses=courses)
+
+
+@app.route("/create")
+def create_course_page() -> str:
+    sample_yaml_path = COURSES_DIRECTORY / "sample.yaml"
+    sample_content = ""
+    if sample_yaml_path.exists():
+        with open(sample_yaml_path, "r") as f:
+            sample_content = f.read()
+    return render_template("create.html", sample_content=sample_content)
+
+
+@app.route("/create", methods=["POST"])
+def create_course() -> str:
+    # Read input
+    yaml_content = request.form.get("yaml_content")
+    if not yaml_content or not yaml_content.strip():
+        return "<p>Error: No YAML content provided</p>"
+
+    # validate yaml, hash, check if it exists
+    try:
+        course_data = yaml.safe_load(yaml_content)
+        if not course_data:
+            return "<p>Error: Empty or invalid YAML</p>"
+
+        validate_course(course_data)
+
+        file_hash = hashlib.md5(yaml_content.encode()).digest()
+
+        db = get_db()
+        cursor = db.cursor()
+
+        if check_course_exists(cursor, file_hash):
+            return "<p>Error: This course already exists</p>"
+
+        # save in db if it doesn't exist
+        course_id = save_course(cursor, course_data, file_hash)
+        db.commit()
+
+        # return message based on success or error
+        return f'<p>Success! Course "{course_data["title"]}" created. <a href="/course/{course_id}">View course</a> or <a href="/">go to catalog</a></p>'
+
+    except yaml.YAMLError as e:
+        return f"<p>Error: YAML parsing failed: {str(e)}</p>"
+    except ValueError as e:
+        return f"<p>Error: {str(e)}</p>"
+    except Exception as e:
+        return f"<p>Error: {str(e)}</p>"
 
 
 # Max number of knowledge points in a course

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create New Course</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+    <h1>Create New Course</h1>
+
+    <form hx-post="/create" hx-target="#message-container" hx-swap="innerHTML">
+        <label for="yaml-content">
+            <strong>Paste YAML course content below:</strong>
+        </label>
+        <br>
+        <textarea name="yaml_content" id="yaml-content" rows="20" cols="80" autofocus>{{ sample_content }}</textarea>
+        <br>
+        <button type="submit">Create Course</button>
+    </form>
+
+    <div id="message-container"></div>
+
+    <a href="/">&larr; Back to Course Catalog</a>
+</body>
+</html>

@@ -7,12 +7,14 @@
 <body>
     <h1>Course Catalog</h1>
 
+    <a href="/create">Create New Course</a>
+
     <!-- Courses list -->
     <h2>Available Courses</h2>
     {% if courses %}
         <ul>
-        {% for course in courses %}
-            <li><a href="/course/{{ course.id }}">{{ course.title }}</a></li>
+        {% for id, title in courses %}
+            <li><a href="/course/{{ id }}">{{ title }}</a></li>
         {% endfor %}
         </ul>
     {% else %}
