@@ -174,7 +174,11 @@ def close_db() -> None:
 @app.teardown_appcontext
 def close_db_connection(error: Any) -> None:
     """Automatically close db connection at end of request"""
-    close_db()
+    db = g.pop("db", None)
+    if db is not None:
+        if error:
+            db.rollback()
+        db.close()
 
 
 @app.before_request
