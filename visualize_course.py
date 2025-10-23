@@ -6,11 +6,14 @@ Usage: python visualize_course.py <course_file.yaml>
 """
 
 import sys
+from typing import Optional
 import yaml
-from graphviz import Digraph
+from graphviz import Digraph  # type: ignore
 
 
-def visualize_course_graph(yaml_file_path, output_file=None):
+def visualize_course_graph(
+    yaml_file_path: str, output_file: Optional[str] = None
+) -> str:
     """
     Create a graph visualization of knowledge point prerequisites.
 
@@ -57,7 +60,7 @@ def visualize_course_graph(yaml_file_path, output_file=None):
         output_file = title.lower().replace(" ", "_").replace(":", "")
 
     # Render the graph
-    output_path = dot.render(output_file, format="png", cleanup=True)
+    output_path: str = dot.render(output_file, format="png", cleanup=True)
     print(f"Graph saved to: {output_path}")
     return output_path
 

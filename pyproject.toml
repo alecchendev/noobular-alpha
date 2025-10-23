@@ -29,6 +29,6 @@ build-backend = "setuptools.build_meta"
 py-modules = ["main"]
 
 [tool.mypy]
-files = ["main.py"]   # folders or files to always check
+files = ["main.py", "visualize_course.py"]   # folders or files to always check
 python_version = "3.9"
 strict = true
