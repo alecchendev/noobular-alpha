@@ -7,6 +7,8 @@
 <body>
     <h1>{{ course.title }}</h1>
 
+    <p><a href="/course/{{ course.id }}/graph">View Knowledge Graph</a></p>
+
     <h2>Diagnostic Quiz</h2>
     <ul>
         <li><a href="/course/{{ course.id }}/diagnostic/{{ diagnostic_id }}">Diagnostic Quiz</a></li>

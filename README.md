@@ -26,9 +26,9 @@ Unlike Math Academy, I don't have a team or the expertise to create educational 
     - `python3 -m venv venv`
     - `source venv/bin/activate.fish`
     - (deactivate virtual environment) `deactivate`
-- Install system dependencies:
+- Install system dependencies (just graphviz for the knowledge graph script):
     - macOS: `brew install graphviz`
-    - Ubuntu/Debian: `sudo apt-get install graphviz`
+    - Ubuntu/debian: `apt-get install graphviz`
     - Other systems: See https://graphviz.org/download/
 - Install dependencies: `python -m pip install -e .`
 - Install dev dependencies: `python -m pip install -e ".[dev]"`
