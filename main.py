@@ -854,7 +854,7 @@ def create_course() -> str:
         db.commit()
 
         # return message based on success or error
-        return f'<p>Success! Course "{course_data["title"]}" created. <a href="/course/{course_id}">View course</a> or <a href="/">go to catalog</a></p>'
+        return f'<p>Success! Course "{course_data["title"]}" created. <a href="/course/{course_id}">View course</a></p>'
 
     except yaml.YAMLError as e:
         return f"<p>Error: YAML parsing failed: {str(e)}</p>"
@@ -1788,54 +1788,43 @@ def review_next_question(course_id: int, review_id: int) -> str:
 def create_diagnostic_question(
     db: sqlite3.Connection, cursor: sqlite3.Cursor, diagnostic_id: int, course: Course
 ) -> Optional[Question]:
-    # Start from root nodes
-    # Traverse questions that are answered correctly in the diagnostic
-    # If none left, we're done
-    # If any left, pick at random
     knowledge_points: list[KnowledgePoint] = sum(
         [lesson.knowledge_points for lesson in course.lessons], []
     )
-    id_to_knowledge_points: Dict[int, KnowledgePoint] = {
-        kp.id: kp for kp in knowledge_points
-    }
-    root_knowledge_point_ids: list[int] = [
-        kp.id for kp in knowledge_points if len(kp.prerequisites) == 0
-    ]
-    postreqs: Dict[int, List[int]] = {kp.id: [] for kp in knowledge_points}
-    for knowledge_point in knowledge_points:
-        for prereq in knowledge_point.prerequisites:
-            postreqs[prereq].append(knowledge_point.id)
 
-    next_knowledge_point_ids = []
-    queue = [id for id in root_knowledge_point_ids]
-    visited = set(queue)
-    for _ in range(MAX_COURSE_KNOWLEDGE_POINT_COUNT):
-        if len(queue) == 0:
-            break
-        kp_id = queue.pop(0)
-        kp = id_to_knowledge_points[kp_id]
-        # if not already in diagnostic, add
-        if len(kp.diagnostic_questions) == 0:
-            next_knowledge_point_ids.append(kp_id)
-            continue
-        # assume only 1 diagnostic for now -> only 1 question per kp in 1 diagnostic
-        assert len(kp.diagnostic_questions) == 1
-        # it should be answered already if we've gotten to the condition
-        # of creating a new question
-        diagnostic_question = kp.diagnostic_questions[0]
-        assert diagnostic_question.answer is not None
-        # if completed, visit post reqs
-        if (
-            diagnostic_question.answer.choice_id
-            == diagnostic_question.correct_choice().id
+    # Get all diagnostic completed knowledge points
+    diagnostic_answered_knowledge_point_ids = set()
+    diagnostic_completed_knowledge_point_ids = set()
+    for kp in knowledge_points:
+        if len(kp.diagnostic_questions) == 0 or any(
+            q.answer is None for q in kp.diagnostic_questions
         ):
-            new_kp_ids = [kp_id for kp_id in postreqs if kp_id not in visited]
-            queue.extend(new_kp_ids)
-            visited.update(new_kp_ids)
-        # if failed, continue
+            continue
+        diagnostic_answered_knowledge_point_ids.add(kp.id)
+        if all(
+            q.answer is not None and q.answer.choice_id == q.correct_choice().id
+            for q in kp.diagnostic_questions
+        ):
+            diagnostic_completed_knowledge_point_ids.add(kp.id)
+
+    # Loop through knowledge points, add to questions if prereqs are completed
+    next_knowledge_point_ids = []
+    for kp in knowledge_points:
+        if (
+            all(
+                prereq in diagnostic_completed_knowledge_point_ids
+                for prereq in kp.prerequisites
+            )
+            and kp.id not in diagnostic_answered_knowledge_point_ids
+        ):
+            next_knowledge_point_ids.append(kp.id)
+
     if len(next_knowledge_point_ids) == 0:
         return None
 
+    id_to_knowledge_points: Dict[int, KnowledgePoint] = {
+        kp.id: kp for kp in knowledge_points
+    }
     next_knowledge_point = id_to_knowledge_points[next_knowledge_point_ids[0]]
 
     unanswered = [q for q in next_knowledge_point.questions if q.answer is None]

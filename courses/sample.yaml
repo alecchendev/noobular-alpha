@@ -14,3 +14,4 @@ lessons:
               - text: "Choice 1"
               - text: "Choice 2"
                 correct: true  # Must have exactly 1 correct answer
+            explanation: "Explanation of answer"
