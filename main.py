@@ -7,6 +7,31 @@ from typing import Any, Dict, List, Optional
 import random
 from dataclasses import dataclass
 
+# Init app
+app = Flask(__name__)
+
+DATABASE = "database.db"
+COURSES_DIRECTORY = Path("courses")
+# Max number of knowledge points in a course
+MAX_COURSE_KNOWLEDGE_POINT_COUNT = 1000
+# number of answers correct in a row to let you skip the rest of the questions
+CORRECT_COUNT_THRESHOLD = 2
+# number of answers correct in a row to let you skip the rest of the questions
+REVIEW_CORRECT_COUNT_THRESHOLD = 3
+# number of wrong answers for a knowledge point at which you will fail and have to restart a lesson
+INCORRECT_COUNT_FAIL_THRESHOLD = 3
+# number of knowledge points completed before a quiz is ready
+QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 2  # 15
+# number of questions in a quiz
+QUIZ_QUESTION_COUNT = 2
+assert QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD >= QUIZ_QUESTION_COUNT
+# number of minutes allowed for a quiz
+QUIZ_TIME_LIMIT_MINUTES = 15
+# TODO: have a cutoff of knowledge points before they must take a quiz
+# number of knowledge points completed before a review will surface
+# (if the knowledge point is completed and has no postreqs)
+REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD = 2  # 8
+
 
 def init_database() -> None:
     """Initialize SQLite database on app startup"""
@@ -147,12 +172,6 @@ def init_database() -> None:
 
     print("✅ Database tables created successfully!")
     conn.close()
-
-
-# Init app
-app = Flask(__name__)
-
-DATABASE = "database.db"
 
 
 def create_db_connection() -> sqlite3.Connection:
@@ -316,9 +335,6 @@ class ValidationError:
 
     def jsonify(self) -> tuple[Any, int]:
         return jsonify({"error": self.error}), self.status_code
-
-
-COURSES_DIRECTORY = Path("courses")
 
 
 def validate_course(course_data: dict[str, Any]) -> None:
@@ -864,27 +880,6 @@ def create_course() -> str:
         return f"<p>Error: {str(e)}</p>"
 
 
-# Max number of knowledge points in a course
-MAX_COURSE_KNOWLEDGE_POINT_COUNT = 1000
-# number of answers correct in a row to let you skip the rest of the questions
-CORRECT_COUNT_THRESHOLD = 2
-# number of answers correct in a row to let you skip the rest of the questions
-REVIEW_CORRECT_COUNT_THRESHOLD = 3
-# percentage of wrong:right ratio to which you will fail and have to restart a lesson
-INCORRECT_RATIO_FAIL_THRESHOLD = 0.6  # 3/5
-# number of knowledge points completed before a quiz is ready
-QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 2  # 15
-# number of questions in a quiz
-QUIZ_QUESTION_COUNT = 2
-assert QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD >= QUIZ_QUESTION_COUNT
-# number of minutes allowed for a quiz
-QUIZ_TIME_LIMIT_MINUTES = 15
-# TODO: have a cutoff of knowledge points before they must take a quiz
-# number of knowledge points completed before a review will surface
-# (if the knowledge point is completed and has no postreqs)
-REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD = 2  # 8
-
-
 def knowledge_point_ids_completed_after_time(
     cursor: sqlite3.Cursor, completed_kp_ids: List[int], time: str
 ) -> List[int]:
@@ -1270,20 +1265,15 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
 
     # Check if user has failed the knowledge point (3+ wrong answers)
     knowledge_point = lesson.knowledge_points[kp_index]
-    incorrect_count = 0
-    answered_count = 0
-    for question in knowledge_point.questions:
-        if question.answer is None:
-            continue
-        answered_count += 1
-        incorrect_count += int(
-            question.answer.choice_id != question.correct_choice().id
-        )
-
-    failed_knowledge_point = (
-        answered_count >= 3
-        and incorrect_count / answered_count >= INCORRECT_RATIO_FAIL_THRESHOLD
+    incorrect_count = len(
+        [
+            question
+            for question in knowledge_point.questions
+            if question.answer is not None
+            and question.answer.choice_id != question.correct_choice().id
+        ]
     )
+    failed_knowledge_point = incorrect_count >= INCORRECT_COUNT_FAIL_THRESHOLD
 
     failure_message = ""
     next_button_html = ""
@@ -1297,7 +1287,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
 
         failure_message = f"""
         <div>
-            <p>❌ Your wrong:answered ratio for this knowledge point surpassed {INCORRECT_RATIO_FAIL_THRESHOLD * 100}%. You need to restart this lesson.</p>
+            <p>❌ You need to restart this lesson.</p>
             <a href="/course/{course_id}/lesson/{lesson_id}" class="button">Restart Lesson</a>
         </div>
         """
