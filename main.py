@@ -839,7 +839,17 @@ def create_course_page() -> str:
     if sample_yaml_path.exists():
         with open(sample_yaml_path, "r") as f:
             sample_content = f.read()
-    return render_template("create.html", sample_content=sample_content)
+
+    # Read the prompt template
+    prompt_path = Path("create_course_prompt.txt")
+    prompt_text = ""
+    if prompt_path.exists():
+        with open(prompt_path, "r") as f:
+            prompt_text = f.read()
+
+    return render_template(
+        "create.html", sample_content=sample_content, prompt_text=prompt_text
+    )
 
 
 @app.route("/create", methods=["POST"])
