@@ -18,7 +18,8 @@ dev = [
   "mypy",
   "ruff",
   "pre-commit",
-  "types-pyyaml"
+  "types-pyyaml",
+  "graphviz"
 ]
 
 [build-system]
