@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 def init_database() -> None:
     """Initialize SQLite database on app startup"""
-    conn = sqlite3.connect(DATABASE)
+    conn = create_db_connection()
     cursor = conn.cursor()
 
     # Create courses table
@@ -155,10 +155,17 @@ app = Flask(__name__)
 DATABASE = "database.db"
 
 
+def create_db_connection() -> sqlite3.Connection:
+    """Create a new database connection with foreign keys enabled"""
+    conn = sqlite3.connect(DATABASE)
+    conn.execute("PRAGMA foreign_keys = ON")  # Enable foreign key constraints
+    return conn
+
+
 def get_db() -> sqlite3.Connection:
     """Get database connection for current request"""
     if "db" not in g:
-        g.db = sqlite3.connect(DATABASE)
+        g.db = create_db_connection()
         g.db.row_factory = sqlite3.Row  # Enable dict-like access
     db: sqlite3.Connection = g.db
     return db
@@ -610,7 +617,7 @@ def load_courses_to_database() -> None:
         print("No courses directory found, skipping course loading")
         return
 
-    conn = sqlite3.connect(DATABASE)
+    conn = create_db_connection()
     cursor = conn.cursor()
 
     # Parse new courses (file hash isn't in DB)
