@@ -1,8 +1,8 @@
 {% set next_i = i + 1 %}
 <button
-    id="next-button-{{ i }}"
+    id="submit-button"
     hx-post="/course/{{ course.id }}/{{ entity_type }}/{{ entity_id }}/next"
-    hx-target="#next-button-{{ i }}"
+    hx-target="#submit-button"
     hx-vals='{"i": {{ next_i }}}'
     hx-swap="outerHTML"
->Next Question</button>
+>Next</button>
