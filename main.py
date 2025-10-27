@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 import random
 from dataclasses import dataclass
-from graphviz import Digraph  # type: ignore
+from visualize_course import create_knowledge_graph, KnowledgeGraph
 
 # Init app
 app = Flask(__name__)
@@ -1196,6 +1196,23 @@ def course_page(course_id: int) -> str:
     )
 
 
+def extract_graph_data_from_course(
+    course: Course,
+) -> KnowledgeGraph:
+    """Extract graph data from a Course object for visualization."""
+    nodes: Dict[str, str] = {}
+    edges: list[tuple[str, str]] = []
+    for lesson in course.lessons:
+        for kp in lesson.knowledge_points:
+            node_id = str(kp.id)
+            label = f"{kp.name}\\n({lesson.title})"
+            nodes[node_id] = label
+            for prereq_id in kp.prerequisites:
+                edges.append((str(prereq_id), node_id))
+
+    return KnowledgeGraph(course.title, nodes, edges)
+
+
 @app.route("/course/<int:course_id>/graph")
 def course_graph(course_id: int) -> Any:
     """Generate and return the knowledge graph visualization for a course"""
@@ -1203,36 +1220,10 @@ def course_graph(course_id: int) -> Any:
     if not course:
         abort(404)
 
-    # Create a directed graph
-    dot = Digraph(comment=course.title)
-    dot.attr(rankdir="TB")  # Top to bottom layout
-    dot.attr("node", shape="box", style="rounded,filled", fillcolor="lightblue")
+    graph = extract_graph_data_from_course(course)
+    output_path = f"course_{course_id}_graph"
+    create_knowledge_graph(graph, output_path)
 
-    # Collect all knowledge points and their info
-    kp_id_to_name: Dict[int, str] = {}
-    kp_id_to_lesson: Dict[int, str] = {}
-    for lesson in course.lessons:
-        for kp in lesson.knowledge_points:
-            kp_id_to_name[kp.id] = kp.name
-            kp_id_to_lesson[kp.id] = lesson.title
-
-    # Add nodes
-    for kp_id, kp_name in kp_id_to_name.items():
-        lesson_title = kp_id_to_lesson[kp_id]
-        label = f"{kp_name}\\n({lesson_title})"
-        dot.node(str(kp_id), label=label)
-
-    # Add edges for prerequisites
-    for lesson in course.lessons:
-        for kp in lesson.knowledge_points:
-            for prereq_id in kp.prerequisites:
-                dot.edge(str(prereq_id), str(kp.id))
-
-    # Render to PNG
-    output_path = Path(f"course_{course_id}_graph")
-    dot.render(output_path, format="png", cleanup=True)
-
-    # Send the file
     return send_file(f"{output_path}.png", mimetype="image/png")
 
 
