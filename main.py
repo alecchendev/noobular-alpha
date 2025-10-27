@@ -968,7 +968,12 @@ def course_page(course_id: int) -> str:
         for kp in lesson.knowledge_points:
             lesson_kp_ids.add(kp.id)
             if any(
-                prereq_id not in (completed_kp_ids.union(lesson_kp_ids))
+                prereq_id
+                not in (
+                    completed_kp_ids.union(completed_kp_via_diagnostic_ids).union(
+                        lesson_kp_ids
+                    )
+                )
                 for prereq_id in kp.prerequisites
             ):
                 prerequisites_met = False
