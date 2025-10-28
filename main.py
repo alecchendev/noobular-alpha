@@ -7,6 +7,7 @@ from flask import (
     jsonify,
     redirect,
     send_file,
+    make_response,
 )
 import yaml
 import sqlite3
@@ -48,6 +49,13 @@ def init_database() -> None:
     conn = create_db_connection()
     cursor = conn.cursor()
 
+    # Create users table
+    cursor.execute("""CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        username TEXT NOT NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+
     # Create courses table
     cursor.execute("""CREATE TABLE IF NOT EXISTS courses (
         id INTEGER PRIMARY KEY,
@@ -55,6 +63,17 @@ def init_database() -> None:
         file_hash BLOB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(file_hash)
+    )""")
+
+    # Create user_courses table (links users to courses)
+    cursor.execute("""CREATE TABLE IF NOT EXISTS user_courses (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        course_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id),
+        FOREIGN KEY (course_id) REFERENCES courses (id),
+        UNIQUE(user_id, course_id)
     )""")
 
     # Create lessons table
@@ -215,6 +234,29 @@ def close_db_connection(error: Any) -> None:
         if error:
             db.rollback()
         db.close()
+
+
+@dataclass
+class User:
+    id: int
+    username: str
+
+
+@app.before_request
+def load_logged_in_user() -> None:
+    """Load the logged-in user from the cookie and make it available in g.user"""
+    username = request.cookies.get("username")
+
+    g.user = None
+    if username is None:
+        return
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT id, username FROM users WHERE username = ?", (username,))
+    user_row = cursor.fetchone()
+    if user_row:
+        id, username = user_row
+        g.user = User(id, username)
 
 
 @app.before_request
@@ -834,12 +876,49 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
 
 @app.route("/")
 def index() -> str:
+    print(g.user)
     db = get_db()
     cursor = db.cursor()
     cursor.execute("SELECT id, title FROM courses")
     courses = [(id, title) for id, title in cursor.fetchall()]
 
     return render_template("index.html", courses=courses)
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login() -> Any:
+    if request.method == "GET":
+        return render_template("login.html")
+
+    # POST request - handle form submission
+    username = request.form.get("username")
+    if not username or not username.strip():
+        return "<p>Error: Username is required</p>"
+
+    username = username.strip()
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Try to create the user (will fail silently if username already exists due to UNIQUE constraint)
+    try:
+        cursor.execute("INSERT INTO users (username) VALUES (?)", (username,))
+        db.commit()
+    except sqlite3.IntegrityError:
+        # Username already exists, which is fine - just log them in
+        pass
+
+    # Create response with redirect and set cookie
+    response = make_response(redirect("/"))
+    response.set_cookie("username", username, httponly=True, samesite="Lax", path="/")
+    return response
+
+
+@app.route("/logout")
+def logout() -> Any:
+    response = make_response(redirect("/"))
+    response.delete_cookie("username", path="/")
+    return response
 
 
 @app.route("/create")
