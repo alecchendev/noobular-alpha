@@ -42,6 +42,8 @@ QUIZ_TIME_LIMIT_MINUTES = 15
 # number of knowledge points completed before a review will surface
 # (if the knowledge point is completed and has no postreqs)
 REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD = 8
+GLOBAL_ID = 1
+GLOBAL_USERNAME = "global"
 
 
 def init_database() -> None:
@@ -126,12 +128,14 @@ def init_database() -> None:
     # Create answers table (user responses)
     cursor.execute("""CREATE TABLE IF NOT EXISTS answers (
         id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
         question_id INTEGER NOT NULL,
         choice_id INTEGER NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id),
         FOREIGN KEY (question_id) REFERENCES questions (id),
         FOREIGN KEY (choice_id) REFERENCES choices (id),
-        UNIQUE(question_id)
+        UNIQUE(user_id, question_id)
     )""")
 
     # Create prerequisites table
@@ -199,6 +203,12 @@ def init_database() -> None:
         FOREIGN KEY (question_id) REFERENCES questions (id)
     )""")
 
+    # Create default global user if it doesn't exist
+    cursor.execute(
+        "INSERT OR IGNORE INTO users (username) VALUES (?)", (GLOBAL_USERNAME,)
+    )
+    conn.commit()
+
     print("✅ Database tables created successfully!")
     conn.close()
 
@@ -247,7 +257,7 @@ def load_logged_in_user() -> None:
     """Load the logged-in user from the cookie and make it available in g.user"""
     username = request.cookies.get("username")
 
-    g.user = None
+    g.user = User(GLOBAL_ID, GLOBAL_USERNAME)
     if username is None:
         return
     db = get_db()
@@ -721,7 +731,7 @@ def load_courses_to_database() -> None:
     conn.close()
 
 
-def load_course_from_db(course_id: int) -> Optional[Course]:
+def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
     """Load a course from the database by ID"""
     db = get_db()
     cursor = db.cursor()
@@ -822,8 +832,8 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
 
                 cursor.execute(
                     """SELECT id, question_id, choice_id FROM answers
-                       WHERE question_id = ?""",
-                    (question_id,),
+                       WHERE question_id = ? AND user_id = ?""",
+                    (question_id, user_id),
                 )
                 answer_row = cursor.fetchone()
                 answer = None
@@ -876,13 +886,13 @@ def load_course_from_db(course_id: int) -> Optional[Course]:
 
 @app.route("/")
 def index() -> str:
-    print(g.user)
     db = get_db()
     cursor = db.cursor()
     cursor.execute("SELECT id, title FROM courses")
     courses = [(id, title) for id, title in cursor.fetchall()]
 
-    return render_template("index.html", courses=courses)
+    user = None if g.user.username == GLOBAL_USERNAME else g.user
+    return render_template("index.html", courses=courses, user=user)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -980,7 +990,7 @@ def create_course() -> str:
 
 
 def knowledge_point_ids_completed_after_time(
-    cursor: sqlite3.Cursor, completed_kp_ids: List[int], time: str
+    cursor: sqlite3.Cursor, completed_kp_ids: List[int], time: str, user_id: int
 ) -> List[int]:
     placeholders = ",".join("?" * len(completed_kp_ids))
     cursor.execute(
@@ -991,18 +1001,19 @@ def knowledge_point_ids_completed_after_time(
             LEFT JOIN review_questions rq ON rq.question_id = q.id
             LEFT JOIN diagnostic_questions dq ON dq.question_id = q.id
             WHERE q.knowledge_point_id IN ({placeholders})
+            AND a.user_id = ?
             AND a.created_at > ?
             AND qq.question_id IS NULL
             AND rq.question_id is NULL
             AND dq.question_id is NULL""",
-        (*completed_kp_ids, time),
+        (*completed_kp_ids, user_id, time),
     )
     return [row[0] for row in cursor.fetchall()]
 
 
 @app.route("/course/<int:course_id>")
 def course_page(course_id: int) -> str:
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
@@ -1093,7 +1104,7 @@ def course_page(course_id: int) -> str:
     # Exclude questions that are quiz questions
     # Exclude questions that are review questions
     recent_completed_kp_ids = knowledge_point_ids_completed_after_time(
-        cursor, list(completed_kp_ids), last_quiz_time
+        cursor, list(completed_kp_ids), last_quiz_time, g.user.id
     )
 
     # Create a new quiz if threshold is met
@@ -1186,7 +1197,7 @@ def course_page(course_id: int) -> str:
         FROM knowledge_points kp
         JOIN lessons l ON kp.lesson_id = l.id
         JOIN questions q ON q.knowledge_point_id = kp.id
-        LEFT JOIN answers a ON a.question_id = q.id
+        LEFT JOIN answers a ON a.question_id = q.id AND a.user_id = ?
         LEFT JOIN quiz_questions qq ON qq.question_id = q.id
         LEFT JOIN review_questions rq ON rq.question_id = q.id
         LEFT JOIN diagnostic_questions dq ON dq.question_id = q.id
@@ -1197,7 +1208,7 @@ def course_page(course_id: int) -> str:
         GROUP BY kp.id, kp.name
         HAVING MAX(a.created_at) IS NOT NULL
         ORDER BY last_answered_at DESC""",
-        (course_id,),
+        (g.user.id, course_id),
     )
     answered_kp_id_to_completed_time: Dict[int, str] = {
         row[0]: row[2] for row in cursor.fetchall()
@@ -1219,7 +1230,7 @@ def course_page(course_id: int) -> str:
         assert knowledge_point.id in answered_kp_id_to_completed_time.keys()
         completed_time = answered_kp_id_to_completed_time[knowledge_point.id]
         completed_kp_ids_after_kp = knowledge_point_ids_completed_after_time(
-            cursor, list(completed_kp_ids), completed_time
+            cursor, list(completed_kp_ids), completed_time, g.user.id
         )
         if len(completed_kp_ids_after_kp) >= REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD:
             cursor.execute(
@@ -1300,7 +1311,7 @@ def extract_graph_data_from_course(
 @app.route("/course/<int:course_id>/graph")
 def course_graph(course_id: int) -> Any:
     """Generate and return the knowledge graph visualization for a course"""
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
@@ -1313,7 +1324,7 @@ def course_graph(course_id: int) -> Any:
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>")
 def lesson_page(course_id: int, lesson_id: int) -> str:
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
@@ -1337,7 +1348,7 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/submit", methods=["POST"])
 def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
@@ -1376,8 +1387,8 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     db = get_db()
     cursor = db.cursor()
     cursor.execute(
-        "INSERT INTO answers (question_id, choice_id) VALUES (?, ?)",
-        (question.id, user_choice.id),
+        "INSERT INTO answers (user_id, question_id, choice_id) VALUES (?, ?, ?)",
+        (g.user.id, question.id, user_choice.id),
     )
     answer_id = cursor.lastrowid
     assert answer_id is not None
@@ -1417,7 +1428,10 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         for kp in lesson.knowledge_points:
             for q in kp.questions:
                 if q.answer:
-                    cursor.execute("DELETE FROM answers WHERE id = ?", (q.answer.id,))
+                    cursor.execute(
+                        "DELETE FROM answers WHERE id = ? and user_id = ?",
+                        (q.answer.id, g.user.id),
+                    )
         db.commit()
 
         failure_message = f"""
@@ -1523,7 +1537,8 @@ def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
 
         # Load answer if exists
         cursor.execute(
-            "SELECT id, choice_id FROM answers WHERE question_id = ?", (q_id,)
+            "SELECT id, choice_id FROM answers WHERE question_id = ? AND user_id = ?",
+            (q_id, g.user.id),
         )
         answer_row = cursor.fetchone()
         answer = (
@@ -1549,7 +1564,7 @@ def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
 
 @app.route("/course/<int:course_id>/quiz/<int:quiz_id>")
 def quiz_page(course_id: int, quiz_id: int) -> str:
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
@@ -1629,8 +1644,8 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
 
                 # Store the answer
                 cursor.execute(
-                    "INSERT OR REPLACE INTO answers (question_id, choice_id) VALUES (?, ?)",
-                    (question.id, choice_id),
+                    "INSERT OR REPLACE INTO answers (user_id, question_id, choice_id) VALUES (?, ?, ?)",
+                    (g.user.id, question.id, choice_id),
                 )
 
                 # Check if answer is incorrect
@@ -1650,7 +1665,7 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/next", methods=["POST"])
 def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
@@ -1718,7 +1733,7 @@ def create_review_question(
 
 @app.route("/course/<int:course_id>/review/<int:review_id>")
 def review_page(course_id: int, review_id: int) -> str:
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
@@ -1768,7 +1783,7 @@ def review_page(course_id: int, review_id: int) -> str:
 
 @app.route("/course/<int:course_id>/review/<int:review_id>/submit", methods=["POST"])
 def review_submit_answer(course_id: int, review_id: int) -> str:
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
@@ -1817,8 +1832,8 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
     # Save the user's answer to the database
     print(question.id)
     cursor.execute(
-        "INSERT INTO answers (question_id, choice_id) VALUES (?, ?)",
-        (question.id, user_choice.id),
+        "INSERT INTO answers (user_id, question_id, choice_id) VALUES (?, ?, ?)",
+        (g.user.id, question.id, user_choice.id),
     )
     answer_id = cursor.lastrowid
     assert answer_id is not None
@@ -1861,7 +1876,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
 
 @app.route("/course/<int:course_id>/review/<int:review_id>/next", methods=["POST"])
 def review_next_question(course_id: int, review_id: int) -> str:
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
@@ -1968,7 +1983,7 @@ def create_diagnostic_question(
 
 @app.route("/course/<int:course_id>/diagnostic/<int:diagnostic_id>")
 def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
@@ -2023,7 +2038,7 @@ def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
     "/course/<int:course_id>/diagnostic/<int:diagnostic_id>/submit", methods=["POST"]
 )
 def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
@@ -2084,8 +2099,8 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
 
     # Save the user's answer to the database
     cursor.execute(
-        "INSERT INTO answers (question_id, choice_id) VALUES (?, ?)",
-        (question.id, user_choice.id),
+        "INSERT INTO answers (user_id, question_id, choice_id) VALUES (?, ?, ?)",
+        (g.user.id, question.id, user_choice.id),
     )
     answer_id = cursor.lastrowid
     assert answer_id is not None
@@ -2127,7 +2142,7 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     "/course/<int:course_id>/diagnostic/<int:diagnostic_id>/next", methods=["POST"]
 )
 def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
-    course = load_course_from_db(course_id)
+    course = load_course_from_db(course_id, g.user.id)
     if not course:
         abort(404)
 
