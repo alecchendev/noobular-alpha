@@ -1,0 +1,2303 @@
+title: "Solid State Drives: A Comprehensive Guide"
+lessons:
+  - title: "Digital Information Basics"
+    knowledge_points:
+      - name: "binary-representation"
+        description: "How computers represent data using 0s and 1s"
+        prerequisites: []
+        contents:
+          - "Computers use binary (base-2) number system with only two digits: 0 and 1"
+          - "Each binary digit is called a 'bit' - the fundamental unit of information in computing"
+          - "Binary digits represent electrical states: 0 typically means low voltage (off), 1 means high voltage (on)"
+          - "Any number can be represented in binary: decimal 5 is 101 in binary (1×4 + 0×2 + 1×1)"
+          - "Text, images, video - all data is ultimately converted to sequences of 0s and 1s for computer processing"
+        questions:
+          - prompt: "If a system uses 3 bits, what is the maximum number of unique values it can represent?"
+            choices:
+              - text: "6"
+              - text: "8"
+                correct: true
+              - text: "3"
+              - text: "9"
+          - prompt: "Which decimal number does the binary sequence 1011 represent?"
+            choices:
+              - text: "11"
+                correct: true
+              - text: "13"
+              - text: "9"
+              - text: "15"
+          - prompt: "Why do computers use binary instead of decimal?"
+            choices:
+              - text: "Binary is easier for humans to read"
+              - text: "Binary allows for faster mathematical calculations"
+              - text: "Electronic circuits can reliably represent two states (on/off)"
+                correct: true
+              - text: "Binary takes up less storage space"
+          - prompt: "What happens when you add binary 1 + 1?"
+            choices:
+              - text: "You get 2 in binary"
+              - text: "You get 10 in binary"
+                correct: true
+              - text: "You get 11 in binary"
+              - text: "You get 01 in binary"
+          - prompt: "A sensor can detect 16 different temperature levels. How many bits are needed to represent all possible readings?"
+            choices:
+              - text: "2 bits"
+              - text: "8 bits"
+              - text: "16 bits"
+              - text: "4 bits"
+                correct: true
+          - prompt: "Which statement about binary representation is correct?"
+            choices:
+              - text: "Each additional bit doubles the number of representable values"
+                correct: true
+              - text: "Each additional bit adds one more representable value"
+              - text: "Binary can only represent whole numbers"
+              - text: "The leftmost bit is always the smallest value"
+          - prompt: "What is the binary representation of decimal 0?"
+            choices:
+              - text: "00"
+              - text: "11"
+              - text: "0"
+                correct: true
+              - text: "10"
+
+      - name: "bits-and-bytes"
+        description: "Understanding bits, bytes, and data measurement"
+        prerequisites: ["binary-representation"]
+        contents:
+          - "A byte is a group of 8 bits, the standard unit for representing a single character"
+          - "One byte can represent 256 different values (2^8), from 0 to 255"
+          - "Data sizes scale up: 1 kilobyte (KB) ≈ 1,000 bytes, 1 megabyte (MB) ≈ 1,000 KB, 1 gigabyte (GB) ≈ 1,000 MB"
+          - "Storage uses powers of 2: 1 kibibyte (KiB) = 1,024 bytes exactly, but marketing often uses 1 KB = 1,000 bytes"
+          - "A single ASCII character uses 1 byte; Unicode characters may use 1-4 bytes"
+        questions:
+          - prompt: "A file is 4,096 bytes. How many bits is this?"
+            choices:
+              - text: "512 bits"
+              - text: "16,384 bits"
+              - text: "32,768 bits"
+                correct: true
+              - text: "8,192 bits"
+          - prompt: "If you have 2 GB of data, approximately how many bytes do you have (using decimal approximation)?"
+            choices:
+              - text: "2,000,000 bytes"
+              - text: "2,000,000,000 bytes"
+                correct: true
+              - text: "2,000 bytes"
+              - text: "200,000,000 bytes"
+          - prompt: "Why might a storage device advertised as 500 GB show only 465 GiB in your operating system?"
+            choices:
+              - text: "The operating system is corrupt"
+              - text: "Manufacturers use decimal (1 GB = 1,000 MB) while OS uses binary (1 GiB = 1,024 MiB)"
+                correct: true
+              - text: "Some space is reserved for system files"
+              - text: "The drive is damaged"
+          - prompt: "A password uses 8 characters, each taking 1 byte. How many bits of data is the password?"
+            choices:
+              - text: "8 bits"
+              - text: "16 bits"
+              - text: "32 bits"
+              - text: "64 bits"
+                correct: true
+          - prompt: "Which value is largest?"
+            choices:
+              - text: "8,000,000 bytes"
+              - text: "7.5 MB"
+              - text: "0.009 GB"
+                correct: true
+              - text: "9,000 KB"
+          - prompt: "If a byte can store 256 different values, how many different values can 2 bytes store?"
+            choices:
+              - text: "512"
+              - text: "256"
+              - text: "65,536"
+                correct: true
+              - text: "1,024"
+          - prompt: "You have a file that is 1.5 MB. Approximately how many average-sized English words (5 characters each) could this store?"
+            choices:
+              - text: "30,000 words"
+              - text: "3,000 words"
+              - text: "300,000 words"
+                correct: true
+              - text: "1,500 words"
+
+      - name: "digital-storage-concept"
+        description: "What it means to store data persistently"
+        prerequisites: ["bits-and-bytes"]
+        contents:
+          - "Digital storage means preserving binary data (0s and 1s) over time in a retrievable way"
+          - "Storage devices must maintain their state even when power is removed - this is called non-volatile storage"
+          - "Reading storage means detecting the stored states (0s and 1s) without changing them"
+          - "Writing storage means changing the states to record new data"
+          - "Storage capacity determines how many bits can be stored; storage speed determines how quickly data can be read or written"
+        questions:
+          - prompt: "What is the key difference between storage and temporary processing?"
+            choices:
+              - text: "Storage is faster"
+              - text: "Storage retains data when power is off"
+                correct: true
+              - text: "Storage uses less electricity"
+              - text: "Storage is always smaller in capacity"
+          - prompt: "You save a document and turn off your computer. When you turn it back on, the document is still there. What property of the storage device allowed this?"
+            choices:
+              - text: "High bandwidth"
+              - text: "Non-volatility"
+                correct: true
+              - text: "Low latency"
+              - text: "High capacity"
+          - prompt: "A storage device claims 1 TB capacity and 500 MB/s read speed. What do these specifications tell you?"
+            choices:
+              - text: "How much data it holds and how fast it can be accessed"
+                correct: true
+              - text: "How long the device will last and its power consumption"
+              - text: "The physical size and weight of the device"
+              - text: "The cost per gigabyte and manufacturing date"
+          - prompt: "What happens during a 'read' operation on storage?"
+            choices:
+              - text: "Data is deleted from storage"
+              - text: "Data is copied from storage without changing the original"
+                correct: true
+              - text: "New data overwrites old data"
+              - text: "The storage device is formatted"
+          - prompt: "If a device can store 8 billion bits, what is its capacity?"
+            choices:
+              - text: "8 GB"
+              - text: "1 MB"
+              - text: "1 GB"
+                correct: true
+              - text: "8 MB"
+          - prompt: "Why would you want a storage device with fast write speed?"
+            choices:
+              - text: "To retrieve files more quickly"
+              - text: "To save large files more quickly"
+                correct: true
+              - text: "To increase storage capacity"
+              - text: "To reduce power consumption"
+          - prompt: "A camera takes photos at 10 MB each and can write to its storage at 50 MB/s. How long does it take to save one photo?"
+            choices:
+              - text: "5 seconds"
+              - text: "0.5 seconds"
+              - text: "0.2 seconds"
+                correct: true
+              - text: "2 seconds"
+
+  - title: "Computer Memory Fundamentals"
+    knowledge_points:
+      - name: "volatile-vs-nonvolatile"
+        description: "Difference between temporary and permanent storage"
+        prerequisites: ["digital-storage-concept"]
+        contents:
+          - "Volatile memory loses all data when power is removed (like RAM)"
+          - "Non-volatile memory retains data without power (like hard drives and SSDs)"
+          - "Volatile memory is typically much faster but more expensive per byte"
+          - "Non-volatile storage is necessary for long-term data persistence"
+          - "Both types are essential: volatile for active work, non-volatile for saving results"
+        questions:
+          - prompt: "You're working on a document in a word processor. Where is the current version before you save?"
+            choices:
+              - text: "In volatile memory"
+                correct: true
+              - text: "On the hard drive"
+              - text: "In non-volatile storage"
+              - text: "In the cloud"
+          - prompt: "Why do computers use volatile memory at all if it loses data when powered off?"
+            choices:
+              - text: "It's cheaper than non-volatile memory"
+              - text: "It's much faster than non-volatile storage"
+                correct: true
+              - text: "It has larger capacity"
+              - text: "It uses less power"
+          - prompt: "What happens to data in volatile memory during a power outage?"
+            choices:
+              - text: "It is automatically saved to non-volatile storage"
+              - text: "It remains unchanged until power returns"
+              - text: "It is permanently lost"
+                correct: true
+              - text: "It is temporarily cached"
+          - prompt: "Which is an example of non-volatile storage?"
+            choices:
+              - text: "CPU cache"
+              - text: "System RAM"
+              - text: "Solid state drive"
+                correct: true
+              - text: "Graphics card memory"
+          - prompt: "A laptop's battery dies while you're editing a file you haven't saved. What data is lost?"
+            choices:
+              - text: "Everything on the hard drive"
+              - text: "Only the unsaved changes in RAM"
+                correct: true
+              - text: "Nothing, everything is automatically saved"
+              - text: "The operating system files"
+          - prompt: "Why do operating systems need both volatile and non-volatile memory?"
+            choices:
+              - text: "Volatile for speed during operation, non-volatile for permanent storage"
+                correct: true
+              - text: "They serve identical purposes as backup for each other"
+              - text: "Volatile for storage, non-volatile for processing"
+              - text: "Non-volatile is only used during boot-up"
+          - prompt: "Which statement about volatility is correct?"
+            choices:
+              - text: "All computer memory is volatile"
+              - text: "Volatile memory requires continuous power to retain data"
+                correct: true
+              - text: "Non-volatile memory is always faster than volatile"
+              - text: "Volatility has no impact on data retention"
+
+      - name: "ram-basics"
+        description: "How RAM works and why it's fast but temporary"
+        prerequisites: ["volatile-vs-nonvolatile"]
+        contents:
+          - "RAM (Random Access Memory) is the main volatile memory used for active programs and data"
+          - "RAM allows direct access to any memory location in constant time - hence 'random access'"
+          - "Modern RAM uses capacitors that hold electrical charge to represent bits; charge leaks away without power"
+          - "RAM must be continuously refreshed (recharged) many times per second even when powered on"
+          - "Typical computer RAM provides 10-100 GB capacity with nanosecond access times"
+        questions:
+          - prompt: "Why is RAM called 'random access' memory?"
+            choices:
+              - text: "Data is stored in random locations"
+              - text: "Any memory location can be accessed directly without reading others first"
+                correct: true
+              - text: "The access speed varies randomly"
+              - text: "Data is encrypted randomly"
+          - prompt: "What happens if RAM stops being refreshed, even while power is still on?"
+            choices:
+              - text: "Nothing, it continues working normally"
+              - text: "Data begins to degrade and will be lost"
+                correct: true
+              - text: "It becomes non-volatile"
+              - text: "It becomes faster"
+          - prompt: "A program needs to access byte #1,000,000 and then byte #5 in RAM. How does access time compare?"
+            choices:
+              - text: "Accessing byte #5 is much faster"
+              - text: "Accessing byte #1,000,000 is much faster"
+              - text: "Both take approximately the same time"
+                correct: true
+              - text: "It depends on the previous access pattern"
+          - prompt: "You have 8 GB of RAM and want to edit a 10 GB video file. What problem will you encounter?"
+            choices:
+              - text: "The file cannot fit entirely in RAM at once"
+                correct: true
+              - text: "The RAM will become non-volatile"
+              - text: "The video will be corrupted"
+              - text: "The computer will shut down"
+          - prompt: "How does RAM store a bit value of 1?"
+            choices:
+              - text: "By magnetizing a small region"
+              - text: "By holding electrical charge in a capacitor"
+                correct: true
+              - text: "By burning a physical fuse"
+              - text: "By creating a physical pit"
+          - prompt: "Why does adding more RAM to a computer improve performance for multitasking?"
+            choices:
+              - text: "More RAM increases processor speed"
+              - text: "More RAM allows more programs and data to be kept readily accessible"
+                correct: true
+              - text: "More RAM makes the hard drive faster"
+              - text: "More RAM reduces power consumption"
+          - prompt: "What is the typical access time for modern RAM?"
+            choices:
+              - text: "Milliseconds (thousandths of a second)"
+              - text: "Microseconds (millionths of a second)"
+              - text: "Nanoseconds (billionths of a second)"
+                correct: true
+              - text: "Seconds"
+
+      - name: "storage-hierarchy"
+        description: "Memory hierarchy from CPU cache to long-term storage"
+        prerequisites: ["ram-basics"]
+        contents:
+          - "Computer memory is organized in a hierarchy: faster and more expensive at the top, slower and cheaper at the bottom"
+          - "CPU registers (fastest, smallest, most expensive per byte) → CPU cache → RAM → SSD/HDD (slowest, largest, cheapest per byte)"
+          - "Each level acts as a cache for the level below, storing frequently accessed data"
+          - "The hierarchy balances speed and cost: small amounts of fast memory, large amounts of slow storage"
+          - "Data moves up the hierarchy when needed and down when not actively used"
+        questions:
+          - prompt: "Why don't computers just use the fastest type of memory for everything?"
+            choices:
+              - text: "Fast memory is extremely expensive and impractical for large capacities"
+                correct: true
+              - text: "Fast memory is less reliable"
+              - text: "Fast memory uses too much power"
+              - text: "Fast memory cannot store certain types of data"
+          - prompt: "A CPU needs data that's not in cache but is in RAM. What happens?"
+            choices:
+              - text: "The system crashes"
+              - text: "The data is fetched from RAM to cache, then the CPU accesses it"
+                correct: true
+              - text: "The CPU directly accesses RAM"
+              - text: "The data is first saved to the hard drive"
+          - prompt: "Which is typically the largest in capacity?"
+            choices:
+              - text: "CPU cache"
+              - text: "RAM"
+              - text: "SSD/HDD storage"
+                correct: true
+              - text: "CPU registers"
+          - prompt: "What is the main purpose of CPU cache?"
+            choices:
+              - text: "To provide non-volatile storage"
+              - text: "To reduce the average time to access data from memory"
+                correct: true
+              - text: "To increase storage capacity"
+              - text: "To replace RAM entirely"
+          - prompt: "You're editing a photo. Where would the image data likely be while you're actively working on it?"
+            choices:
+              - text: "Only in CPU cache"
+              - text: "Primarily in RAM, with active portions in CPU cache"
+                correct: true
+              - text: "Only on the SSD"
+              - text: "Distributed equally across all levels"
+          - prompt: "If you arrange memory by speed (fastest first), what is the correct order?"
+            choices:
+              - text: "SSD, RAM, Cache, Registers"
+              - text: "Registers, Cache, RAM, SSD"
+                correct: true
+              - text: "RAM, Cache, Registers, SSD"
+              - text: "Cache, Registers, RAM, SSD"
+          - prompt: "What tradeoff does the memory hierarchy address?"
+            choices:
+              - text: "Power consumption vs. heat generation"
+              - text: "Speed vs. capacity/cost"
+                correct: true
+              - text: "Reliability vs. performance"
+              - text: "Physical size vs. weight"
+
+  - title: "Traditional Storage - Hard Disk Drives"
+    knowledge_points:
+      - name: "hdd-mechanics"
+        description: "Physical components: platters, heads, actuators"
+        prerequisites: ["storage-hierarchy"]
+        contents:
+          - "HDDs store data magnetically on spinning circular platters coated with magnetic material"
+          - "Read/write heads float nanometers above the platter surface on an air bearing created by the spinning"
+          - "An actuator arm moves the heads radially across the platter to access different tracks"
+          - "Platters spin at constant speeds (5400-15,000 RPM) to maintain the air bearing"
+          - "Data is organized in concentric circles (tracks) divided into sectors"
+        questions:
+          - prompt: "Why must HDD platters spin continuously during operation?"
+            choices:
+              - text: "To generate electricity for the read/write heads"
+              - text: "To create an air cushion that keeps heads from touching the platter"
+                correct: true
+              - text: "To cool the drive components"
+              - text: "To erase old data automatically"
+          - prompt: "What would happen if a read/write head touched the spinning platter?"
+            choices:
+              - text: "Nothing, this is normal operation"
+              - text: "The platter and head would be damaged (head crash)"
+                correct: true
+              - text: "The data would be read more accurately"
+              - text: "The drive would spin faster"
+          - prompt: "An HDD has platters spinning at 7200 RPM. How many complete rotations occur in one second?"
+            choices:
+              - text: "7200"
+              - text: "720"
+              - text: "120"
+                correct: true
+              - text: "60"
+          - prompt: "How does the actuator arm access data on different tracks?"
+            choices:
+              - text: "It moves the entire platter"
+              - text: "It swings the read/write head in an arc across the platter surface"
+                correct: true
+              - text: "It changes the platter's rotation speed"
+              - text: "It rotates around the platter's edge"
+          - prompt: "Data is stored on tracks near the center and outer edge of a platter. What must happen to read both locations?"
+            choices:
+              - text: "The actuator must move the head between the two positions"
+                correct: true
+              - text: "The platter must spin in reverse"
+              - text: "Multiple heads automatically cover all positions"
+              - text: "The drive must stop and restart"
+          - prompt: "Why do HDDs have multiple platters stacked vertically?"
+            choices:
+              - text: "To increase storage capacity in the same physical footprint"
+                correct: true
+              - text: "To make the drive spin faster"
+              - text: "To reduce power consumption"
+              - text: "To improve data reliability through redundancy"
+          - prompt: "What physical principle allows HDDs to store data?"
+            choices:
+              - text: "Optical reflection"
+              - text: "Magnetic polarization"
+                correct: true
+              - text: "Electrical charge"
+              - text: "Physical indentations"
+
+      - name: "hdd-read-write"
+        description: "How HDDs read and write data mechanically"
+        prerequisites: ["hdd-mechanics"]
+        contents:
+          - "Writing data: the head generates a magnetic field that magnetizes regions of the platter in specific patterns"
+          - "Reading data: the head detects magnetic field changes as the platter spins beneath it"
+          - "Each bit is represented by the direction of magnetization (north or south pole facing up)"
+          - "Access time = seek time (moving head to track) + rotational latency (waiting for data to spin under head) + transfer time"
+          - "Sequential access (consecutive locations) is faster than random access due to minimal seeking"
+        questions:
+          - prompt: "To read a file split across two distant locations on a platter, what takes the most time?"
+            choices:
+              - text: "Transferring the data once the head is positioned"
+              - text: "Moving the head between the two locations (seek time)"
+                correct: true
+              - text: "Spinning up the platter"
+              - text: "Powering the read head"
+          - prompt: "An HDD needs to read sector 10, then sector 11, then sector 12. What type of access is this?"
+            choices:
+              - text: "Sequential access"
+                correct: true
+              - text: "Random access"
+              - text: "Parallel access"
+              - text: "Indexed access"
+          - prompt: "During a read operation, how does the head detect data?"
+            choices:
+              - text: "By measuring light reflection"
+              - text: "By sensing magnetic field changes"
+                correct: true
+              - text: "By measuring electrical resistance"
+              - text: "By detecting physical bumps"
+          - prompt: "You need to read data located at track 500, sector 20. The head is currently at track 100. What must happen first?"
+            choices:
+              - text: "The platter must complete one full rotation"
+              - text: "The head must seek to track 500"
+                correct: true
+              - text: "The drive must recalibrate"
+              - text: "The cache must be cleared"
+          - prompt: "Why is sequential read/write much faster than random access on HDDs?"
+            choices:
+              - text: "Sequential access requires minimal head movement"
+                correct: true
+              - text: "Sequential data is compressed"
+              - text: "The platter spins faster during sequential operations"
+              - text: "Sequential access uses multiple heads simultaneously"
+          - prompt: "What limits how quickly an HDD can access a random piece of data?"
+            choices:
+              - text: "The speed of light"
+              - text: "Physical movement time of mechanical parts"
+                correct: true
+              - text: "CPU processing speed"
+              - text: "Network bandwidth"
+          - prompt: "A platter rotates at 7200 RPM. What is the maximum rotational latency?"
+            choices:
+              - text: "About 8.3 milliseconds"
+                correct: true
+              - text: "About 1 millisecond"
+              - text: "About 100 microseconds"
+              - text: "About 1 second"
+
+      - name: "hdd-limitations"
+        description: "Speed, durability, and power limitations of HDDs"
+        prerequisites: ["hdd-read-write"]
+        contents:
+          - "HDDs are limited by mechanical movement speed - typical random access takes 5-15 milliseconds"
+          - "Moving parts make HDDs vulnerable to physical shock and vibration, especially while spinning"
+          - "HDDs consume significant power to spin platters and move actuators"
+          - "Noise and heat are generated by spinning platters and moving actuators"
+          - "Mechanical wear limits lifespan, particularly for frequently accessed drives"
+        questions:
+          - prompt: "Why are HDDs particularly vulnerable to damage when dropped while operating?"
+            choices:
+              - text: "The heads are floating nanometers from the spinning platter and can crash"
+                correct: true
+              - text: "The magnetic fields can be disrupted"
+              - text: "The electronics are especially fragile"
+              - text: "The shock erases all data"
+          - prompt: "A modern SSD can access data in microseconds, while an HDD takes milliseconds. What is the approximate speed difference?"
+            choices:
+              - text: "SSDs are about 10x faster"
+              - text: "SSDs are about 100x faster"
+              - text: "SSDs are about 1000x faster"
+                correct: true
+              - text: "They have similar speeds"
+          - prompt: "You want storage for a laptop that will be carried around frequently. What is a key advantage of SSDs over HDDs?"
+            choices:
+              - text: "SSDs have no moving parts so they're more resistant to shock"
+                correct: true
+              - text: "SSDs are always larger in capacity"
+              - text: "SSDs are always cheaper"
+              - text: "SSDs last forever without any wear"
+          - prompt: "Why do HDDs consume more power than SSDs?"
+            choices:
+              - text: "HDDs require power to spin platters and move actuators"
+                correct: true
+              - text: "HDDs use more RAM"
+              - text: "HDDs have larger circuits"
+              - text: "HDDs require active cooling fans"
+          - prompt: "What causes the clicking or whirring sound in an operating HDD?"
+            choices:
+              - text: "Electrical interference"
+              - text: "Spinning platters and moving actuator arms"
+                correct: true
+              - text: "Data being written"
+              - text: "Cooling fans"
+          - prompt: "For a server that needs to perform thousands of random read operations per second, what is a major HDD limitation?"
+            choices:
+              - text: "Mechanical seek time limits random access performance"
+                correct: true
+              - text: "HDDs cannot perform multiple reads simultaneously"
+              - text: "HDDs lose data after many reads"
+              - text: "HDDs require internet connectivity"
+          - prompt: "Which HDD characteristic would improve most by increasing platter rotation speed from 5400 to 7200 RPM?"
+            choices:
+              - text: "Storage capacity"
+              - text: "Rotational latency (time waiting for data to spin under the head)"
+                correct: true
+              - text: "Durability"
+              - text: "Power efficiency"
+
+  - title: "Introduction to Transistors and Logic Gates"
+    knowledge_points:
+      - name: "transistor-basics"
+        description: "What transistors are and how they act as switches"
+        prerequisites: ["binary-representation"]
+        contents:
+          - "A transistor is a semiconductor device that can act as an electronic switch or amplifier"
+          - "In digital circuits, transistors operate in two states: ON (conducting, representing 1) or OFF (not conducting, representing 0)"
+          - "A small voltage applied to the transistor's gate terminal controls whether current flows between source and drain"
+          - "Modern transistors are microscopic - billions can fit on a single chip"
+          - "Transistors are the fundamental building blocks of all digital electronics including CPUs, memory, and storage controllers"
+        questions:
+          - prompt: "How does a transistor function in a digital circuit?"
+            choices:
+              - text: "As a mechanical switch"
+              - text: "As an electronic switch that can be turned on/off by voltage"
+                correct: true
+              - text: "As a permanent resistor"
+              - text: "As a power source"
+          - prompt: "What advantage do transistors have over mechanical switches in computers?"
+            choices:
+              - text: "Transistors can switch billions of times per second with no moving parts"
+                correct: true
+              - text: "Transistors are larger and easier to replace"
+              - text: "Transistors don't require electricity"
+              - text: "Transistors are less expensive for large-scale applications"
+          - prompt: "In a digital circuit, a transistor is OFF. What binary value does this represent?"
+            choices:
+              - text: "1"
+              - text: "0"
+                correct: true
+              - text: "-1"
+              - text: "NULL"
+          - prompt: "A modern processor has 5 billion transistors. What does this enable?"
+            choices:
+              - text: "Complex computations through billions of interconnected switches"
+                correct: true
+              - text: "Storage of 5 billion bytes"
+              - text: "5 billion simultaneous users"
+              - text: "5 GHz operating frequency"
+          - prompt: "What controls whether a transistor is ON or OFF?"
+            choices:
+              - text: "The temperature of the chip"
+              - text: "Voltage applied to its gate terminal"
+                correct: true
+              - text: "The transistor's physical size"
+              - text: "Magnetic fields"
+          - prompt: "Why are smaller transistors desirable in chip manufacturing?"
+            choices:
+              - text: "Smaller transistors are cheaper to produce"
+              - text: "More transistors fit in the same space, enabling more complex circuits"
+                correct: true
+              - text: "Smaller transistors last longer"
+              - text: "Smaller transistors use discrete components"
+          - prompt: "What happens when you apply a sufficient voltage to a transistor's gate in a digital circuit?"
+            choices:
+              - text: "The transistor is destroyed"
+              - text: "Current flows through the transistor (ON state)"
+                correct: true
+              - text: "The transistor becomes a resistor"
+              - text: "The transistor reverses polarity"
+
+      - name: "logic-gates"
+        description: "AND, OR, NOT gates built from transistors"
+        prerequisites: ["transistor-basics"]
+        contents:
+          - "Logic gates are circuits built from transistors that perform basic logical operations"
+          - "NOT gate (inverter): outputs 1 if input is 0, outputs 0 if input is 1"
+          - "AND gate: outputs 1 only if all inputs are 1"
+          - "OR gate: outputs 1 if any input is 1"
+          - "NAND and NOR gates are universal - any logical function can be built using only NAND or only NOR gates"
+        questions:
+          - prompt: "An AND gate has inputs A=1 and B=0. What is the output?"
+            choices:
+              - text: "1"
+              - text: "0"
+                correct: true
+              - text: "NULL"
+              - text: "Error"
+          - prompt: "A NOT gate receives input of 1. What is the output?"
+            choices:
+              - text: "1"
+              - text: "0"
+                correct: true
+              - text: "2"
+              - text: "No output"
+          - prompt: "An OR gate has inputs A=0 and B=0. What is the output?"
+            choices:
+              - text: "1"
+              - text: "0"
+                correct: true
+              - text: "NULL"
+              - text: "Both A and B"
+          - prompt: "You want to create a circuit that outputs 1 only when both a door is closed (sensor=1) AND a key is inserted (sensor=1). Which gate do you use?"
+            choices:
+              - text: "OR gate"
+              - text: "AND gate"
+                correct: true
+              - text: "NOT gate"
+              - text: "XOR gate"
+          - prompt: "Why are NAND gates considered 'universal'?"
+            choices:
+              - text: "They work with any voltage"
+              - text: "Any logical function can be constructed using only NAND gates"
+                correct: true
+              - text: "They never fail"
+              - text: "They are the fastest type of gate"
+          - prompt: "How are logic gates physically implemented?"
+            choices:
+              - text: "Using mechanical switches"
+              - text: "Using arrangements of transistors"
+                correct: true
+              - text: "Using magnetic cores"
+              - text: "Using optical fibers"
+          - prompt: "An OR gate receives inputs A=1 and B=1. What is the output?"
+            choices:
+              - text: "0"
+              - text: "2"
+              - text: "1"
+                correct: true
+              - text: "Error - too many 1s"
+
+      - name: "digital-circuits"
+        description: "Building memory and storage from logic gates"
+        prerequisites: ["logic-gates"]
+        contents:
+          - "Complex circuits are built by combining many logic gates together"
+          - "A flip-flop (built from gates) can store a single bit by maintaining its state"
+          - "Multiple flip-flops create registers that store multi-bit values"
+          - "Memory arrays are grids of storage cells, each holding one bit"
+          - "Control circuits (made from gates) coordinate reading, writing, and addressing memory locations"
+        questions:
+          - prompt: "What is the fundamental circuit element that can store one bit of information?"
+            choices:
+              - text: "A single transistor"
+              - text: "A flip-flop"
+                correct: true
+              - text: "A resistor"
+              - text: "A capacitor alone"
+          - prompt: "You need to store an 8-bit number. How many flip-flops would you need at minimum?"
+            choices:
+              - text: "1"
+              - text: "4"
+              - text: "8"
+                correct: true
+              - text: "16"
+          - prompt: "How do complex digital circuits like CPUs and memory controllers emerge?"
+            choices:
+              - text: "By combining millions/billions of simple logic gates"
+                correct: true
+              - text: "By using special quantum components"
+              - text: "By using analog signals"
+              - text: "By programming mechanical switches"
+          - prompt: "A flip-flop circuit is SET to store a 1. What happens to this value if you remove the input signal but maintain power?"
+            choices:
+              - text: "The value changes to 0"
+              - text: "The value remains 1 (stored state)"
+                correct: true
+              - text: "The circuit is damaged"
+              - text: "The value becomes random"
+          - prompt: "Why do memory chips need addressing circuits?"
+            choices:
+              - text: "To select which specific memory cell to read from or write to"
+                correct: true
+              - text: "To increase storage capacity"
+              - text: "To reduce power consumption"
+              - text: "To make memory non-volatile"
+          - prompt: "A register is built from 32 flip-flops. How many bits can it store?"
+            choices:
+              - text: "16 bits"
+              - text: "32 bits"
+                correct: true
+              - text: "64 bits"
+              - text: "8 bits"
+          - prompt: "What happens when you combine a NOT gate feeding into an AND gate?"
+            choices:
+              - text: "You create a more complex logic function"
+                correct: true
+              - text: "The circuit becomes non-functional"
+              - text: "You create a power source"
+              - text: "The gates cancel each other out"
+
+  - title: "Flash Memory Technology"
+    knowledge_points:
+      - name: "flash-memory-concept"
+        description: "Non-volatile electronic storage using transistors"
+        prerequisites: ["digital-circuits", "volatile-vs-nonvolatile"]
+        contents:
+          - "Flash memory is non-volatile storage that retains data without power using special transistors"
+          - "Unlike RAM which uses capacitors that leak charge, flash traps electrons to represent stored data"
+          - "Flash memory can be electrically erased and reprogrammed, unlike ROM which is permanent"
+          - "The name 'flash' comes from the fast erase process compared to older EPROM technology"
+          - "Flash is slower than RAM but much faster than mechanical hard drives"
+        questions:
+          - prompt: "What makes flash memory non-volatile?"
+            choices:
+              - text: "It uses magnetic storage"
+              - text: "It traps electrical charge that persists without power"
+                correct: true
+              - text: "It uses mechanical switches"
+              - text: "It requires battery backup"
+          - prompt: "How does flash memory differ from RAM in terms of data persistence?"
+            choices:
+              - text: "Flash retains data without power; RAM loses data without power"
+                correct: true
+              - text: "RAM is non-volatile; flash is volatile"
+              - text: "Both require continuous power"
+              - text: "Neither can retain data"
+          - prompt: "Why is flash memory called 'flash'?"
+            choices:
+              - text: "It produces light when data is written"
+              - text: "It can be erased quickly (in a 'flash') compared to older technologies"
+                correct: true
+              - text: "It uses flash photography technology"
+              - text: "Data access is instantaneous"
+          - prompt: "Where would flash memory be most appropriate?"
+            choices:
+              - text: "When you need temporary high-speed working memory"
+              - text: "When you need non-volatile storage that's faster than HDDs"
+                correct: true
+              - text: "When you need the absolute fastest possible memory"
+              - text: "When you need mechanical reliability"
+          - prompt: "What advantage does flash have over hard disk drives?"
+            choices:
+              - text: "Flash has no moving parts"
+                correct: true
+              - text: "Flash has unlimited write endurance"
+              - text: "Flash is always cheaper per gigabyte"
+              - text: "Flash has higher capacity"
+          - prompt: "Can flash memory be rewritten after the initial programming?"
+            choices:
+              - text: "No, it's write-once like a CD-R"
+              - text: "Yes, it can be erased and reprogrammed electrically"
+                correct: true
+              - text: "Only with UV light exposure"
+              - text: "Only by replacing the physical chip"
+          - prompt: "Compared to RAM, what is a key limitation of flash memory?"
+            choices:
+              - text: "Flash is significantly slower for read and write operations"
+                correct: true
+              - text: "Flash loses data when powered off"
+              - text: "Flash cannot store binary data"
+              - text: "Flash requires mechanical components"
+
+      - name: "floating-gate-transistor"
+        description: "How flash stores charge to represent data"
+        prerequisites: ["transistor-basics", "flash-memory-concept"]
+        contents:
+          - "Flash memory cells use floating-gate transistors with two gates: a control gate and a floating gate"
+          - "The floating gate is electrically isolated and can trap electrons for years"
+          - "Electrons are forced onto the floating gate through quantum tunneling during programming"
+          - "Presence of electrons on the floating gate changes the transistor's threshold voltage, representing stored data"
+          - "Erasing removes electrons from the floating gate through tunneling in the opposite direction"
+        questions:
+          - prompt: "What physical phenomenon allows electrons to move onto the floating gate during programming?"
+            choices:
+              - text: "Quantum tunneling through the insulating layer"
+                correct: true
+              - text: "Mechanical movement"
+              - text: "Magnetic attraction"
+              - text: "Chemical reaction"
+          - prompt: "Where are electrons stored in a floating-gate transistor to represent data?"
+            choices:
+              - text: "On the control gate"
+              - text: "On the electrically isolated floating gate"
+                correct: true
+              - text: "In the transistor's source"
+              - text: "In the substrate"
+          - prompt: "How does the presence of electrons on the floating gate represent stored data?"
+            choices:
+              - text: "It changes the transistor's threshold voltage"
+                correct: true
+              - text: "It makes the transistor glow"
+              - text: "It creates a magnetic field"
+              - text: "It changes the transistor's physical shape"
+          - prompt: "Why can data stored in flash memory persist for years without power?"
+            choices:
+              - text: "The floating gate is electrically isolated, trapping electrons"
+                correct: true
+              - text: "Flash uses battery backup"
+              - text: "Data is stored magnetically"
+              - text: "Flash converts to ROM when powered off"
+          - prompt: "What happens during a flash memory erase operation?"
+            choices:
+              - text: "The floating gate is physically destroyed"
+              - text: "Electrons are removed from the floating gate through tunneling"
+                correct: true
+              - text: "The control gate is demagnetized"
+              - text: "The cell is mechanically reset"
+          - prompt: "A flash cell is programmed (written). What has changed physically?"
+            choices:
+              - text: "Electrons have been trapped on the floating gate"
+                correct: true
+              - text: "The floating gate has moved position"
+              - text: "The control gate has been removed"
+              - text: "A fuse has been blown"
+          - prompt: "Why does repeated programming and erasing eventually wear out flash memory?"
+            choices:
+              - text: "The insulator degrades from repeated electron tunneling"
+                correct: true
+              - text: "The floating gate physically wears away"
+              - text: "The electrons become depleted"
+              - text: "The magnetic field weakens"
+
+      - name: "nand-vs-nor-flash"
+        description: "Different flash architectures and their tradeoffs"
+        prerequisites: ["floating-gate-transistor"]
+        contents:
+          - "NAND flash connects cells in series (like an AND gate), making it denser and cheaper per bit"
+          - "NOR flash connects cells in parallel, allowing faster random access like RAM"
+          - "NAND requires reading entire pages at once; NOR can read individual bytes"
+          - "NAND is used for mass storage (SSDs, USB drives, SD cards) due to high density"
+          - "NOR is used for code storage that needs to execute in place (firmware, bootloaders)"
+        questions:
+          - prompt: "Why is NAND flash preferred for SSDs and USB drives?"
+            choices:
+              - text: "NAND provides faster random access"
+              - text: "NAND offers higher density and lower cost per bit"
+                correct: true
+              - text: "NAND never wears out"
+              - text: "NAND can execute code directly"
+          - prompt: "What is a key advantage of NOR flash over NAND?"
+            choices:
+              - text: "NOR allows byte-level random access"
+                correct: true
+              - text: "NOR has higher storage density"
+              - text: "NOR is cheaper per gigabyte"
+              - text: "NOR has unlimited write cycles"
+          - prompt: "Why is NOR flash used for storing firmware that boots a computer?"
+            choices:
+              - text: "The CPU can execute code directly from NOR (execute-in-place)"
+                correct: true
+              - text: "NOR is the cheapest type of flash"
+              - text: "NOR has the highest capacity"
+              - text: "NOR is faster for sequential writes"
+          - prompt: "How does NAND flash achieve higher storage density?"
+            choices:
+              - text: "By connecting memory cells in series, requiring less space per cell"
+                correct: true
+              - text: "By using larger transistors"
+              - text: "By using mechanical compression"
+              - text: "By storing multiple bits per transistor always"
+          - prompt: "A device needs 512 GB of storage for photos and videos. Which flash type is most economical?"
+            choices:
+              - text: "NOR flash"
+              - text: "NAND flash"
+                correct: true
+              - text: "Both are equally economical"
+              - text: "Neither is suitable"
+          - prompt: "What is a limitation of NAND flash compared to NOR?"
+            choices:
+              - text: "NAND cannot do true byte-level random access"
+                correct: true
+              - text: "NAND is more expensive per bit"
+              - text: "NAND requires mechanical components"
+              - text: "NAND loses data faster"
+          - prompt: "In the name 'NAND flash', what does NAND refer to?"
+            choices:
+              - text: "A geographical region"
+              - text: "The way memory cells are interconnected (like NAND logic gates)"
+                correct: true
+              - text: "The manufacturer's name"
+              - text: "The shape of the memory cells"
+
+      - name: "slc-mlc-tlc-qlc"
+        description: "Single vs multi-level cell storage"
+        prerequisites: ["nand-vs-nor-flash"]
+        contents:
+          - "SLC (Single-Level Cell) stores 1 bit per cell by having two states (charged or not charged)"
+          - "MLC (Multi-Level Cell) stores 2 bits per cell using four distinct charge levels"
+          - "TLC (Triple-Level Cell) stores 3 bits per cell using eight charge levels"
+          - "QLC (Quad-Level Cell) stores 4 bits per cell using sixteen charge levels"
+          - "More bits per cell increases density and reduces cost but decreases speed, endurance, and reliability"
+        questions:
+          - prompt: "An SLC flash cell can store how many bits?"
+            choices:
+              - text: "1 bit"
+                correct: true
+              - text: "2 bits"
+              - text: "3 bits"
+              - text: "4 bits"
+          - prompt: "Why does TLC flash cost less per gigabyte than SLC?"
+            choices:
+              - text: "TLC stores more bits in the same number of cells"
+                correct: true
+              - text: "TLC uses cheaper materials"
+              - text: "TLC is manufactured in larger quantities only"
+              - text: "TLC requires less power"
+          - prompt: "A QLC cell uses how many distinct charge levels to represent data?"
+            choices:
+              - text: "4"
+              - text: "8"
+              - text: "16"
+                correct: true
+              - text: "2"
+          - prompt: "What is a disadvantage of MLC compared to SLC?"
+            choices:
+              - text: "MLC has lower capacity"
+              - text: "MLC has lower endurance (fewer program/erase cycles)"
+                correct: true
+              - text: "MLC is more expensive"
+              - text: "MLC requires moving parts"
+          - prompt: "You need an SSD for a database server with constant heavy writes. Which cell type offers the best endurance?"
+            choices:
+              - text: "QLC"
+              - text: "TLC"
+              - text: "SLC"
+                correct: true
+              - text: "All have identical endurance"
+          - prompt: "Why is it more difficult to read data reliably from QLC than SLC?"
+            choices:
+              - text: "QLC must distinguish between 16 different charge levels vs. 2 for SLC"
+                correct: true
+              - text: "QLC cells are physically smaller"
+              - text: "QLC uses magnetic storage"
+              - text: "QLC requires mechanical access"
+          - prompt: "A manufacturer wants to create a 1 TB SSD using the minimum number of flash cells. Which cell type should they use?"
+            choices:
+              - text: "SLC"
+              - text: "MLC"
+              - text: "QLC"
+                correct: true
+              - text: "All require the same number of cells"
+
+  - title: "SSD Architecture"
+    knowledge_points:
+      - name: "ssd-components"
+        description: "NAND chips, controller, DRAM cache, interface"
+        prerequisites: ["flash-memory-concept", "hdd-limitations"]
+        contents:
+          - "SSDs contain NAND flash chips that store the actual data"
+          - "An SSD controller is a processor that manages all operations, wear leveling, error correction"
+          - "Many SSDs include DRAM cache for mapping tables and temporary data"
+          - "The interface (SATA, NVMe) connects the SSD to the computer's motherboard"
+          - "Firmware on the controller implements the complex algorithms that make SSDs work efficiently"
+        questions:
+          - prompt: "What is the primary function of the SSD controller?"
+            choices:
+              - text: "To provide power to the NAND chips"
+              - text: "To manage all SSD operations including data placement and error correction"
+                correct: true
+              - text: "To store the actual user data"
+              - text: "To cool the drive"
+          - prompt: "Where is user data actually stored in an SSD?"
+            choices:
+              - text: "In the controller's processor"
+              - text: "In the DRAM cache"
+              - text: "In the NAND flash chips"
+                correct: true
+              - text: "In the interface connector"
+          - prompt: "Why do many SSDs include DRAM cache?"
+            choices:
+              - text: "To permanently store user data"
+              - text: "To hold mapping tables and improve performance"
+                correct: true
+              - text: "To increase total storage capacity"
+              - text: "To power the drive when unplugged"
+          - prompt: "The SSD controller's firmware implements wear leveling and garbage collection. Where is this firmware stored?"
+            choices:
+              - text: "On the computer's hard drive"
+              - text: "In non-volatile memory on the SSD itself"
+                correct: true
+              - text: "It's hardwired and cannot be updated"
+              - text: "In the motherboard's BIOS"
+          - prompt: "An SSD's interface determines what?"
+            choices:
+              - text: "How it physically and logically connects to the computer"
+                correct: true
+              - text: "How much data it can store"
+              - text: "What type of NAND it uses"
+              - text: "Its physical size only"
+          - prompt: "What would happen if an SSD's controller failed?"
+            choices:
+              - text: "Only the DRAM cache would be lost"
+              - text: "The drive would be inaccessible even though data is still in NAND"
+                correct: true
+              - text: "Data would automatically transfer to another drive"
+              - text: "The NAND chips would still function independently"
+          - prompt: "Which SSD component is essentially a specialized computer?"
+            choices:
+              - text: "The NAND flash chips"
+              - text: "The SSD controller"
+                correct: true
+              - text: "The DRAM cache"
+              - text: "The interface connector"
+
+      - name: "ssd-controller"
+        description: "The brain of the SSD managing all operations"
+        prerequisites: ["ssd-components"]
+        contents:
+          - "The controller translates logical block addresses (LBA) from the OS to physical NAND locations"
+          - "It implements Flash Translation Layer (FTL) to hide the complexities of flash from the operating system"
+          - "The controller distributes writes across all NAND chips for parallelism and wear leveling"
+          - "It performs error correction using ECC (Error Correcting Code) to handle bit errors"
+          - "Advanced controllers use algorithms to predict failures and move data proactively"
+        questions:
+          - prompt: "The operating system asks to write to logical block 1000. What does the controller do?"
+            choices:
+              - text: "Writes directly to physical NAND address 1000"
+              - text: "Translates the logical address to a physical NAND location using its mapping table"
+                correct: true
+              - text: "Returns an error"
+              - text: "Writes to DRAM instead"
+          - prompt: "What is the Flash Translation Layer (FTL)?"
+            choices:
+              - text: "A physical layer that insulates the NAND from heat"
+              - text: "Software in the controller that makes flash appear as a simple block device"
+                correct: true
+              - text: "The interface cable"
+              - text: "A type of NAND flash"
+          - prompt: "Why does the controller distribute writes across multiple NAND chips?"
+            choices:
+              - text: "To achieve parallelism for higher performance and even wear distribution"
+                correct: true
+              - text: "To use less power"
+              - text: "To reduce the physical size"
+              - text: "To satisfy legal requirements"
+          - prompt: "Data is read from NAND and some bits are flipped due to charge leakage. What controller function corrects this?"
+            choices:
+              - text: "Flash Translation Layer"
+              - text: "Error Correcting Code (ECC)"
+                correct: true
+              - text: "Wear leveling"
+              - text: "Garbage collection"
+          - prompt: "The OS deletes a file and tells the SSD via TRIM. What does the controller do with this information?"
+            choices:
+              - text: "Immediately erases those NAND blocks"
+              - text: "Marks those blocks as invalid and can use them for garbage collection"
+                correct: true
+              - text: "Writes zeros to those locations"
+              - text: "Ignores the information"
+          - prompt: "Why can't the operating system directly manage the physical NAND like it does with HDD sectors?"
+            choices:
+              - text: "Flash requires special operations like erase-before-write that OS isn't designed for"
+                correct: true
+              - text: "Operating systems cannot handle electrical signals"
+              - text: "The OS doesn't have permission"
+              - text: "NAND uses a different number system"
+          - prompt: "An SSD controller has 4 NAND chips. To write 16 KB, it could write 4 KB to each chip simultaneously. What is this called?"
+            choices:
+              - text: "Wear leveling"
+              - text: "Parallelism/striping"
+                correct: true
+              - text: "Garbage collection"
+              - text: "Over-provisioning"
+
+      - name: "pages-blocks-planes"
+        description: "How flash is organized hierarchically"
+        prerequisites: ["slc-mlc-tlc-qlc"]
+        contents:
+          - "Flash memory is organized in a hierarchy: planes contain blocks, blocks contain pages"
+          - "A page (typically 4-16 KB) is the smallest unit that can be read or written"
+          - "A block (typically 256-512 pages) is the smallest unit that can be erased"
+          - "A plane contains many blocks and can operate independently for parallelism"
+          - "This mismatch (write to pages, erase blocks) creates the need for garbage collection"
+        questions:
+          - prompt: "What is the smallest unit of data that can be written in flash memory?"
+            choices:
+              - text: "A bit"
+              - text: "A page"
+                correct: true
+              - text: "A block"
+              - text: "A plane"
+          - prompt: "What is the smallest unit that can be erased in flash memory?"
+            choices:
+              - text: "A page"
+              - text: "A block"
+                correct: true
+              - text: "A byte"
+              - text: "A plane"
+          - prompt: "A block contains 256 pages, each 4 KB in size. What is the block size?"
+            choices:
+              - text: "256 KB"
+              - text: "512 KB"
+              - text: "1 MB"
+                correct: true
+              - text: "4 MB"
+          - prompt: "You want to update one 4 KB page within a block. Why can't you just overwrite it directly?"
+            choices:
+              - text: "Flash cells must be erased to an empty state before being programmed, and erase works on entire blocks"
+                correct: true
+              - text: "The controller forbids single page updates"
+              - text: "It would damage the SSD"
+              - text: "Pages are read-only"
+          - prompt: "What problem arises from flash being able to write pages but only erase blocks?"
+            choices:
+              - text: "You must erase entire blocks even to update a single page, creating write amplification"
+                correct: true
+              - text: "Flash becomes volatile"
+              - text: "The drive becomes read-only"
+              - text: "Data is automatically compressed"
+          - prompt: "An SSD has 4 planes. What performance benefit does this provide?"
+            choices:
+              - text: "Multiple planes can be accessed in parallel for higher throughput"
+                correct: true
+              - text: "It quadruples the storage capacity"
+              - text: "It eliminates the need for wear leveling"
+              - text: "It makes the drive volatile"
+          - prompt: "Why are pages much smaller than blocks in flash architecture?"
+            choices:
+              - text: "Smaller pages allow finer-grained reads/writes; larger blocks allow faster bulk erases"
+                correct: true
+              - text: "It's a manufacturing defect"
+              - text: "Pages shrink over time"
+              - text: "Regulatory requirements"
+
+  - title: "SSD Operations"
+    knowledge_points:
+      - name: "ssd-read-operation"
+        description: "How SSDs read data from flash cells"
+        prerequisites: ["pages-blocks-planes", "ssd-controller"]
+        contents:
+          - "Reading flash involves applying a specific voltage and measuring current flow to determine charge level"
+          - "SSD controller looks up the physical location from its logical-to-physical mapping table"
+          - "Data is read at page granularity (typically 4-16 KB at once)"
+          - "ECC is applied during reads to detect and correct bit errors"
+          - "Multiple pages can be read in parallel from different planes/chips for performance"
+        questions:
+          - prompt: "The OS requests to read logical block 500. What must happen first?"
+            choices:
+              - text: "The NAND chips are erased"
+              - text: "The controller looks up the physical location in its mapping table"
+                correct: true
+              - text: "The entire SSD is scanned"
+              - text: "The DRAM cache is cleared"
+          - prompt: "What is read from flash memory at minimum, even if you only need 512 bytes?"
+            choices:
+              - text: "Exactly 512 bytes"
+              - text: "An entire page (typically 4-16 KB)"
+                correct: true
+              - text: "An entire block"
+              - text: "The entire chip"
+          - prompt: "During a read operation, how does the controller determine the data value in a flash cell?"
+            choices:
+              - text: "By measuring the cell's magnetic field"
+              - text: "By applying voltage and measuring current flow (affected by stored charge)"
+                correct: true
+              - text: "By weighing the cell"
+              - text: "By measuring temperature"
+          - prompt: "After reading data from NAND, the controller detects some bit errors using ECC. What happens next?"
+            choices:
+              - text: "The read fails and returns an error"
+              - text: "ECC corrects the errors and returns correct data"
+                correct: true
+              - text: "The SSD is marked as failed"
+              - text: "The errors are ignored"
+          - prompt: "An SSD needs to read 64 KB of sequential data. What strategy improves performance?"
+            choices:
+              - text: "Reading multiple pages in parallel from different chips"
+                correct: true
+              - text: "Reading one bit at a time"
+              - text: "Erasing blocks first"
+              - text: "Writing data before reading"
+          - prompt: "Does reading data from flash degrade the cells?"
+            choices:
+              - text: "Yes, as much as writing"
+              - text: "No, reads don't significantly wear flash cells"
+                correct: true
+              - text: "Only on Sundays"
+              - text: "Yes, but only for MLC"
+          - prompt: "Why might read performance vary on an SSD?"
+            choices:
+              - text: "Data might be spread across different numbers of chips/planes"
+                correct: true
+              - text: "Flash cells get tired"
+              - text: "The moon's gravitational pull"
+              - text: "All reads are identical in speed"
+
+      - name: "ssd-write-operation"
+        description: "Program operation and page-level writes"
+        prerequisites: ["ssd-read-operation"]
+        contents:
+          - "Writing to flash is called 'programming' - electrons are injected onto the floating gate"
+          - "Flash cells can only be programmed from an erased state (all 1s) to a programmed state (containing 0s)"
+          - "Programming happens at page granularity, like reads"
+          - "The controller must find erased pages to write to, often remapping logical addresses"
+          - "After programming, the controller updates its mapping table to point to the new location"
+        questions:
+          - prompt: "What must be true about a flash cell before it can be programmed (written)?"
+            choices:
+              - text: "It must be in the erased state"
+                correct: true
+              - text: "It must be in the programmed state"
+              - text: "It must be at room temperature"
+              - text: "It can be in any state"
+          - prompt: "The OS wants to update a file that's already stored in flash. Can the SSD write directly to those same physical cells?"
+            choices:
+              - text: "Yes, flash can always overwrite data"
+              - text: "No, those cells must be erased first, so the controller writes to new erased pages instead"
+                correct: true
+              - text: "Only if the file is small"
+              - text: "Only on Tuesdays"
+          - prompt: "What granularity does flash programming occur at?"
+            choices:
+              - text: "Individual bits"
+              - text: "Pages"
+                correct: true
+              - text: "Bytes"
+              - text: "Entire drives"
+          - prompt: "After writing data to new physical pages, what must the controller update?"
+            choices:
+              - text: "The page size"
+              - text: "The logical-to-physical mapping table"
+                correct: true
+              - text: "The operating system's kernel"
+              - text: "The NAND manufacturing date"
+          - prompt: "Why is the write operation called 'programming'?"
+            choices:
+              - text: "It requires writing software code"
+              - text: "It's a term from older EPROM technology for injecting charge into floating gates"
+                correct: true
+              - text: "It programs the computer"
+              - text: "It follows a scheduled program"
+          - prompt: "What happens to the old physical location after the controller writes updated data to a new page?"
+            choices:
+              - text: "It's immediately erased"
+              - text: "It's marked as invalid/stale in the mapping table"
+                correct: true
+              - text: "It's kept as a backup forever"
+              - text: "It's physically destroyed"
+          - prompt: "An application writes 1 KB of data. How much flash is actually programmed at minimum?"
+            choices:
+              - text: "1 KB exactly"
+              - text: "An entire page (e.g., 4 KB)"
+                correct: true
+              - text: "An entire block"
+              - text: "1 byte"
+
+      - name: "erase-operation"
+        description: "Why flash must erase entire blocks"
+        prerequisites: ["ssd-write-operation"]
+        contents:
+          - "Erasing removes electrons from floating gates, resetting cells to the '1' state"
+          - "The erase operation works on entire blocks (not individual pages) due to how the cells are electrically connected"
+          - "Erasing a block takes milliseconds, much slower than reading or programming pages"
+          - "All pages in a block must be erased together, even if you only need to erase one page's worth"
+          - "Before erasing, any valid data in the block must be copied elsewhere (read-modify-erase-write)"
+        questions:
+          - prompt: "What is the smallest unit that can be erased in flash memory?"
+            choices:
+              - text: "A page"
+              - text: "A block (containing many pages)"
+                correct: true
+              - text: "A single cell"
+              - text: "A byte"
+          - prompt: "A block contains 100 pages of data, but only 1 page needs to be erased. What must happen?"
+            choices:
+              - text: "Only that one page is erased"
+              - text: "The entire block must be erased, and any valid pages copied elsewhere first"
+                correct: true
+              - text: "The operation is impossible"
+              - text: "The other 99 pages are automatically updated"
+          - prompt: "What state are flash cells in after an erase operation?"
+            choices:
+              - text: "All bits set to 0"
+              - text: "All bits set to 1 (erased state)"
+                correct: true
+              - text: "Random values"
+              - text: "Unchanged"
+          - prompt: "A block has some pages with valid data and some with invalid data. Before erasing, what must the controller do?"
+            choices:
+              - text: "Copy the valid pages to another location"
+                correct: true
+              - text: "Delete all data immediately"
+              - text: "Nothing, invalid data is automatically removed"
+              - text: "Compress all pages"
+          - prompt: "Why does the erase operation take much longer (milliseconds) than page programming (microseconds)?"
+            choices:
+              - text: "It's a more complex physical process removing charge from many cells"
+                correct: true
+              - text: "The controller is slower during erases"
+              - text: "Regulatory safety delays"
+              - text: "The OS throttles erase operations"
+          - prompt: "What causes the need for garbage collection in SSDs?"
+            choices:
+              - text: "The mismatch between page-level programming and block-level erasing"
+                correct: true
+              - text: "Poor code quality"
+              - text: "Too much DRAM cache"
+              - text: "Magnetic interference"
+          - prompt: "How does the erase operation affect flash endurance?"
+            choices:
+              - text: "It has no effect"
+              - text: "Each erase cycle degrades the insulator, limiting the number of times a block can be erased"
+                correct: true
+              - text: "It makes cells stronger"
+              - text: "It only affects read performance"
+
+      - name: "write-amplification"
+        description: "Why SSDs write more data than requested"
+        prerequisites: ["erase-operation"]
+        contents:
+          - "Write amplification is the ratio of actual data written to NAND vs. data requested by the OS"
+          - "Occurs because updating data requires copying valid pages before erasing blocks"
+          - "Garbage collection increases write amplification as it rewrites valid data to free blocks"
+          - "Higher write amplification reduces performance and shortens SSD lifespan"
+          - "Good controllers minimize write amplification through efficient garbage collection and over-provisioning"
+        questions:
+          - prompt: "The OS writes 1 MB of data, but the SSD internally writes 2 MB to NAND. What is the write amplification factor?"
+            choices:
+              - text: "1"
+              - text: "2"
+                correct: true
+              - text: "3"
+              - text: "0.5"
+          - prompt: "What causes write amplification?"
+            choices:
+              - text: "The need to copy valid pages during garbage collection and block erases"
+                correct: true
+              - text: "Defective NAND chips"
+              - text: "Slow CPUs"
+              - text: "Large files"
+          - prompt: "Why is high write amplification bad for SSD lifespan?"
+            choices:
+              - text: "It increases the actual number of program/erase cycles on NAND cells"
+                correct: true
+              - text: "It makes the drive heavier"
+              - text: "It reduces storage capacity"
+              - text: "It improves performance"
+          - prompt: "A block needs to be erased but contains 200 valid pages and 56 invalid pages. How does this contribute to write amplification?"
+            choices:
+              - text: "The 200 valid pages must be copied elsewhere before erasing, adding extra writes"
+                correct: true
+              - text: "Invalid pages are automatically revalidated"
+              - text: "The block cannot be erased"
+              - text: "It has no effect on write amplification"
+          - prompt: "What write amplification factor is ideal?"
+            choices:
+              - text: "As high as possible"
+              - text: "Exactly 1 (writing only what the OS requests)"
+                correct: true
+              - text: "0 (writing nothing)"
+              - text: "10 or higher"
+          - prompt: "How does frequent small random writes affect write amplification?"
+            choices:
+              - text: "It decreases write amplification"
+              - text: "It increases write amplification by fragmenting data across more blocks"
+                correct: true
+              - text: "It has no effect"
+              - text: "It eliminates write amplification"
+          - prompt: "An SSD with write amplification of 3 has a NAND endurance of 3000 cycles. How many full drive writes can the user perform before exhausting the NAND?"
+            choices:
+              - text: "9000"
+              - text: "3000"
+              - text: "1000"
+                correct: true
+              - text: "6000"
+
+  - title: "SSD Performance and Management"
+    knowledge_points:
+      - name: "wear-leveling"
+        description: "Distributing writes to extend lifespan"
+        prerequisites: ["write-amplification"]
+        contents:
+          - "Wear leveling ensures all blocks are erased roughly the same number of times"
+          - "Without wear leveling, frequently updated blocks would fail early while others are barely used"
+          - "Dynamic wear leveling distributes new writes across less-worn blocks"
+          - "Static wear leveling occasionally moves data from rarely-changed blocks so those blocks can be used"
+          - "The controller tracks erase counts for each block to make wear leveling decisions"
+        questions:
+          - prompt: "Why is wear leveling necessary in SSDs?"
+            choices:
+              - text: "To make the drive heavier"
+              - text: "To prevent some blocks from wearing out much faster than others"
+                correct: true
+              - text: "To increase capacity"
+              - text: "To reduce cost"
+          - prompt: "Without wear leveling, what would happen to an SSD with a frequently updated log file?"
+            choices:
+              - text: "The blocks storing that file would wear out early while others are fine"
+                correct: true
+              - text: "All blocks would wear evenly anyway"
+              - text: "The SSD would become faster"
+              - text: "Nothing different"
+          - prompt: "What is static wear leveling?"
+            choices:
+              - text: "Never moving any data"
+              - text: "Occasionally moving data from low-wear blocks so those blocks can be used"
+                correct: true
+              - text: "Leveling the drive physically"
+              - text: "Writing only to specific blocks"
+          - prompt: "The controller tracks that block A has been erased 500 times and block B has been erased 100 times. A new write comes in. Which block should the controller prefer?"
+            choices:
+              - text: "Block A (higher wear)"
+              - text: "Block B (lower wear)"
+                correct: true
+              - text: "It doesn't matter"
+              - text: "Both simultaneously"
+          - prompt: "What information must the controller maintain to perform wear leveling?"
+            choices:
+              - text: "User passwords"
+              - text: "Erase count for each block"
+                correct: true
+              - text: "File names"
+              - text: "Internet connection status"
+          - prompt: "How does wear leveling affect SSD lifespan?"
+            choices:
+              - text: "It extends lifespan by using all blocks evenly"
+                correct: true
+              - text: "It reduces lifespan"
+              - text: "It has no effect"
+              - text: "It only affects read speed"
+          - prompt: "A user writes to the same logical file location repeatedly. Does wear leveling ensure the same physical blocks aren't always used?"
+            choices:
+              - text: "No, the same physical blocks are always used"
+              - text: "Yes, the controller remaps the logical address to different physical blocks over time"
+                correct: true
+              - text: "Only during full moon"
+              - text: "Only on NVMe drives"
+
+      - name: "garbage-collection"
+        description: "Reclaiming invalid pages"
+        prerequisites: ["wear-leveling"]
+        contents:
+          - "Garbage collection reclaims blocks containing invalid (overwritten or deleted) pages"
+          - "The controller selects blocks with many invalid pages, copies valid pages elsewhere, then erases the block"
+          - "Garbage collection happens in the background or during idle time when possible"
+          - "GC can impact performance if it must run during active writes (drive is full or busy)"
+          - "Good garbage collection algorithms minimize write amplification and performance impact"
+        questions:
+          - prompt: "What is the purpose of garbage collection in SSDs?"
+            choices:
+              - text: "To delete viruses"
+              - text: "To free up erased blocks by consolidating valid data and erasing blocks with invalid pages"
+                correct: true
+              - text: "To collect physical dust"
+              - text: "To organize files alphabetically"
+          - prompt: "A block has 90 invalid pages and 10 valid pages. Why is this a good candidate for garbage collection?"
+            choices:
+              - text: "Most pages are invalid, so minimal valid data needs copying before erasing"
+                correct: true
+              - text: "It has the most total pages"
+              - text: "It's the oldest block"
+              - text: "It has an even number of valid pages"
+          - prompt: "When is the best time for garbage collection to run?"
+            choices:
+              - text: "During heavy write activity"
+              - text: "During idle time or low activity to minimize performance impact"
+                correct: true
+              - text: "Never"
+              - text: "During reads only"
+          - prompt: "What happens during a garbage collection operation?"
+            choices:
+              - text: "The drive is defragmented like an HDD"
+              - text: "Valid pages are copied to new blocks, then old blocks are erased"
+                correct: true
+              - text: "All data is deleted"
+              - text: "The DRAM is cleared"
+          - prompt: "Why might an SSD's write performance decrease when it's nearly full?"
+            choices:
+              - text: "Less free space means garbage collection must run more often, causing performance overhead"
+                correct: true
+              - text: "Full drives are heavier"
+              - text: "The OS slows down the drive"
+              - text: "Full drives use less power"
+          - prompt: "How does garbage collection contribute to write amplification?"
+            choices:
+              - text: "It doesn't affect write amplification"
+              - text: "Copying valid pages to new locations adds extra writes beyond what the OS requested"
+                correct: true
+              - text: "It eliminates write amplification"
+              - text: "It only affects read operations"
+          - prompt: "The OS deletes a large file. When does the SSD actually erase those blocks?"
+            choices:
+              - text: "Immediately upon deletion"
+              - text: "Later, during garbage collection"
+                correct: true
+              - text: "Never, they stay forever"
+              - text: "Only if the computer restarts"
+
+      - name: "trim-command"
+        description: "OS helping SSD manage free space"
+        prerequisites: ["garbage-collection"]
+        contents:
+          - "TRIM is a command that tells the SSD which logical blocks no longer contain valid data"
+          - "When the OS deletes a file, TRIM informs the SSD those blocks are now invalid"
+          - "Without TRIM, the SSD doesn't know data is deleted and wastes time copying it during garbage collection"
+          - "TRIM allows more efficient garbage collection and better performance"
+          - "TRIM must be supported by both the OS and the SSD"
+        questions:
+          - prompt: "What does the TRIM command communicate to the SSD?"
+            choices:
+              - text: "Which logical blocks no longer contain valid data"
+                correct: true
+              - text: "Which blocks should be encrypted"
+              - text: "The user's password"
+              - text: "The drive's temperature"
+          - prompt: "Without TRIM, what problem occurs when the OS deletes a file?"
+            choices:
+              - text: "The file is not deleted"
+              - text: "The SSD doesn't know the data is deleted and may waste time copying it during garbage collection"
+                correct: true
+              - text: "The drive explodes"
+              - text: "The computer shuts down"
+          - prompt: "When does the OS typically send TRIM commands?"
+            choices:
+              - text: "During boot only"
+              - text: "When files are deleted or blocks are freed"
+                correct: true
+              - text: "Every hour"
+              - text: "Never automatically"
+          - prompt: "How does TRIM improve SSD performance?"
+            choices:
+              - text: "It increases NAND speed"
+              - text: "It allows more efficient garbage collection by identifying invalid data early"
+                correct: true
+              - text: "It adds more DRAM cache"
+              - text: "It makes the drive larger"
+          - prompt: "An OS that doesn't support TRIM is used with an SSD. What happens?"
+            choices:
+              - text: "The SSD won't work at all"
+              - text: "The SSD works but with potentially worse performance and efficiency"
+                correct: true
+              - text: "The SSD becomes an HDD"
+              - text: "The OS crashes"
+          - prompt: "After TRIM marks blocks as invalid, when are they actually erased?"
+            choices:
+              - text: "Immediately"
+              - text: "Later, during garbage collection"
+                correct: true
+              - text: "Never"
+              - text: "Only when the drive is full"
+          - prompt: "Why is TRIM particularly important for SSD longevity?"
+            choices:
+              - text: "It reduces unnecessary write amplification by preventing copying of already-deleted data"
+                correct: true
+              - text: "It physically strengthens the NAND"
+              - text: "It charges the floating gates"
+              - text: "It has no effect on longevity"
+
+      - name: "over-provisioning"
+        description: "Reserved space for performance and endurance"
+        prerequisites: ["trim-command"]
+        contents:
+          - "Over-provisioning is extra NAND capacity not visible to the OS, reserved for SSD management"
+          - "Typically 7-28% of total NAND is over-provisioned"
+          - "OP provides free blocks for garbage collection, reducing write amplification"
+          - "More OP improves performance consistency and extends lifespan"
+          - "OP space is used for wear leveling, bad block replacement, and maintaining performance"
+        questions:
+          - prompt: "What is over-provisioning in an SSD?"
+            choices:
+              - text: "Extra NAND capacity reserved for SSD management, not visible to the OS"
+                correct: true
+              - text: "Extra DRAM cache"
+              - text: "Backup power supply"
+              - text: "Extra cooling fans"
+          - prompt: "An SSD has 256 GB of NAND but only shows 240 GB to the OS. Where did the 16 GB go?"
+            choices:
+              - text: "Manufacturing defect"
+              - text: "Over-provisioning space for SSD management"
+                correct: true
+              - text: "OS overhead"
+              - text: "Lost in decimal/binary conversion"
+          - prompt: "How does over-provisioning reduce write amplification?"
+            choices:
+              - text: "It provides free blocks so garbage collection can be more efficient"
+                correct: true
+              - text: "It makes writes faster"
+              - text: "It eliminates all writes"
+              - text: "It compresses data"
+          - prompt: "What happens to over-provisioned space when NAND blocks go bad?"
+            choices:
+              - text: "Nothing, bad blocks are ignored"
+              - text: "OP space can be used to replace bad blocks, maintaining usable capacity"
+                correct: true
+              - text: "The entire drive fails"
+              - text: "The OS is corrupted"
+          - prompt: "Would a drive with 20% over-provisioning likely perform better or worse than one with 7% OP (same NAND type)?"
+            choices:
+              - text: "Worse performance"
+              - text: "Better performance, especially under sustained writes"
+                correct: true
+              - text: "Identical performance"
+              - text: "It depends on the moon phase"
+          - prompt: "How does over-provisioning affect advertised drive capacity?"
+            choices:
+              - text: "It increases advertised capacity"
+              - text: "It reduces advertised capacity (user sees less than total NAND)"
+                correct: true
+              - text: "It has no effect"
+              - text: "It doubles capacity"
+          - prompt: "A user manually creates unallocated space on their SSD. What effect does this have?"
+            choices:
+              - text: "No effect, wasted space"
+              - text: "Effectively increases over-provisioning, potentially improving performance and endurance"
+                correct: true
+              - text: "Damages the drive"
+              - text: "Converts SSD to HDD"
+
+  - title: "SSD Interfaces and Protocols"
+    knowledge_points:
+      - name: "sata-interface"
+        description: "Traditional drive interface for SSDs"
+        prerequisites: ["ssd-components"]
+        contents:
+          - "SATA (Serial ATA) was originally designed for hard drives and adapted for SSDs"
+          - "SATA III provides maximum 6 Gbps (about 600 MB/s), limiting SSD performance"
+          - "SATA uses the AHCI protocol, designed for rotational media with command queuing limitations"
+          - "SATA SSDs are physically compatible with HDD bays, making upgrades simple"
+          - "The SATA interface has become a bottleneck for modern flash performance"
+        questions:
+          - prompt: "What is the maximum theoretical throughput of SATA III?"
+            choices:
+              - text: "150 MB/s"
+              - text: "About 600 MB/s"
+                correct: true
+              - text: "3000 MB/s"
+              - text: "100 MB/s"
+          - prompt: "Why is SATA considered a bottleneck for modern SSDs?"
+            choices:
+              - text: "Modern flash can perform much faster than SATA's 600 MB/s limit"
+                correct: true
+              - text: "SATA cables are too long"
+              - text: "SATA uses too much power"
+              - text: "SATA is wireless"
+          - prompt: "What was SATA originally designed for?"
+            choices:
+              - text: "Graphics cards"
+              - text: "Hard disk drives"
+                correct: true
+              - text: "RAM"
+              - text: "CPUs"
+          - prompt: "What is an advantage of SATA SSDs for upgrading old computers?"
+            choices:
+              - text: "They're the fastest interface available"
+              - text: "They're physically compatible with existing HDD bays and connectors"
+                correct: true
+              - text: "They require no power"
+              - text: "They're wireless"
+          - prompt: "An SSD can internally read at 1500 MB/s but is connected via SATA III. What throughput will the user see?"
+            choices:
+              - text: "1500 MB/s (full speed)"
+              - text: "Limited to about 600 MB/s by the SATA interface"
+                correct: true
+              - text: "3000 MB/s (doubled)"
+              - text: "150 MB/s"
+          - prompt: "What protocol does SATA use?"
+            choices:
+              - text: "NVMe"
+              - text: "AHCI"
+                correct: true
+              - text: "HTTP"
+              - text: "PCIe"
+          - prompt: "Why was AHCI not ideal for SSDs?"
+            choices:
+              - text: "It was designed for rotational media and has command queue limitations"
+                correct: true
+              - text: "It's too fast"
+              - text: "It doesn't support binary"
+              - text: "It requires mechanical parts"
+
+      - name: "nvme-protocol"
+        description: "Modern protocol designed for flash"
+        prerequisites: ["sata-interface"]
+        contents:
+          - "NVMe (Non-Volatile Memory Express) is a protocol designed specifically for flash storage"
+          - "NVMe operates over PCIe lanes, bypassing SATA limitations"
+          - "NVMe supports 65,535 queues with 65,536 commands each vs AHCI's 1 queue with 32 commands"
+          - "Lower latency and higher parallelism make NVMe much faster for random operations"
+          - "NVMe SSDs can reach 3000-7000 MB/s, far exceeding SATA"
+        questions:
+          - prompt: "What does NVMe stand for?"
+            choices:
+              - text: "New Video Memory Express"
+              - text: "Non-Volatile Memory Express"
+                correct: true
+              - text: "Network Virtual Machine Express"
+              - text: "Nano Voltage Micro Express"
+          - prompt: "How many command queues does NVMe support?"
+            choices:
+              - text: "1"
+              - text: "32"
+              - text: "65,535"
+                correct: true
+              - text: "256"
+          - prompt: "Why does NVMe provide better performance than SATA for SSDs?"
+            choices:
+              - text: "It uses faster cables"
+              - text: "It was designed for flash, with more queues, lower latency, and operates over faster PCIe"
+                correct: true
+              - text: "It uses less power"
+              - text: "It's wireless"
+          - prompt: "What is the typical throughput range for NVMe SSDs?"
+            choices:
+              - text: "100-200 MB/s"
+              - text: "3000-7000 MB/s"
+                correct: true
+              - text: "30-60 MB/s"
+              - text: "10-50 MB/s"
+          - prompt: "What interface does NVMe use to connect to the computer?"
+            choices:
+              - text: "SATA"
+              - text: "PCIe"
+                correct: true
+              - text: "USB"
+              - text: "Thunderbolt only"
+          - prompt: "Why is high queue depth important for SSD performance?"
+            choices:
+              - text: "It allows many operations to be in flight simultaneously, utilizing parallelism"
+                correct: true
+              - text: "It makes the drive heavier"
+              - text: "It reduces capacity"
+              - text: "It has no benefit"
+          - prompt: "Compared to AHCI with 1 queue and 32 commands, what advantage does NVMe's 65,535 queues provide?"
+            choices:
+              - text: "Massively better parallelism for multiple applications and threads"
+                correct: true
+              - text: "Slower performance"
+              - text: "Reduced compatibility"
+              - text: "No practical advantage"
+
+      - name: "pcie-lanes"
+        description: "High-speed bus for NVMe SSDs"
+        prerequisites: ["nvme-protocol"]
+        contents:
+          - "PCIe (Peripheral Component Interconnect Express) is a high-speed serial bus"
+          - "Each PCIe lane provides roughly 1 GB/s (PCIe 3.0) or 2 GB/s (PCIe 4.0) per direction"
+          - "NVMe SSDs typically use x4 lanes (4 lanes), providing 4-8 GB/s bandwidth"
+          - "PCIe lanes connect directly to the CPU or chipset, reducing latency"
+          - "PCIe 5.0 doubles bandwidth again to ~4 GB/s per lane"
+        questions:
+          - prompt: "An NVMe SSD uses PCIe 3.0 x4. What is the approximate maximum bandwidth?"
+            choices:
+              - text: "1 GB/s"
+              - text: "4 GB/s"
+                correct: true
+              - text: "600 MB/s"
+              - text: "16 GB/s"
+          - prompt: "What does 'x4' mean in PCIe x4?"
+            choices:
+              - text: "4 times faster than PCIe x1"
+              - text: "Using 4 PCIe lanes"
+                correct: true
+              - text: "4 GB of storage"
+              - text: "Version 4"
+          - prompt: "How does PCIe 4.0 compare to PCIe 3.0?"
+            choices:
+              - text: "PCIe 4.0 provides roughly double the bandwidth per lane"
+                correct: true
+              - text: "They're identical"
+              - text: "PCIe 4.0 is slower"
+              - text: "PCIe 4.0 uses fewer lanes"
+          - prompt: "Why does connecting NVMe directly via PCIe provide lower latency than SATA?"
+            choices:
+              - text: "Shorter cables"
+              - text: "Direct connection to CPU/chipset without SATA controller overhead"
+                correct: true
+              - text: "PCIe uses radio waves"
+              - text: "Magic"
+          - prompt: "A PCIe 4.0 x4 SSD provides approximately what maximum bandwidth?"
+            choices:
+              - text: "4 GB/s"
+              - text: "8 GB/s"
+                correct: true
+              - text: "2 GB/s"
+              - text: "16 GB/s"
+          - prompt: "Can you install a PCIe 4.0 SSD in a PCIe 3.0 slot?"
+            choices:
+              - text: "No, they're incompatible"
+              - text: "Yes, but it will run at PCIe 3.0 speeds"
+                correct: true
+              - text: "Yes, at full PCIe 4.0 speeds"
+              - text: "Only on Tuesdays"
+          - prompt: "What component do PCIe lanes typically connect to?"
+            choices:
+              - text: "The power supply"
+              - text: "The CPU or chipset"
+                correct: true
+              - text: "The RAM"
+              - text: "The monitor"
+
+      - name: "form-factors"
+        description: "2.5\", M.2, U.2 physical formats"
+        prerequisites: ["sata-interface", "pcie-lanes"]
+        contents:
+          - "2.5\" is the traditional laptop HDD size, used for SATA SSDs"
+          - "M.2 is a small stick form factor that can use either SATA or NVMe over PCIe"
+          - "M.2 drives vary in length (2242, 2260, 2280, 22110) with the number indicating mm"
+          - "U.2 uses a 2.5\" form factor but with an SFF-8639 connector for NVMe over PCIe"
+          - "Different form factors offer different tradeoffs in size, compatibility, and performance"
+        questions:
+          - prompt: "What does M.2 2280 mean?"
+            choices:
+              - text: "2280 MB/s speed"
+              - text: "22mm wide, 80mm long"
+                correct: true
+              - text: "2.2 GB capacity"
+              - text: "Released in year 2280"
+          - prompt: "Which form factor can support both SATA and NVMe protocols?"
+            choices:
+              - text: "2.5\" only"
+              - text: "M.2"
+                correct: true
+              - text: "U.2"
+              - text: "None of them"
+          - prompt: "What is the main advantage of M.2 over 2.5\" form factor?"
+            choices:
+              - text: "Always faster"
+              - text: "Much smaller physical size, saving space"
+                correct: true
+              - text: "Always cheaper"
+              - text: "More durable"
+          - prompt: "A motherboard has an M.2 slot that only supports SATA. Can you install an NVMe M.2 drive?"
+            choices:
+              - text: "Yes, and it will work at full NVMe speeds"
+              - text: "It may physically fit but won't work (or will fall back to slower speeds if supported)"
+                correct: true
+              - text: "Yes, no issues at all"
+              - text: "M.2 only supports NVMe"
+          - prompt: "What connector does U.2 use?"
+            choices:
+              - text: "SATA connector"
+              - text: "SFF-8639 connector"
+                correct: true
+              - text: "USB connector"
+              - text: "HDMI connector"
+          - prompt: "A laptop has space for a 2.5\" drive. Which SSDs can physically fit?"
+            choices:
+              - text: "Only M.2"
+              - text: "2.5\" SATA SSDs and potentially U.2 with adapter"
+                correct: true
+              - text: "Only NVMe"
+              - text: "None, laptops can't use SSDs"
+          - prompt: "What determines whether an M.2 drive uses SATA or NVMe?"
+            choices:
+              - text: "The length of the drive"
+              - text: "The keying (notch position) and controller design"
+                correct: true
+              - text: "The color"
+              - text: "The brand"
+
+  - title: "SSD Performance Characteristics"
+    knowledge_points:
+      - name: "iops-throughput"
+        description: "Measuring random and sequential performance"
+        prerequisites: ["ssd-read-operation", "ssd-write-operation"]
+        contents:
+          - "IOPS (Input/Output Operations Per Second) measures random access performance"
+          - "Throughput (MB/s or GB/s) measures sequential data transfer rate"
+          - "SSDs excel at random IOPS compared to HDDs due to no mechanical seek"
+          - "Sequential throughput is limited by interface (SATA vs NVMe) and NAND channel count"
+          - "Real-world performance depends on workload: databases need IOPS, video editing needs throughput"
+        questions:
+          - prompt: "What does IOPS measure?"
+            choices:
+              - text: "Sequential transfer speed"
+              - text: "Random access operations per second"
+                correct: true
+              - text: "Storage capacity"
+              - text: "Power consumption"
+          - prompt: "A workload performs many small random reads (like a database). Which metric matters most?"
+            choices:
+              - text: "Sequential throughput (MB/s)"
+              - text: "Random read IOPS"
+                correct: true
+              - text: "Storage capacity"
+              - text: "Physical size"
+          - prompt: "Why do SSDs have much higher IOPS than HDDs?"
+            choices:
+              - text: "SSDs have more storage"
+              - text: "SSDs have no mechanical seek time, allowing instant access"
+                correct: true
+              - text: "SSDs are smaller"
+              - text: "SSDs use less power"
+          - prompt: "A video editor works with large sequential files. Which metric matters most?"
+            choices:
+              - text: "Random IOPS"
+              - text: "Sequential throughput (MB/s)"
+                correct: true
+              - text: "Erase count"
+              - text: "Number of queues"
+          - prompt: "An HDD might achieve 100-200 IOPS. What might a modern SSD achieve?"
+            choices:
+              - text: "Also 100-200 IOPS"
+              - text: "50,000 - 1,000,000+ IOPS"
+                correct: true
+              - text: "10-20 IOPS"
+              - text: "Exactly 1000 IOPS"
+          - prompt: "What primarily limits sequential throughput on an SSD?"
+            choices:
+              - text: "CPU speed"
+              - text: "Interface bandwidth (SATA/NVMe) and internal NAND channel parallelism"
+                correct: true
+              - text: "Room temperature"
+              - text: "Moon phase"
+          - prompt: "An SSD advertises 500,000 read IOPS. What type of access is this measuring?"
+            choices:
+              - text: "Sequential large files"
+              - text: "Random small block reads"
+                correct: true
+              - text: "Writes only"
+              - text: "Erase operations"
+
+      - name: "latency"
+        description: "Access time advantages over HDDs"
+        prerequisites: ["iops-throughput", "hdd-limitations"]
+        contents:
+          - "Latency is the time between requesting data and receiving it"
+          - "SSD latency is typically 10-100 microseconds vs 5-15 milliseconds for HDDs"
+          - "SSDs are roughly 100-1000x faster for random access latency"
+          - "Lower latency makes systems feel more responsive (faster boot, app launch)"
+          - "NVMe provides lower latency than SATA due to protocol efficiency"
+        questions:
+          - prompt: "Typical SSD latency is measured in what units?"
+            choices:
+              - text: "Seconds"
+              - text: "Microseconds"
+                correct: true
+              - text: "Hours"
+              - text: "Nanoseconds"
+          - prompt: "How does SSD latency compare to HDD latency?"
+            choices:
+              - text: "About the same"
+              - text: "SSDs are roughly 100-1000x faster"
+                correct: true
+              - text: "HDDs are faster"
+              - text: "SSDs are twice as fast"
+          - prompt: "Why do SSDs make computers feel more responsive when launching applications?"
+            choices:
+              - text: "They have more storage"
+              - text: "Much lower latency allows faster access to program files and data"
+                correct: true
+              - text: "They use less power"
+              - text: "They're quieter"
+          - prompt: "An HDD has 10ms latency and an SSD has 0.1ms (100 microseconds) latency. What is the speed difference?"
+            choices:
+              - text: "HDD is 10x faster"
+              - text: "SSD is 100x faster"
+                correct: true
+              - text: "They're equal"
+              - text: "SSD is 10x faster"
+          - prompt: "How does NVMe latency compare to SATA SSD latency?"
+            choices:
+              - text: "NVMe has much higher latency"
+              - text: "NVMe has lower latency due to protocol efficiency"
+                correct: true
+              - text: "Identical latency"
+              - text: "SATA is faster"
+          - prompt: "What causes the primary latency in an HDD?"
+            choices:
+              - text: "Electrical signal propagation"
+              - text: "Mechanical seek time and rotational delay"
+                correct: true
+              - text: "Data encryption"
+              - text: "Network transmission"
+          - prompt: "For a latency-sensitive application like high-frequency trading, what storage characteristic is most critical?"
+            choices:
+              - text: "Maximum capacity"
+              - text: "Minimum latency"
+                correct: true
+              - text: "Low cost per GB"
+              - text: "Physical durability"
+
+      - name: "performance-degradation"
+        description: "Why SSDs slow down when full"
+        prerequisites: ["garbage-collection", "over-provisioning"]
+        contents:
+          - "As an SSD fills up, fewer free blocks are available for new writes"
+          - "Garbage collection must run more frequently with less free space"
+          - "Write amplification increases when the drive is full, requiring more block erases"
+          - "Performance is most affected during sustained writes when the drive is >70-80% full"
+          - "Maintaining free space (or more over-provisioning) preserves performance"
+        questions:
+          - prompt: "Why does write performance decrease when an SSD is nearly full?"
+            choices:
+              - text: "The drive becomes heavier"
+              - text: "Less free space means garbage collection runs more often with higher write amplification"
+                correct: true
+              - text: "The NAND chips slow down physically"
+              - text: "The OS throttles full drives"
+          - prompt: "At what capacity percentage do SSDs typically start showing performance degradation?"
+            choices:
+              - text: "10-20%"
+              - text: "70-80%"
+                correct: true
+              - text: "40-50%"
+              - text: "95-100% only"
+          - prompt: "How can you restore performance to a degraded SSD?"
+            choices:
+              - text: "Heat it up"
+              - text: "Free up space, allowing more efficient garbage collection"
+                correct: true
+              - text: "Fill it completely"
+              - text: "Disconnect the power"
+          - prompt: "Why does a full SSD have higher write amplification?"
+            choices:
+              - text: "It doesn't, write amplification decreases"
+              - text: "Fewer free blocks means more valid data must be copied during garbage collection"
+                correct: true
+              - text: "Full drives use larger pages"
+              - text: "The controller becomes confused"
+          - prompt: "Does read performance degrade significantly when an SSD is full?"
+            choices:
+              - text: "Yes, as much as write performance"
+              - text: "Not significantly; the main issue is write performance degradation"
+                correct: true
+              - text: "Reads become impossible"
+              - text: "Only during full moons"
+          - prompt: "What role does over-provisioning play in performance degradation?"
+            choices:
+              - text: "More OP provides more free blocks, reducing performance degradation"
+                correct: true
+              - text: "OP makes degradation worse"
+              - text: "OP has no effect"
+              - text: "OP only affects capacity"
+          - prompt: "You have a 1 TB SSD. To maintain optimal performance, roughly how much should you keep free?"
+            choices:
+              - text: "0 GB, fill it completely"
+              - text: "20-30% (200-300 GB)"
+                correct: true
+              - text: "90% (900 GB)"
+              - text: "Exactly 1 GB"
+
+  - title: "SSD Reliability and Endurance"
+    knowledge_points:
+      - name: "program-erase-cycles"
+        description: "Limited write endurance of flash cells"
+        prerequisites: ["erase-operation"]
+        contents:
+          - "Each program/erase (P/E) cycle slightly degrades the insulating oxide layer"
+          - "SLC typically endures 50,000-100,000 P/E cycles; MLC ~3,000-10,000; TLC ~1,000-3,000; QLC ~1,000"
+          - "After exceeding rated cycles, cells may fail to reliably hold charge"
+          - "Wear leveling distributes P/E cycles across all blocks to maximize total lifespan"
+          - "Enterprise drives use SLC or MLC for higher endurance; consumer drives often use TLC/QLC"
+        questions:
+          - prompt: "What physically limits the number of times a flash cell can be erased?"
+            choices:
+              - text: "Nothing, flash lasts forever"
+              - text: "Degradation of the insulating oxide layer from repeated electron tunneling"
+                correct: true
+              - text: "The floating gate dissolves"
+              - text: "Regulatory limits"
+          - prompt: "Which cell type has the highest endurance?"
+            choices:
+              - text: "QLC"
+              - text: "SLC"
+                correct: true
+              - text: "TLC"
+              - text: "MLC"
+          - prompt: "A TLC drive is rated for 1,500 P/E cycles. What does this mean?"
+            choices:
+              - text: "The entire drive can be written 1,500 times"
+              - text: "Each block can typically withstand about 1,500 program/erase cycles"
+                correct: true
+              - text: "The drive lasts 1,500 days"
+              - text: "You can save 1,500 files"
+          - prompt: "Why is SLC preferred for write-intensive enterprise applications?"
+            choices:
+              - text: "It's cheaper"
+              - text: "Much higher P/E cycle endurance (50,000-100,000 vs ~1,000 for QLC)"
+                correct: true
+              - text: "It has more capacity"
+              - text: "It's faster for reads only"
+          - prompt: "What happens to a flash cell after it exceeds its rated P/E cycles?"
+            choices:
+              - text: "It explodes"
+              - text: "It may fail to reliably retain charge, leading to data errors"
+                correct: true
+              - text: "It becomes faster"
+              - text: "Nothing, ratings are arbitrary"
+          - prompt: "An MLC drive has 3,000 P/E cycle endurance and 256 GB capacity. Without wear leveling, what would happen?"
+            choices:
+              - text: "All blocks wear evenly"
+              - text: "Frequently written blocks would fail early while others are barely used"
+                correct: true
+              - text: "The drive lasts forever"
+              - text: "Performance improves over time"
+          - prompt: "How does multi-level cell technology (MLC, TLC, QLC) affect endurance?"
+            choices:
+              - text: "More bits per cell decreases endurance"
+                correct: true
+              - text: "More bits per cell increases endurance"
+              - text: "No relationship"
+              - text: "Only affects read speed"
+
+      - name: "tbw-dwpd"
+        description: "Measuring SSD endurance ratings"
+        prerequisites: ["program-erase-cycles", "wear-leveling"]
+        contents:
+          - "TBW (Terabytes Written) is the total amount of data that can be written before wearing out"
+          - "DWPD (Drive Writes Per Day) is how many times you can write the full capacity daily for the warranty period"
+          - "A 1 TB drive with 600 TBW and 5-year warranty = 0.33 DWPD (328 GB/day on average)"
+          - "Higher TBW/DWPD indicates more durable drives for write-heavy workloads"
+          - "Actual lifespan often exceeds rated endurance, but ratings provide warranty coverage"
+        questions:
+          - prompt: "What does TBW measure?"
+            choices:
+              - text: "Transfer Bandwidth Width"
+              - text: "Total Terabytes that can be Written over the drive's lifetime"
+                correct: true
+              - text: "Time Before Warning"
+              - text: "Temperature Below Warning"
+          - prompt: "A drive is rated for 600 TBW. What does this mean?"
+            choices:
+              - text: "It can store 600 TB"
+              - text: "You can write approximately 600 TB total before expected wear-out"
+                correct: true
+              - text: "It lasts 600 days"
+              - text: "It costs $600"
+          - prompt: "A 500 GB drive has 1 DWPD rating for 5 years. How much can you write daily on average?"
+            choices:
+              - text: "1 TB"
+              - text: "500 GB"
+                correct: true
+              - text: "100 GB"
+              - text: "5 GB"
+          - prompt: "How do you calculate TBW from DWPD?"
+            choices:
+              - text: "Multiply DWPD by the warranty period and drive capacity"
+                correct: true
+              - text: "Divide DWPD by capacity"
+              - text: "Add DWPD and capacity"
+              - text: "They're unrelated"
+          - prompt: "You write 100 GB/day to a drive rated for 300 TBW. Approximately how many years will it last?"
+            choices:
+              - text: "3 years"
+              - text: "About 8 years"
+                correct: true
+              - text: "1 year"
+              - text: "300 years"
+          - prompt: "Why might actual drive lifespan exceed the TBW rating?"
+            choices:
+              - text: "Manufacturers rate conservatively for warranty purposes"
+                correct: true
+              - text: "TBW ratings are always wrong"
+              - text: "Drives improve with age"
+              - text: "It never exceeds the rating"
+          - prompt: "Which drive is more suitable for a write-intensive database server?"
+            choices:
+              - text: "Consumer drive: 1 TB, 200 TBW, 0.1 DWPD"
+              - text: "Enterprise drive: 1 TB, 5000 TBW, 3 DWPD"
+                correct: true
+              - text: "Both are equally suitable"
+              - text: "Neither, use an HDD"
+
+      - name: "data-retention"
+        description: "How long SSDs hold data without power"
+        prerequisites: ["floating-gate-transistor"]
+        contents:
+          - "Flash memory retains data by trapping electrons on the floating gate"
+          - "Over time (months to years), trapped electrons can leak away even without power"
+          - "Data retention depends on: number of P/E cycles endured, storage temperature, and NAND type"
+          - "New SSDs can retain data for years; worn SSDs may retain data for only months when unpowered"
+          - "Higher temperatures accelerate charge leakage and reduce retention time"
+        questions:
+          - prompt: "How does flash memory retain data without power?"
+            choices:
+              - text: "Using magnetic fields"
+              - text: "Trapped electrons on electrically isolated floating gates"
+                correct: true
+              - text: "Battery backup"
+              - text: "Mechanical switches"
+          - prompt: "What happens to data retention as an SSD ages and accumulates P/E cycles?"
+            choices:
+              - text: "Retention improves"
+              - text: "Retention degrades; worn drives may only retain data for months unpowered"
+                correct: true
+              - text: "No change"
+              - text: "Data becomes permanent"
+          - prompt: "How does temperature affect data retention in unpowered SSDs?"
+            choices:
+              - text: "Temperature has no effect"
+              - text: "Higher temperatures accelerate charge leakage, reducing retention time"
+                correct: true
+              - text: "Lower temperatures reduce retention"
+              - text: "Only affects powered drives"
+          - prompt: "You plan to archive data on an SSD and store it unpowered for 5 years. What should you consider?"
+            choices:
+              - text: "Nothing, all SSDs retain data forever"
+              - text: "Use a newer drive with low wear and cool storage; check retention specs"
+                correct: true
+              - text: "SSDs are perfect for this with no concerns"
+              - text: "Use a heavily worn drive"
+          - prompt: "A heavily used SSD is unpowered and stored at high temperature. What is the risk?"
+            choices:
+              - text: "No risk"
+              - text: "Data may be lost within months due to charge leakage"
+                correct: true
+              - text: "Data becomes more secure"
+              - text: "The SSD becomes faster"
+          - prompt: "How does flash data retention compare to magnetic tape or HDD for long-term archival?"
+            choices:
+              - text: "Flash is always superior"
+              - text: "Flash may have shorter retention when unpowered, especially for worn drives"
+                correct: true
+              - text: "Magnetic media loses data instantly"
+              - text: "They're identical"
+          - prompt: "What is typical data retention for a new, unused SSD stored unpowered at room temperature?"
+            choices:
+              - text: "Days"
+              - text: "Years"
+                correct: true
+              - text: "Hours"
+              - text: "Decades guaranteed"
+
+      - name: "error-correction"
+        description: "ECC protecting data integrity"
+        prerequisites: ["ssd-controller"]
+        contents:
+          - "ECC (Error Correcting Code) adds redundant data to detect and correct bit errors"
+          - "The SSD controller implements ECC algorithms (BCH, LDPC) in hardware"
+          - "ECC can correct multiple bit errors per page, depending on strength"
+          - "As NAND wears or charge leaks, ECC compensates to maintain data integrity"
+          - "If errors exceed ECC capability, data becomes unrecoverable"
+        questions:
+          - prompt: "What is the purpose of ECC in SSDs?"
+            choices:
+              - text: "To encrypt data"
+              - text: "To detect and correct bit errors in stored data"
+                correct: true
+              - text: "To compress data"
+              - text: "To speed up writes"
+          - prompt: "Where is ECC implemented in an SSD?"
+            choices:
+              - text: "In the operating system"
+              - text: "In the SSD controller hardware/firmware"
+                correct: true
+              - text: "In the NAND chips themselves"
+              - text: "In the CPU"
+          - prompt: "Data is read from worn NAND and has 3 bit errors. ECC can correct up to 5 errors per page. What happens?"
+            choices:
+              - text: "Data is returned as corrupted"
+              - text: "ECC corrects the errors and returns correct data"
+                correct: true
+              - text: "The drive fails immediately"
+              - text: "The OS crashes"
+          - prompt: "Why is ECC increasingly important as NAND technology advances (more bits per cell)?"
+            choices:
+              - text: "Higher density cells have higher error rates"
+                correct: true
+              - text: "ECC makes drives cheaper"
+              - text: "It's not important"
+              - text: "Regulatory requirements"
+          - prompt: "What happens if the number of bit errors exceeds ECC's correction capability?"
+            choices:
+              - text: "ECC makes a best guess"
+              - text: "Data becomes unrecoverable and an error is reported"
+                correct: true
+              - text: "The drive self-destructs"
+              - text: "Errors are ignored"
+          - prompt: "How does ECC work at a high level?"
+            choices:
+              - text: "It deletes corrupted data"
+              - text: "It uses mathematical redundancy to reconstruct correct data from partial information"
+                correct: true
+              - text: "It asks the user for the correct data"
+              - text: "It prevents errors from ever occurring"
+          - prompt: "As an SSD ages and wears, what role does ECC play?"
+            choices:
+              - text: "ECC becomes less effective"
+              - text: "ECC compensates for increasing error rates to maintain data integrity"
+                correct: true
+              - text: "ECC is disabled to improve performance"
+              - text: "ECC has no role in aging"

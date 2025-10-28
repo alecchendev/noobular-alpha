@@ -1,0 +1,1586 @@
+title: "How Plastic is Made: From Chemistry to Manufacturing"
+
+lessons:
+  - title: "Introduction to Atoms and Elements"
+    knowledge_points:
+      - name: "atoms-basics"
+        description: "Understanding atoms as the building blocks of matter"
+        prerequisites: []
+        contents:
+          - "Atoms are the smallest units of matter that retain the properties of an element"
+          - "Atoms consist of a nucleus (containing protons and neutrons) and electrons orbiting around it"
+          - "The number of protons determines what element an atom is"
+          - "Atoms can bond together to form molecules"
+        questions:
+          - prompt: "If an atom has 6 protons, 6 neutrons, and 6 electrons, what happens to its identity as an element if it loses 2 neutrons?"
+            choices:
+              - text: "It becomes a different element"
+              - text: "It remains the same element"
+                correct: true
+              - text: "It becomes a molecule"
+              - text: "It can no longer form bonds"
+            explanation: "The element identity is determined solely by the number of protons. Losing neutrons creates a different isotope of the same element, but doesn't change which element it is."
+          - prompt: "Two atoms each have 8 protons but one has 8 neutrons and the other has 10 neutrons. How are these atoms related?"
+            choices:
+              - text: "They are different elements"
+              - text: "They are isotopes of the same element"
+                correct: true
+              - text: "They are the same atom in every way"
+              - text: "They cannot bond with other atoms"
+            explanation: "Since both have 8 protons, they are both oxygen atoms. The different neutron counts make them different isotopes of oxygen."
+          - prompt: "What determines an atom's ability to bond with other atoms?"
+            choices:
+              - text: "The number of neutrons"
+              - text: "The number of electrons, especially in the outer shell"
+                correct: true
+              - text: "The size of the nucleus"
+              - text: "The total mass of the atom"
+            explanation: "Electrons, particularly those in the outermost shell (valence electrons), determine how atoms bond with each other."
+          - prompt: "If an atom gains 2 electrons, what happens to its overall charge?"
+            choices:
+              - text: "It becomes positively charged"
+              - text: "It remains neutral"
+              - text: "It becomes negatively charged"
+                correct: true
+              - text: "It becomes a different element"
+            explanation: "Electrons carry negative charge. Gaining electrons makes the atom negatively charged overall, creating an ion."
+          - prompt: "Which part of an atom takes up most of its volume?"
+            choices:
+              - text: "The nucleus"
+              - text: "The protons"
+              - text: "The electron cloud"
+                correct: true
+              - text: "The neutrons"
+            explanation: "Although the nucleus contains most of the mass, the electron cloud (the space where electrons orbit) takes up most of the atom's volume."
+          - prompt: "An atom with 17 protons needs how many electrons to be electrically neutral?"
+            choices:
+              - text: "8 electrons"
+              - text: "17 electrons"
+                correct: true
+              - text: "34 electrons"
+              - text: "Any number of electrons"
+            explanation: "For an atom to be neutral, the number of negatively charged electrons must equal the number of positively charged protons."
+          - prompt: "What is formed when two or more atoms bond together?"
+            choices:
+              - text: "An element"
+              - text: "A molecule"
+                correct: true
+              - text: "A proton"
+              - text: "An isotope"
+            explanation: "A molecule is formed when two or more atoms chemically bond together. These atoms can be of the same element or different elements."
+          - prompt: "Which subatomic particle has negligible mass compared to protons and neutrons?"
+            choices:
+              - text: "Electrons"
+                correct: true
+              - text: "Quarks"
+              - text: "Protons and electrons have equal mass"
+              - text: "All subatomic particles have equal mass"
+            explanation: "Electrons have approximately 1/1836th the mass of a proton or neutron, making their mass negligible when calculating atomic mass."
+
+      - name: "carbon-element"
+        description: "Understanding carbon as the key element in plastics"
+        prerequisites: ["atoms-basics"]
+        contents:
+          - "Carbon has 6 protons and typically 4 valence electrons in its outer shell"
+          - "Carbon's 4 valence electrons allow it to form up to 4 bonds with other atoms"
+          - "Carbon can bond with other carbon atoms to form chains and rings"
+          - "This ability to form long chains makes carbon essential for plastics"
+        questions:
+          - prompt: "Why can carbon form 4 bonds with other atoms?"
+            choices:
+              - text: "It has 4 protons"
+              - text: "It has 4 valence electrons"
+                correct: true
+              - text: "It has 4 neutrons"
+              - text: "It has 4 isotopes"
+            explanation: "Carbon has 4 electrons in its outer shell (valence electrons), and each can be shared with another atom to form a bond."
+          - prompt: "If a carbon atom forms bonds with 4 hydrogen atoms, how many valence electrons does the carbon atom still have available for additional bonds?"
+            choices:
+              - text: "4 electrons"
+              - text: "2 electrons"
+              - text: "1 electron"
+              - text: "0 electrons"
+                correct: true
+            explanation: "Carbon has only 4 valence electrons total. If all 4 are used in bonds with hydrogen atoms, no valence electrons remain available for additional bonds."
+          - prompt: "What property of carbon makes it ideal for forming the long molecules found in plastics?"
+            choices:
+              - text: "Its ability to bond with oxygen"
+              - text: "Its ability to form chains with other carbon atoms"
+                correct: true
+              - text: "Its radioactive properties"
+              - text: "Its high atomic mass"
+            explanation: "Carbon atoms can bond with each other repeatedly to form long chains, which is the fundamental structure of plastic polymers."
+          - prompt: "A carbon atom bonds with two other carbon atoms using single bonds. How many bonds can it still form with other atoms?"
+            choices:
+              - text: "0 bonds"
+              - text: "1 bond"
+              - text: "2 bonds"
+                correct: true
+              - text: "4 bonds"
+            explanation: "Carbon can form 4 bonds total. If 2 bonds are used with other carbon atoms, 2 bonds remain available for bonding with other atoms."
+          - prompt: "What distinguishes carbon from elements like helium or neon in terms of bonding?"
+            choices:
+              - text: "Carbon has incomplete outer electron shell, while helium and neon have complete outer shells"
+                correct: true
+              - text: "Carbon has more protons"
+              - text: "Carbon is heavier"
+              - text: "Carbon is radioactive"
+            explanation: "Helium and neon are noble gases with complete outer electron shells, making them unreactive. Carbon's incomplete outer shell (4 out of 8 electrons) drives it to form bonds."
+          - prompt: "If carbon could only bond with one other atom at a time, how would this affect plastic formation?"
+            choices:
+              - text: "Plastics would be exactly the same"
+              - text: "Long chain molecules necessary for plastics could not form"
+                correct: true
+              - text: "Plastics would be stronger"
+              - text: "Plastics would be more flexible"
+            explanation: "The ability of carbon to form multiple bonds simultaneously is essential for creating the long chain structures that give plastics their properties."
+          - prompt: "Carbon can form double bonds with another carbon atom. If it forms a double bond with one carbon atom, how many additional bonds can it form?"
+            choices:
+              - text: "4 bonds"
+              - text: "3 bonds"
+              - text: "2 bonds"
+                correct: true
+              - text: "0 bonds"
+            explanation: "A double bond uses 2 of carbon's 4 bonding sites. This leaves 2 bonding sites available for additional bonds."
+          - prompt: "Why is carbon more suitable for forming plastics than an element like nitrogen, which has 5 valence electrons?"
+            choices:
+              - text: "Carbon is more abundant"
+              - text: "Carbon's 4 bonding sites allow for more stable and varied chain structures"
+                correct: true
+              - text: "Nitrogen is too reactive"
+              - text: "Carbon is less expensive"
+            explanation: "Carbon's 4 valence electrons create symmetrical bonding possibilities that allow for stable, extended chain structures essential for polymers."
+
+  - title: "Chemical Bonds and Molecules"
+    knowledge_points:
+      - name: "covalent-bonds"
+        description: "Understanding how atoms share electrons to form covalent bonds"
+        prerequisites: ["atoms-basics"]
+        contents:
+          - "Covalent bonds form when atoms share pairs of electrons"
+          - "Each shared pair of electrons counts as one covalent bond"
+          - "Atoms form bonds to achieve more stable electron configurations"
+          - "Multiple atoms can bond together to form molecules with specific shapes and properties"
+        questions:
+          - prompt: "Two hydrogen atoms each have 1 electron. When they form H₂, how many electrons does each hydrogen atom effectively have access to?"
+            choices:
+              - text: "1 electron"
+              - text: "2 electrons"
+                correct: true
+              - text: "3 electrons"
+              - text: "4 electrons"
+            explanation: "When the two hydrogen atoms share their electrons in a covalent bond, each hydrogen effectively has access to both electrons, giving each access to 2 electrons total."
+          - prompt: "What is the main reason atoms form covalent bonds?"
+            choices:
+              - text: "To increase their mass"
+              - text: "To achieve more stable electron configurations"
+                correct: true
+              - text: "To increase the number of protons"
+              - text: "To become radioactive"
+            explanation: "Atoms form bonds to achieve stable electron configurations, often filling or completing their outer electron shells."
+          - prompt: "If an oxygen atom (6 valence electrons) forms covalent bonds with two hydrogen atoms (1 valence electron each), how many valence electrons does oxygen effectively have?"
+            choices:
+              - text: "6 electrons"
+              - text: "7 electrons"
+              - text: "8 electrons"
+                correct: true
+              - text: "10 electrons"
+            explanation: "Oxygen shares its 6 valence electrons plus gains access to 2 electrons from the hydrogen atoms (1 from each), giving it effective access to 8 valence electrons."
+          - prompt: "A carbon atom forms single bonds with four hydrogen atoms. How many pairs of electrons are being shared in total?"
+            choices:
+              - text: "2 pairs"
+              - text: "4 pairs"
+                correct: true
+              - text: "8 pairs"
+              - text: "1 pair"
+            explanation: "Each single bond involves one pair of shared electrons. Four single bonds means four pairs of electrons are shared."
+          - prompt: "What differentiates a double bond from a single bond between two carbon atoms?"
+            choices:
+              - text: "Double bonds are twice as long"
+              - text: "Double bonds involve two pairs of shared electrons instead of one"
+                correct: true
+              - text: "Double bonds involve ions"
+              - text: "Double bonds only occur in plastics"
+            explanation: "A double bond involves two pairs of shared electrons (4 electrons total), while a single bond involves one pair (2 electrons)."
+          - prompt: "If atom A shares 3 pairs of electrons with atom B, what type of bond exists between them?"
+            choices:
+              - text: "Single bond"
+              - text: "Double bond"
+              - text: "Triple bond"
+                correct: true
+              - text: "Ionic bond"
+            explanation: "Three pairs of shared electrons constitute a triple bond."
+          - prompt: "In a molecule of methane (CH₄), the carbon atom forms four single bonds with hydrogen atoms. How many total electrons are involved in bonding?"
+            choices:
+              - text: "4 electrons"
+              - text: "8 electrons"
+                correct: true
+              - text: "12 electrons"
+              - text: "16 electrons"
+            explanation: "Each single bond involves 2 electrons (1 pair). With 4 bonds, that's 4 × 2 = 8 electrons involved in bonding."
+          - prompt: "Why do covalent bonds result in the formation of distinct molecules rather than extended networks like metals?"
+            choices:
+              - text: "Covalent bonds are weaker"
+              - text: "Electrons are shared between specific pairs of atoms, creating discrete molecular units"
+                correct: true
+              - text: "Covalent bonds only occur in gases"
+              - text: "Metals don't have electrons"
+            explanation: "In covalent bonding, electrons are shared between specific atoms, creating distinct molecules. In metals, electrons are delocalized across many atoms."
+
+      - name: "hydrocarbons"
+        description: "Understanding molecules made of hydrogen and carbon"
+        prerequisites: ["carbon-element", "covalent-bonds"]
+        contents:
+          - "Hydrocarbons are molecules composed only of hydrogen and carbon atoms"
+          - "Hydrogen atoms have 1 valence electron and form 1 bond each"
+          - "In hydrocarbons, carbon atoms bond with each other and with hydrogen atoms"
+          - "The simplest hydrocarbon is methane (CH₄), with one carbon and four hydrogens"
+        questions:
+          - prompt: "In ethane (C₂H₆), the two carbon atoms are bonded to each other. How many hydrogen atoms must be bonded to each carbon atom?"
+            choices:
+              - text: "2 hydrogen atoms"
+              - text: "3 hydrogen atoms"
+                correct: true
+              - text: "4 hydrogen atoms"
+              - text: "6 hydrogen atoms"
+            explanation: "Each carbon forms 4 bonds total. One bond connects to the other carbon, leaving 3 bonds for hydrogen atoms. So each carbon bonds with 3 hydrogens."
+          - prompt: "Why can't a hydrogen atom be in the middle of a carbon chain in a hydrocarbon?"
+            choices:
+              - text: "Hydrogen is too light"
+              - text: "Hydrogen can only form 1 bond, so it cannot connect two other atoms"
+                correct: true
+              - text: "Hydrogen is too reactive"
+              - text: "Hydrogen repels carbon"
+            explanation: "Hydrogen has only 1 valence electron and can form only 1 bond. To be in the middle of a chain, an atom needs to form at least 2 bonds."
+          - prompt: "A straight chain hydrocarbon has 5 carbon atoms in a row, each connected by single bonds. How many hydrogen atoms are needed to satisfy all bonding requirements?"
+            choices:
+              - text: "10 hydrogens"
+              - text: "11 hydrogens"
+              - text: "12 hydrogens"
+                correct: true
+              - text: "20 hydrogens"
+            explanation: "The 2 end carbons each need 3 hydrogens (1 bond to carbon, 3 to hydrogen). The 3 middle carbons each need 2 hydrogens (2 bonds to carbons, 2 to hydrogens). Total: 3+2+2+2+3 = 12 hydrogens."
+          - prompt: "If a hydrocarbon has the formula C₃H₈, what is the structure most likely to be?"
+            choices:
+              - text: "Three carbon atoms in a ring with 8 hydrogens"
+              - text: "Three carbon atoms in a chain with 8 hydrogens"
+                correct: true
+              - text: "Three separate carbon atoms, each bonded only to hydrogens"
+              - text: "This formula is impossible"
+            explanation: "For three carbons in a chain: the 2 end carbons each bond with 3 hydrogens, and the middle carbon bonds with 2 hydrogens (2+3+3 = 8). This satisfies the formula C₃H₈ (propane)."
+          - prompt: "What happens to the number of hydrogen atoms needed as carbon chains get longer in straight-chain hydrocarbons?"
+            choices:
+              - text: "The number of hydrogens stays the same"
+              - text: "The number of hydrogens increases"
+                correct: true
+              - text: "The number of hydrogens decreases"
+              - text: "The relationship is random"
+            explanation: "Each additional carbon in the middle of a chain needs 2 hydrogens. Longer chains require more hydrogens to satisfy carbon's bonding requirements."
+          - prompt: "In the hydrocarbon C₄H₁₀, if all carbon-carbon bonds are single bonds, what can you determine about the structure?"
+            choices:
+              - text: "It must be a ring"
+              - text: "It must be a branched or straight chain"
+                correct: true
+              - text: "It must have a double bond"
+              - text: "The structure cannot be determined"
+            explanation: "C₄H₁₀ follows the formula for alkanes (CₙH₂ₙ₊₂) with only single bonds. This indicates a saturated hydrocarbon that must be either a straight chain (butane) or branched chain (isobutane)."
+          - prompt: "Why do hydrocarbons only contain C-C, C-H, and no O, N, or other elements?"
+            choices:
+              - text: "By definition, hydrocarbons contain only hydrogen and carbon"
+                correct: true
+              - text: "Oxygen and nitrogen cannot bond with carbon"
+              - text: "Hydrocarbons are too unstable to contain other elements"
+              - text: "Other elements are too expensive"
+            explanation: "The term 'hydrocarbon' specifically refers to compounds containing only hydrogen and carbon atoms. Compounds with other elements are not classified as hydrocarbons."
+          - prompt: "If you replace one hydrogen atom in methane (CH₄) with a carbon atom that brings its own three hydrogen atoms, what compound do you create?"
+            choices:
+              - text: "Propane (C₃H₈)"
+              - text: "Ethane (C₂H₆)"
+                correct: true
+              - text: "Butane (C₄H₁₀)"
+              - text: "Methane (CH₄)"
+            explanation: "Removing 1 H from CH₄ leaves CH₃. Adding a carbon with 3 hydrogens (also CH₃) creates C₂H₆, which is ethane."
+
+  - title: "Introduction to Polymers"
+    knowledge_points:
+      - name: "monomers-polymers"
+        description: "Understanding how small molecules combine to form large chain molecules"
+        prerequisites: ["hydrocarbons"]
+        contents:
+          - "A monomer is a small molecule that can bond with other monomers"
+          - "A polymer is a large molecule made of many monomers bonded together in a chain"
+          - "The process of combining monomers into polymers is called polymerization"
+          - "Polymers can contain hundreds or thousands of monomer units"
+        questions:
+          - prompt: "If a polymer is made from 500 identical monomer units, and each monomer has a molecular weight of 28, what is the approximate molecular weight of the polymer?"
+            choices:
+              - text: "28"
+              - text: "528"
+              - text: "14,000"
+                correct: true
+              - text: "500"
+            explanation: "The polymer's molecular weight is approximately the monomer weight multiplied by the number of monomers: 28 × 500 = 14,000."
+          - prompt: "What is the key structural feature that allows a molecule to act as a monomer?"
+            choices:
+              - text: "It must be a gas"
+              - text: "It must have sites where it can form bonds with other similar molecules"
+                correct: true
+              - text: "It must contain oxygen"
+              - text: "It must be radioactive"
+            explanation: "For a molecule to be a monomer, it must have reactive sites (such as double bonds or functional groups) that allow it to bond with other monomers during polymerization."
+          - prompt: "If a monomer chain grows by adding one monomer per second, how many monomers would be in the chain after 10 minutes?"
+            choices:
+              - text: "10 monomers"
+              - text: "60 monomers"
+              - text: "600 monomers"
+                correct: true
+              - text: "6,000 monomers"
+            explanation: "10 minutes = 600 seconds. At 1 monomer per second, that's 600 monomers."
+          - prompt: "Two different polymers are made from the same monomer but one has 100 monomer units and the other has 1000 units. How do their properties likely differ?"
+            choices:
+              - text: "They are identical"
+              - text: "The longer polymer likely has different physical properties like strength and melting point"
+                correct: true
+              - text: "The shorter polymer is always stronger"
+              - text: "The length doesn't affect properties"
+            explanation: "Polymer chain length significantly affects physical properties. Longer chains generally create stronger materials with higher melting points due to more intermolecular interactions."
+          - prompt: "What distinguishes a polymer from a simple molecule with just 2-3 monomer units bonded together?"
+            choices:
+              - text: "Nothing, they are the same"
+              - text: "Polymers contain many repeating monomer units (typically hundreds or thousands)"
+                correct: true
+              - text: "Polymers only contain carbon"
+              - text: "Polymers are always synthetic"
+            explanation: "While there's no strict cutoff, polymers are characterized by having many repeating units, creating large macromolecules with distinct properties from small molecules."
+          - prompt: "If polymerization is stopped early, what is the result?"
+            choices:
+              - text: "No polymer forms at all"
+              - text: "Shorter polymer chains than if polymerization had continued"
+                correct: true
+              - text: "The polymer is identical to a longer polymerization"
+              - text: "The monomers become unreactive"
+            explanation: "Stopping polymerization early results in shorter polymer chains. The length of polymer chains affects the material's properties."
+          - prompt: "Why do polymers have different properties than their monomers?"
+            choices:
+              - text: "Polymers contain different atoms"
+              - text: "The large size and chain structure of polymers creates different physical and chemical properties"
+                correct: true
+              - text: "Polymers are always solid while monomers are always liquid"
+              - text: "Monomers are more stable"
+            explanation: "The large molecular size, chain structure, and interactions between polymer chains create properties very different from the small monomer molecules, even though they have similar chemical composition."
+          - prompt: "A polymer sample contains chains of varying lengths: some with 100 units, some with 500, and some with 1000. What is this variation called?"
+            choices:
+              - text: "Polymerization"
+              - text: "Polydispersity or molecular weight distribution"
+                correct: true
+              - text: "Monomerization"
+              - text: "This cannot occur"
+            explanation: "Real polymer samples typically contain chains of varying lengths. This distribution of molecular weights is called polydispersity or molecular weight distribution."
+
+      - name: "ethylene-monomer"
+        description: "Understanding ethylene as the key monomer for common plastics"
+        prerequisites: ["hydrocarbons", "monomers-polymers"]
+        contents:
+          - "Ethylene (C₂H₄) is a hydrocarbon with two carbon atoms connected by a double bond"
+          - "Each carbon in ethylene is bonded to two hydrogen atoms"
+          - "The double bond in ethylene makes it reactive and able to act as a monomer"
+          - "Ethylene is the monomer used to make polyethylene, the most common plastic"
+        questions:
+          - prompt: "In ethylene (C₂H₄), how many bonds does each carbon atom form in total?"
+            choices:
+              - text: "2 bonds"
+              - text: "3 bonds"
+              - text: "4 bonds"
+                correct: true
+              - text: "5 bonds"
+            explanation: "Each carbon forms 4 bonds: 2 bonds to the other carbon (the double bond) and 2 bonds to hydrogen atoms."
+          - prompt: "What makes ethylene more reactive than ethane (C₂H₆) for polymerization?"
+            choices:
+              - text: "Ethylene has fewer hydrogen atoms"
+              - text: "The carbon-carbon double bond in ethylene can be opened to form new bonds"
+                correct: true
+              - text: "Ethylene is larger"
+              - text: "Ethylene contains oxygen"
+            explanation: "The double bond in ethylene can be broken open, allowing each carbon to form a new single bond with other molecules. Ethane's single bond is more stable and less reactive."
+          - prompt: "When one bond of the double bond in ethylene breaks during polymerization, what happens to each carbon atom?"
+            choices:
+              - text: "They can no longer bond with anything"
+              - text: "Each carbon has one bonding site available to connect with another molecule"
+                correct: true
+              - text: "They form triple bonds"
+              - text: "They lose electrons"
+            explanation: "Breaking one bond from the double bond (while keeping the other) leaves each carbon with one available bonding site, which can form a bond with another monomer."
+          - prompt: "If 1000 ethylene molecules polymerize completely into one chain, how many carbon atoms are in the resulting polymer?"
+            choices:
+              - text: "1000 carbon atoms"
+              - text: "2000 carbon atoms"
+                correct: true
+              - text: "500 carbon atoms"
+              - text: "4000 carbon atoms"
+            explanation: "Each ethylene molecule contains 2 carbon atoms. 1000 molecules × 2 carbons = 2000 carbon atoms in the polymer."
+          - prompt: "In the polymer chain formed from ethylene, what happens to the double bonds from the original monomers?"
+            choices:
+              - text: "They remain as double bonds"
+              - text: "They become single bonds connecting the monomers together"
+                correct: true
+              - text: "They become triple bonds"
+              - text: "They disappear completely"
+            explanation: "During polymerization, the double bonds open up to form single bonds that connect one monomer to the next in the chain."
+          - prompt: "Why is ethylene typically stored and transported as a gas or under pressure?"
+            choices:
+              - text: "It is highly reactive and has a low boiling point"
+                correct: true
+              - text: "It is safer as a gas"
+              - text: "It is more expensive as a liquid"
+              - text: "It only exists as a gas"
+            explanation: "Ethylene has a boiling point of -104°C, making it a gas at room temperature. Its reactivity (due to the double bond) also requires careful handling and often pressurized storage."
+          - prompt: "If ethylene's formula is C₂H₄ and polyethylene is made from n ethylene units, what is the general formula for polyethylene?"
+            choices:
+              - text: "(C₂H₄)ₙ"
+              - text: "C₂ₙH₄ₙ"
+              - text: "Both above formulas are correct"
+                correct: true
+              - text: "CₙH₂ₙ"
+            explanation: "Both (C₂H₄)ₙ and C₂ₙH₄ₙ represent the same thing: n ethylene units bonded together. The first shows the repeating unit, the second shows the total atoms."
+          - prompt: "How does the structure of polyethylene differ from a mixture of separate ethylene molecules?"
+            choices:
+              - text: "They are identical"
+              - text: "In polyethylene, the monomers are covalently bonded into long chains, not separate molecules"
+                correct: true
+              - text: "Polyethylene has oxygen atoms"
+              - text: "Polyethylene has fewer atoms"
+            explanation: "Polyethylene consists of long chains where monomers are covalently bonded together, while a mixture would be separate, unreacted ethylene molecules. This creates vastly different properties."
+
+  - title: "Crude Oil and Fossil Fuels"
+    knowledge_points:
+      - name: "crude-oil-formation"
+        description: "Understanding what crude oil is and where it comes from"
+        prerequisites: ["hydrocarbons"]
+        contents:
+          - "Crude oil (petroleum) is a fossil fuel formed from ancient marine organisms"
+          - "Over millions of years, heat and pressure transformed organic matter into crude oil"
+          - "Crude oil is a complex mixture of many different hydrocarbons"
+          - "Crude oil is found in underground reservoirs and must be extracted by drilling"
+        questions:
+          - prompt: "What is the origin of the carbon atoms found in crude oil?"
+            choices:
+              - text: "They were formed by heat and pressure underground"
+              - text: "They came from living organisms millions of years ago"
+                correct: true
+              - text: "They came from rocks and minerals"
+              - text: "They were created during volcanic eruptions"
+            explanation: "The carbon in crude oil originally came from ancient marine organisms. When these organisms died, their carbon-containing bodies were buried and transformed into oil over millions of years."
+          - prompt: "Why is crude oil called a 'fossil fuel'?"
+            choices:
+              - text: "It contains fossils"
+              - text: "It is formed from the remains of ancient organisms"
+                correct: true
+              - text: "It is found near fossils"
+              - text: "It is as old as fossils"
+            explanation: "Fossil fuels are called this because they are formed from fossilized organic matter—the remains of organisms that lived millions of years ago."
+          - prompt: "If crude oil formation requires millions of years, what does this imply about crude oil as a resource?"
+            choices:
+              - text: "It is renewable on human timescales"
+              - text: "It is non-renewable on human timescales"
+                correct: true
+              - text: "It can be created in laboratories quickly"
+              - text: "It regenerates every year"
+            explanation: "Since crude oil takes millions of years to form, it cannot be renewed within human lifetimes or even within civilizational timescales, making it a non-renewable resource."
+          - prompt: "Crude oil is described as a mixture. What does this mean?"
+            choices:
+              - text: "It contains only one type of molecule"
+              - text: "It contains many different hydrocarbon molecules that are not chemically bonded to each other"
+                correct: true
+              - text: "All molecules are chemically bonded together"
+              - text: "It is a pure substance"
+            explanation: "A mixture contains different substances that are physically combined but not chemically bonded. Crude oil contains hundreds of different hydrocarbon molecules mixed together."
+          - prompt: "The transformation of organic matter into crude oil required specific conditions. Which factor was NOT essential?"
+            choices:
+              - text: "Heat"
+              - text: "Pressure"
+              - text: "Time (millions of years)"
+              - text: "Exposure to air"
+                correct: true
+            explanation: "Heat, pressure, and time were essential for crude oil formation. However, the organic matter needed to be buried in an oxygen-free environment—exposure to air would have caused decomposition instead."
+          - prompt: "If we extract and use crude oil faster than it forms, what will eventually happen?"
+            choices:
+              - text: "New oil will form at the same rate"
+              - text: "Existing reserves will become depleted"
+                correct: true
+              - text: "More oil will form faster"
+              - text: "Oil quality will improve"
+            explanation: "Since crude oil takes millions of years to form but we extract it over decades, we will deplete existing reserves if consumption continues at current rates."
+          - prompt: "Why is crude oil typically found in sedimentary rock formations?"
+            choices:
+              - text: "Sedimentary rocks create oil"
+              - text: "Ancient organisms were buried in sediments that became sedimentary rock"
+                correct: true
+              - text: "Only sedimentary rocks are underground"
+              - text: "Crude oil dissolves other rock types"
+            explanation: "Ancient marine organisms settled in sediments at the bottom of oceans. These sediments were buried and became sedimentary rocks, while the organic matter transformed into oil."
+          - prompt: "What distinguishes crude oil from refined petroleum products like gasoline?"
+            choices:
+              - text: "Nothing, they are identical"
+              - text: "Crude oil is an unprocessed mixture; gasoline is a refined product containing selected hydrocarbons"
+                correct: true
+              - text: "Crude oil is synthetic"
+              - text: "Gasoline contains more types of molecules"
+            explanation: "Crude oil is the raw mixture extracted from the ground. Gasoline is produced by refining crude oil to separate and process specific hydrocarbon fractions."
+
+      - name: "hydrocarbon-mixtures"
+        description: "Understanding the variety of hydrocarbons in crude oil"
+        prerequisites: ["crude-oil-formation", "hydrocarbons"]
+        contents:
+          - "Crude oil contains hydrocarbons with different chain lengths, from very short to very long"
+          - "Short-chain hydrocarbons (1-4 carbons) are gases at room temperature"
+          - "Medium-chain hydrocarbons (5-12 carbons) are liquids at room temperature"
+          - "Long-chain hydrocarbons (13+ carbons) can be thick liquids or waxy solids"
+        questions:
+          - prompt: "Why are short-chain hydrocarbons gases while long-chain hydrocarbons are liquids or solids at room temperature?"
+            choices:
+              - text: "Short chains are lighter in color"
+              - text: "Longer chains have stronger intermolecular forces holding molecules together"
+                correct: true
+              - text: "Short chains contain different atoms"
+              - text: "Long chains are always frozen"
+            explanation: "Longer hydrocarbon molecules have more surface area and stronger van der Waals forces between molecules, requiring more energy (higher temperature) to separate them into gas phase."
+          - prompt: "If a hydrocarbon has 3 carbon atoms, what state is it most likely in at room temperature (25°C)?"
+            choices:
+              - text: "Solid"
+              - text: "Liquid"
+              - text: "Gas"
+                correct: true
+              - text: "Plasma"
+            explanation: "Propane (C₃H₈) is a short-chain hydrocarbon with 3 carbons and exists as a gas at room temperature. It only becomes liquid under pressure."
+          - prompt: "A sample of crude oil is heated. Which components will evaporate first?"
+            choices:
+              - text: "The longest-chain hydrocarbons"
+              - text: "The shortest-chain hydrocarbons"
+                correct: true
+              - text: "All components evaporate simultaneously"
+              - text: "None will evaporate"
+            explanation: "Shorter-chain hydrocarbons have weaker intermolecular forces and lower boiling points, so they evaporate (vaporize) at lower temperatures than longer chains."
+          - prompt: "Crude oil appears as a thick, dark liquid. What does this tell you about its composition?"
+            choices:
+              - text: "It contains only gases"
+              - text: "It contains a significant amount of medium to long-chain hydrocarbons"
+                correct: true
+              - text: "It is pure carbon"
+              - text: "It contains only short-chain hydrocarbons"
+            explanation: "The liquid state and viscosity indicate the presence of medium to long-chain hydrocarbons. If it contained only short chains, it would be gaseous."
+          - prompt: "Which property increases as hydrocarbon chain length increases?"
+            choices:
+              - text: "Volatility (tendency to evaporate)"
+              - text: "Boiling point"
+                correct: true
+              - text: "Reactivity of the carbon-carbon bonds"
+              - text: "Number of carbon atoms per molecule decreases"
+            explanation: "As chain length increases, intermolecular forces increase, requiring more energy (higher temperature) to boil the substance. Boiling point increases with chain length."
+          - prompt: "If you wanted to separate crude oil into fractions based on chain length, which property would be most useful?"
+            choices:
+              - text: "Color"
+              - text: "Different boiling points"
+                correct: true
+              - text: "Density only"
+              - text: "Magnetism"
+            explanation: "Different chain lengths have different boiling points. This property is exploited in fractional distillation to separate crude oil into useful fractions."
+          - prompt: "A hydrocarbon molecule in crude oil has 20 carbon atoms. How would you classify it?"
+            choices:
+              - text: "Short-chain, likely a gas"
+              - text: "Medium-chain, likely a liquid"
+              - text: "Long-chain, likely a thick liquid or waxy solid"
+                correct: true
+              - text: "It cannot exist in crude oil"
+            explanation: "With 20 carbon atoms, this is a long-chain hydrocarbon that would be a thick liquid or solid at room temperature due to strong intermolecular forces."
+          - prompt: "Why does crude oil contain such a variety of different hydrocarbon chain lengths?"
+            choices:
+              - text: "It is manufactured this way"
+              - text: "Different organisms and decomposition conditions created various hydrocarbon sizes"
+                correct: true
+              - text: "All crude oil has identical composition"
+              - text: "Chain length is determined by drilling depth"
+            explanation: "Crude oil formed from diverse organic matter under varying conditions over millions of years, resulting in a complex mixture of different-sized hydrocarbons."
+
+  - title: "Petroleum Refining"
+    knowledge_points:
+      - name: "fractional-distillation"
+        description: "Understanding how crude oil is separated into useful fractions"
+        prerequisites: ["hydrocarbon-mixtures"]
+        contents:
+          - "Fractional distillation separates crude oil based on different boiling points"
+          - "Crude oil is heated in a distillation column (tower) where it vaporizes"
+          - "The tower is cooler at the top and hotter at the bottom"
+          - "Different hydrocarbons condense at different heights, separating into fractions"
+        questions:
+          - prompt: "In a distillation tower, where would you find the shortest-chain hydrocarbons?"
+            choices:
+              - text: "At the bottom where it is hottest"
+              - text: "At the top where it is coolest"
+                correct: true
+              - text: "In the middle"
+              - text: "They don't enter the tower"
+            explanation: "Short-chain hydrocarbons have low boiling points and remain as gases even in the cooler upper section of the tower, so they are collected at the top."
+          - prompt: "Why is the distillation column cooler at the top than at the bottom?"
+            choices:
+              - text: "To allow high-boiling-point substances to condense at the bottom and low-boiling-point substances to rise as vapor to the top"
+                correct: true
+              - text: "To save energy"
+              - text: "To make it easier to clean"
+              - text: "Temperature doesn't matter"
+            explanation: "The temperature gradient allows separation: heavy, high-boiling-point molecules condense and are collected lower in the tower, while light, low-boiling-point molecules rise as vapor."
+          - prompt: "At what point in the distillation tower would diesel fuel (medium-long chains, ~15 carbons) most likely be collected?"
+            choices:
+              - text: "At the very top"
+              - text: "In the middle to upper-middle section"
+              - text: "In the middle to lower-middle section"
+                correct: true
+              - text: "At the very bottom"
+            explanation: "Diesel has a moderate boiling point (higher than gasoline but lower than heavy oils), so it condenses and is collected in the middle-to-lower sections of the tower."
+          - prompt: "If the temperature at a certain level in the distillation tower is 150°C, what happens to hydrocarbons with boiling points of 120°C?"
+            choices:
+              - text: "They remain as vapor and continue rising"
+                correct: true
+              - text: "They condense at this level"
+              - text: "They decompose"
+              - text: "They sink to the bottom"
+            explanation: "Hydrocarbons with boiling points below the current temperature (120°C < 150°C) remain in vapor form and continue rising until they reach a cooler section."
+          - prompt: "What physical principle is fractional distillation based on?"
+            choices:
+              - text: "Different densities"
+              - text: "Different boiling points"
+                correct: true
+              - text: "Different colors"
+              - text: "Different chemical reactivity"
+            explanation: "Fractional distillation exploits the fact that different substances have different boiling points, allowing them to be separated by controlled heating and cooling."
+          - prompt: "Heavy bitumen and asphalt are collected at the bottom of the distillation tower. What does this tell you about their properties?"
+            choices:
+              - text: "They have very low boiling points"
+              - text: "They have very high boiling points and may not vaporize at all"
+                correct: true
+              - text: "They are gases"
+              - text: "They are the most valuable products"
+            explanation: "Substances collected at the bottom have the highest boiling points. Heavy hydrocarbons like bitumen have such high boiling points that they often don't vaporize and remain as thick liquids."
+          - prompt: "If crude oil were not separated by fractional distillation, what would be the consequence?"
+            choices:
+              - text: "Nothing would change"
+              - text: "We could not efficiently produce specific fuels and materials for different purposes"
+                correct: true
+              - text: "Oil would be more valuable"
+              - text: "Oil would last longer"
+            explanation: "Different applications require different hydrocarbon fractions (gasoline for cars, diesel for trucks, etc.). Without separation, crude oil would be far less useful."
+          - prompt: "During fractional distillation, gasoline (5-12 carbons) is collected above diesel (12-20 carbons). What does this reveal about their boiling points?"
+            choices:
+              - text: "Gasoline has a higher boiling point"
+              - text: "Gasoline has a lower boiling point"
+                correct: true
+              - text: "They have the same boiling point"
+              - text: "Boiling points are unrelated to collection position"
+            explanation: "Substances collected higher in the tower have lower boiling points. Gasoline's shorter chains give it a lower boiling point than diesel's longer chains."
+
+      - name: "naphtha-fraction"
+        description: "Understanding naphtha as the key fraction for plastic production"
+        prerequisites: ["fractional-distillation", "ethylene-monomer"]
+        contents:
+          - "Naphtha is a fraction collected from crude oil distillation"
+          - "Naphtha contains hydrocarbons with approximately 5-12 carbon atoms"
+          - "Naphtha is a liquid at room temperature and has a gasoline-like consistency"
+          - "Naphtha is the primary feedstock for producing ethylene and other monomers for plastics"
+        questions:
+          - prompt: "Where in the distillation tower would naphtha most likely be collected?"
+            choices:
+              - text: "At the very top"
+              - text: "In the upper-middle section"
+                correct: true
+              - text: "At the bottom"
+              - text: "Naphtha is not produced by distillation"
+            explanation: "Naphtha contains medium-chain hydrocarbons (5-12 carbons) with moderate boiling points, so it condenses and is collected in the upper-middle section of the tower."
+          - prompt: "Why is naphtha preferred over other fractions for making plastic monomers?"
+            choices:
+              - text: "It is the cheapest fraction"
+              - text: "Its hydrocarbon chain lengths are suitable for breaking down into smaller monomers like ethylene"
+                correct: true
+              - text: "It contains oxygen"
+              - text: "It is already a plastic"
+            explanation: "Naphtha's medium-chain hydrocarbons (5-12 carbons) can be efficiently cracked into smaller molecules like ethylene (2 carbons), which is the monomer for polyethylene."
+          - prompt: "If naphtha contains C₈H₁₈ (octane), and it is broken down into ethylene (C₂H₄), how many ethylene molecules could theoretically be produced from one octane molecule?"
+            choices:
+              - text: "2 ethylene molecules"
+              - text: "4 ethylene molecules"
+                correct: true
+              - text: "8 ethylene molecules"
+              - text: "16 ethylene molecules"
+            explanation: "Octane has 8 carbon atoms, and ethylene has 2 carbon atoms. Breaking octane's carbons could yield 8÷2 = 4 ethylene molecules (though in reality, the process produces a mixture)."
+          - prompt: "What happens to the hydrogen atoms in naphtha hydrocarbons when they are converted to ethylene?"
+            choices:
+              - text: "They disappear"
+              - text: "Some form hydrogen gas (H₂) as a byproduct"
+                correct: true
+              - text: "They all remain in the ethylene"
+              - text: "They form water"
+            explanation: "When large hydrocarbons are cracked to form ethylene, there are excess hydrogen atoms that are released as hydrogen gas (H₂), which can be collected and used."
+          - prompt: "Why can't we directly use naphtha as a plastic material?"
+            choices:
+              - text: "Naphtha is a mixture of medium-chain molecules that are liquids, not long-chain polymers"
+                correct: true
+              - text: "Naphtha is toxic"
+              - text: "Naphtha evaporates instantly"
+              - text: "Naphtha is too expensive"
+            explanation: "Naphtha consists of medium-chain hydrocarbons that are liquids. To make plastic, we need to convert these into monomers that can be polymerized into very long chains."
+          - prompt: "If a refinery produces 100 barrels of naphtha from crude oil distillation, and 60% is used for plastic production while the rest is used for gasoline blending, how many barrels are used for plastics?"
+            choices:
+              - text: "40 barrels"
+              - text: "60 barrels"
+                correct: true
+              - text: "100 barrels"
+              - text: "160 barrels"
+            explanation: "60% of 100 barrels = 0.60 × 100 = 60 barrels are used for plastic production."
+          - prompt: "How does naphtha's state at room temperature make it advantageous for transportation and storage compared to gaseous or solid fractions?"
+            choices:
+              - text: "Liquids are easier to handle, pump, and transport than gases or solids"
+                correct: true
+              - text: "Liquids are more reactive"
+              - text: "Liquids are cheaper"
+              - text: "There is no advantage"
+            explanation: "Being a liquid at room temperature, naphtha can be easily transported through pipelines and stored in tanks without requiring pressurization (like gases) or special handling (like solids)."
+          - prompt: "What is the relationship between naphtha and plastic bags?"
+            choices:
+              - text: "There is no relationship"
+              - text: "Naphtha is processed to create monomers that are polymerized into the plastic used for bags"
+                correct: true
+              - text: "Naphtha is directly melted into bags"
+              - text: "Plastic bags are made from gasoline"
+            explanation: "Naphtha is cracked to produce ethylene monomers, which are then polymerized into polyethylene—the material most plastic bags are made from."
+
+  - title: "Cracking and Monomer Production"
+    knowledge_points:
+      - name: "thermal-cracking"
+        description: "Understanding how large hydrocarbons are broken into smaller molecules"
+        prerequisites: ["naphtha-fraction"]
+        contents:
+          - "Cracking is the process of breaking large hydrocarbon molecules into smaller ones"
+          - "Thermal cracking uses high heat (800-900°C) to break carbon-carbon bonds"
+          - "Steam cracking is the most common method for producing ethylene"
+          - "The process breaks down medium-chain hydrocarbons from naphtha into ethylene and other small molecules"
+        questions:
+          - prompt: "What provides the energy needed to break carbon-carbon bonds during thermal cracking?"
+            choices:
+              - text: "Pressure"
+              - text: "High temperature"
+                correct: true
+              - text: "Light"
+              - text: "Electricity"
+            explanation: "High temperatures (800-900°C) provide the energy needed to break the covalent bonds between carbon atoms in hydrocarbon chains."
+          - prompt: "If a C₁₀H₂₂ molecule (decane) is cracked into one C₂H₄ (ethylene) and other products, what must happen to the remaining 8 carbon atoms?"
+            choices:
+              - text: "They disappear"
+              - text: "They form other hydrocarbon molecules"
+                correct: true
+              - text: "They become carbon dioxide"
+              - text: "They form only hydrogen gas"
+            explanation: "Carbon atoms are not destroyed during cracking. The remaining 8 carbon atoms must form other hydrocarbon molecules, such as propylene, butene, or longer chains."
+          - prompt: "Why is steam used in steam cracking?"
+            choices:
+              - text: "To clean the equipment"
+              - text: "To dilute the hydrocarbons, reduce pressure, and prevent unwanted side reactions"
+                correct: true
+              - text: "To add oxygen to the reaction"
+              - text: "To cool the system"
+            explanation: "Steam dilutes the hydrocarbon vapors, reduces partial pressure, and helps prevent unwanted reactions like polymerization or formation of solid carbon (coke) during cracking."
+          - prompt: "What is the main difference between crude oil distillation and cracking?"
+            choices:
+              - text: "Distillation creates new molecules; cracking only separates existing ones"
+              - text: "Distillation separates existing molecules; cracking breaks molecules into smaller ones"
+                correct: true
+              - text: "They are the same process"
+              - text: "Cracking makes molecules larger"
+            explanation: "Distillation is a physical separation based on boiling points. Cracking is a chemical process that breaks large molecules into smaller ones by breaking carbon-carbon bonds."
+          - prompt: "After cracking, a mixture of products is obtained. Besides ethylene, what other products might be present?"
+            choices:
+              - text: "Only ethylene is produced"
+              - text: "Other small hydrocarbons like propylene, butene, and hydrogen gas"
+                correct: true
+              - text: "Only carbon dioxide"
+              - text: "Solid plastics"
+            explanation: "Cracking produces a mixture of small molecules including ethylene, propylene, butene, methane, and hydrogen gas. Further separation is needed to isolate pure ethylene."
+          - prompt: "If increasing temperature increases the rate of cracking, why isn't it done at even higher temperatures like 1500°C?"
+            choices:
+              - text: "Higher temperatures would work better with no drawbacks"
+              - text: "Excessively high temperatures cause unwanted decomposition into carbon and can damage equipment"
+                correct: true
+              - text: "The hydrocarbons freeze at high temperatures"
+              - text: "It is impossible to reach such temperatures"
+            explanation: "While higher temperatures increase cracking rates, extremely high temperatures cause complete breakdown into carbon (coke) and gas, reduce selectivity for desired products, and damage expensive equipment."
+          - prompt: "A cracking plant processes 1000 kg of naphtha and produces 300 kg of ethylene. What happened to the other 700 kg?"
+            choices:
+              - text: "It was lost"
+              - text: "It was converted into other products like propylene, hydrogen, and other hydrocarbons"
+                correct: true
+              - text: "It remained as naphtha"
+              - text: "It turned into water"
+            explanation: "The mass is conserved. The other 700 kg became other cracking products including propylene, butene, methane, hydrogen gas, and heavier hydrocarbons."
+          - prompt: "Why must the products of cracking be quickly cooled after the reaction?"
+            choices:
+              - text: "To make them solid"
+              - text: "To prevent the small molecules from recombining or undergoing further unwanted reactions"
+                correct: true
+              - text: "To add energy"
+              - text: "Cooling is not necessary"
+            explanation: "Rapid cooling (quenching) stops the reactions and prevents the small, reactive molecules from recombining into larger molecules or forming unwanted products like coke."
+
+      - name: "ethylene-separation"
+        description: "Understanding how ethylene is separated from other cracking products"
+        prerequisites: ["thermal-cracking", "ethylene-monomer"]
+        contents:
+          - "Cracking produces a mixture of gases including ethylene, propylene, methane, and hydrogen"
+          - "These gases must be separated to obtain pure ethylene for polymerization"
+          - "Separation is typically done using fractional distillation of gases at low temperatures"
+          - "Ethylene is compressed and stored as a liquid under pressure for transportation"
+        questions:
+          - prompt: "Why can't the mixed gases from cracking be directly used to make polyethylene?"
+            choices:
+              - text: "They can be used directly"
+              - text: "Impurities and other gases would interfere with the polymerization process"
+                correct: true
+              - text: "The mixture is too hot"
+              - text: "The mixture contains no ethylene"
+            explanation: "Polymerization requires pure or very high-purity ethylene. Other gases and impurities would interfere with the reaction, creating inferior or inconsistent polymer products."
+          - prompt: "How are gases like ethylene and propylene separated after cracking?"
+            choices:
+              - text: "By filtration"
+              - text: "By fractional distillation at very low temperatures"
+                correct: true
+              - text: "By dissolving in water"
+              - text: "They cannot be separated"
+            explanation: "Different gases have different boiling points. By cooling and fractional distillation (similar to crude oil distillation but at much lower temperatures), the gases can be separated."
+          - prompt: "Ethylene has a boiling point of -104°C and propylene has a boiling point of -47°C. At -70°C, what would happen in a distillation column?"
+            choices:
+              - text: "Both remain as gases"
+              - text: "Propylene condenses to liquid while ethylene remains as gas"
+                correct: true
+              - text: "Ethylene condenses while propylene remains as gas"
+              - text: "Both condense to liquids"
+            explanation: "At -70°C, propylene (boiling point -47°C) would condense to liquid since this temperature is below its boiling point. Ethylene (boiling point -104°C) would remain as gas."
+          - prompt: "Why is ethylene compressed and stored as a liquid rather than kept as a gas?"
+            choices:
+              - text: "Liquids take up less space and are easier to transport and store in large quantities"
+                correct: true
+              - text: "Ethylene cannot exist as a gas"
+              - text: "Liquid ethylene is less reactive"
+              - text: "It is impossible to compress ethylene"
+            explanation: "Compressing ethylene into liquid form reduces its volume dramatically, making storage and transportation much more efficient and economical."
+          - prompt: "If a separation system achieves 99% purity of ethylene (1% impurities), what effect might this have on polymerization?"
+            choices:
+              - text: "No effect, polymers would be perfect"
+              - text: "The 1% impurities might create defects or affect polymer properties"
+                correct: true
+              - text: "Polymerization would be impossible"
+              - text: "The polymer would be 99% heavier"
+            explanation: "Even small amounts of impurities can affect polymerization, potentially creating chain defects, affecting molecular weight, or altering final properties of the plastic."
+          - prompt: "After separation, what happens to the other products like propylene and hydrogen?"
+            choices:
+              - text: "They are wasted"
+              - text: "They are valuable products used for other plastics, fuels, and chemical processes"
+                correct: true
+              - text: "They are recombined into naphtha"
+              - text: "They are released into the atmosphere"
+            explanation: "These byproducts are valuable. Propylene makes polypropylene plastic, hydrogen is used in various chemical processes, and other fractions become fuels or chemical feedstocks."
+          - prompt: "Why is the separation of cracking products necessary rather than optional?"
+            choices:
+              - text: "It is optional"
+              - text: "Different products have different applications requiring specific pure compounds"
+                correct: true
+              - text: "To make the process more expensive"
+              - text: "To waste material"
+            explanation: "Each separated product has specific industrial uses. Ethylene makes polyethylene, propylene makes polypropylene, etc. Using mixed products would result in inferior or unusable materials."
+          - prompt: "What safety concern exists when handling and storing liquid ethylene?"
+            choices:
+              - text: "It is radioactive"
+              - text: "It is highly flammable and stored under pressure"
+                correct: true
+              - text: "It is corrosive to all materials"
+              - text: "There are no safety concerns"
+            explanation: "Ethylene is highly flammable and must be stored under pressure to remain liquid. Any leak could result in fire or explosion, requiring careful safety measures."
+
+  - title: "Polymerization Process"
+    knowledge_points:
+      - name: "addition-polymerization"
+        description: "Understanding how ethylene monomers join to form polyethylene"
+        prerequisites: ["ethylene-separation", "monomers-polymers"]
+        contents:
+          - "Addition polymerization occurs when monomers add to each other without losing any atoms"
+          - "An initiator (catalyst or free radical) starts the polymerization reaction"
+          - "The double bond in ethylene opens, allowing monomers to link into chains"
+          - "The reaction continues as each new monomer adds to the growing chain"
+        questions:
+          - prompt: "What role does the initiator play in polymerization?"
+            choices:
+              - text: "It slows down the reaction"
+              - text: "It starts the reaction by creating a reactive site on the first monomer"
+                correct: true
+              - text: "It stops the reaction"
+              - text: "It has no role"
+            explanation: "The initiator creates a reactive site (like a free radical) on a monomer, which then attacks the double bond of another ethylene molecule, starting the chain reaction."
+          - prompt: "During polymerization, what happens to the carbon-carbon double bond in each ethylene molecule?"
+            choices:
+              - text: "It remains unchanged"
+              - text: "One bond breaks to form new single bonds with adjacent monomers"
+                correct: true
+              - text: "It becomes a triple bond"
+              - text: "It completely breaks"
+            explanation: "The double bond (two bonds) between carbons is reduced to a single bond, freeing up bonding sites on each carbon to connect with adjacent monomers in the chain."
+          - prompt: "If 500 ethylene molecules polymerize completely into one chain, how many carbon-carbon bonds connect the monomers together?"
+            choices:
+              - text: "500 bonds"
+              - text: "499 bonds"
+                correct: true
+              - text: "1000 bonds"
+              - text: "250 bonds"
+            explanation: "To connect 500 monomers in a chain, you need 499 connecting bonds (like linking 500 beads requires 499 connections between them)."
+          - prompt: "Why is this process called 'addition' polymerization?"
+            choices:
+              - text: "Because polymers are added to monomers"
+              - text: "Because monomers add to each other without losing any atoms"
+                correct: true
+              - text: "Because it requires addition of heat"
+              - text: "Because mathematical addition is used"
+            explanation: "It's called addition polymerization because monomers simply add together to form the polymer without any atoms or molecules being removed or released as byproducts."
+          - prompt: "What stops a growing polymer chain from continuing to grow indefinitely?"
+            choices:
+              - text: "Chains never stop growing"
+              - text: "Chain termination occurs when two reactive chain ends meet or react with an impurity"
+                correct: true
+              - text: "Running out of carbon"
+              - text: "Gravity"
+            explanation: "Polymerization stops when the reactive end of a chain encounters another reactive end (chain coupling) or reacts with an impurity that terminates the chain's growth."
+          - prompt: "If polymerization is carried out at a higher temperature, what effect might this have?"
+            choices:
+              - text: "No effect"
+              - text: "Faster reaction rate but potentially shorter polymer chains"
+                correct: true
+              - text: "Slower reaction rate"
+              - text: "Polymerization becomes impossible"
+            explanation: "Higher temperatures increase reaction rates but also increase the likelihood of chain termination reactions, which can result in shorter average chain lengths."
+          - prompt: "Why is controlling the polymerization reaction important for plastic properties?"
+            choices:
+              - text: "It is not important"
+              - text: "Different reaction conditions produce polymers with different chain lengths and properties"
+                correct: true
+              - text: "All polyethylene is identical regardless of conditions"
+              - text: "To change the color"
+            explanation: "Reaction conditions (temperature, pressure, catalyst, time) affect chain length, branching, and molecular weight distribution, which determine the plastic's strength, flexibility, melting point, and other properties."
+          - prompt: "In addition polymerization, what is the relationship between the empirical formula of the monomer and the repeating unit in the polymer?"
+            choices:
+              - text: "They are completely different"
+              - text: "They are identical"
+                correct: true
+              - text: "The polymer has fewer atoms"
+              - text: "The polymer has added oxygen atoms"
+            explanation: "In addition polymerization, the repeating unit has the same atoms as the monomer (C₂H₄). The monomers simply link together: (C₂H₄)ₙ with no atoms lost."
+
+      - name: "polymerization-conditions"
+        description: "Understanding how different conditions create different types of polyethylene"
+        prerequisites: ["addition-polymerization"]
+        contents:
+          - "Different temperatures and pressures produce polyethylene with different properties"
+          - "Low-density polyethylene (LDPE) is made at high pressure (1000-3000 atm) and high temperature"
+          - "High-density polyethylene (HDPE) is made at low pressure with special catalysts"
+          - "The density difference comes from how branched or linear the polymer chains are"
+        questions:
+          - prompt: "What causes LDPE to have lower density than HDPE?"
+            choices:
+              - text: "LDPE has shorter chains"
+              - text: "LDPE has more branching, preventing tight packing of chains"
+                correct: true
+              - text: "LDPE contains air bubbles"
+              - text: "LDPE has fewer carbon atoms"
+            explanation: "LDPE has more branch points on its polymer chains. These branches prevent chains from packing closely together, resulting in lower density and a less crystalline structure."
+          - prompt: "If a polyethylene sample has many long branches on its main chain, what properties would you expect?"
+            choices:
+              - text: "High density and rigidity"
+              - text: "Lower density and more flexibility"
+                correct: true
+              - text: "Identical to unbranched polyethylene"
+              - text: "It would be a liquid"
+            explanation: "Branches prevent tight packing, reducing density. The less organized structure also makes the material more flexible and less crystalline than linear polyethylene."
+          - prompt: "HDPE is made using a special catalyst that promotes linear (unbranched) chains. Why does this make HDPE more rigid than LDPE?"
+            choices:
+              - text: "Linear chains can pack tightly together, creating a more crystalline, rigid structure"
+                correct: true
+              - text: "Linear chains are always brittle"
+              - text: "HDPE has more carbon atoms"
+              - text: "Catalysts make all materials rigid"
+            explanation: "Linear chains can pack closely in an organized, crystalline arrangement. This tight packing creates stronger intermolecular forces and a more rigid material."
+          - prompt: "Why does the polymerization pressure affect the final product?"
+            choices:
+              - text: "Pressure has no effect"
+              - text: "Pressure affects reaction rate and the tendency for branching to occur"
+                correct: true
+              - text: "Pressure only affects color"
+              - text: "Higher pressure always makes better plastic"
+            explanation: "Pressure influences how monomers encounter each other and react. High pressure can promote side reactions that create branching, while controlled low-pressure conditions with catalysts promote linear growth."
+          - prompt: "A manufacturer wants to produce plastic bags that are flexible and stretchy. Should they make LDPE or HDPE?"
+            choices:
+              - text: "HDPE"
+              - text: "LDPE"
+                correct: true
+              - text: "Either one is identical"
+              - text: "Neither can be used for bags"
+            explanation: "LDPE is more flexible due to its branched structure and lower density. It's ideal for applications requiring flexibility, like plastic bags and squeeze bottles."
+          - prompt: "A manufacturer wants to produce rigid plastic bottles for detergent. Should they use LDPE or HDPE?"
+            choices:
+              - text: "LDPE"
+              - text: "HDPE"
+                correct: true
+              - text: "Either one is identical"
+              - text: "Neither can be used"
+            explanation: "HDPE is more rigid and has better structural strength due to its linear chains and higher density, making it suitable for rigid containers like detergent bottles."
+          - prompt: "How does the cost of producing HDPE with catalysts at low pressure compare to producing LDPE at high pressure?"
+            choices:
+              - text: "HDPE is generally less expensive due to lower pressure requirements"
+                correct: true
+              - text: "LDPE is always cheaper"
+              - text: "They cost exactly the same"
+              - text: "HDPE cannot be produced commercially"
+            explanation: "Operating at high pressure requires expensive equipment and more energy. Modern catalyst-based HDPE production at lower pressures is generally more economical and energy-efficient."
+          - prompt: "If you examined LDPE and HDPE under a microscope at the molecular level, what key difference would you observe?"
+            choices:
+              - text: "Different colors"
+              - text: "HDPE has straighter, more aligned chains while LDPE has branched, tangled chains"
+                correct: true
+              - text: "HDPE has shorter chains"
+              - text: "They would look identical"
+            explanation: "HDPE's linear chains align in crystalline regions, appearing more ordered. LDPE's branched chains cannot pack as efficiently, resulting in a more amorphous, tangled structure."
+
+  - title: "Processing and Forming Plastic"
+    knowledge_points:
+      - name: "plastic-pellets"
+        description: "Understanding how polyethylene is converted into pellets for manufacturing"
+        prerequisites: ["polymerization-conditions"]
+        contents:
+          - "After polymerization, the polyethylene exists as a powder or crumbly solid"
+          - "The polymer is melted and extruded through small holes to form continuous strands"
+          - "These strands are cooled and cut into small pellets (typically 2-5mm in size)"
+          - "Pellets are the standard form for transporting and storing plastic before final manufacturing"
+        questions:
+          - prompt: "Why is polyethylene converted into pellets rather than kept as a powder?"
+            choices:
+              - text: "Pellets look better"
+              - text: "Pellets are easier to handle, transport, measure, and feed into manufacturing equipment"
+                correct: true
+              - text: "Pellets are more expensive"
+              - text: "Powder form is impossible"
+            explanation: "Pellets flow easily, can be accurately measured by weight or volume, don't create dust, and feed consistently into processing equipment. Powder would be difficult to handle and measure precisely."
+          - prompt: "In the pelletizing process, what happens to the polymer strands after they exit the extruder?"
+            choices:
+              - text: "They are immediately packaged"
+              - text: "They are cooled (often in water) and then cut into small pieces"
+                correct: true
+              - text: "They are heated further"
+              - text: "They dissolve"
+            explanation: "The hot polymer strands are cooled, typically by passing through water, to solidify them. Once solid, they are cut by rotating blades into uniform pellets."
+          - prompt: "If a manufacturer wants to add color to plastic products, when is this typically done?"
+            choices:
+              - text: "During polymerization"
+              - text: "Colorants are mixed with pellets before the final molding process"
+                correct: true
+              - text: "After the product is made"
+              - text: "Color cannot be added"
+            explanation: "Colorants (pigments or dyes) are typically mixed with the pellets just before the final processing step. This allows manufacturers to use the same base pellets for different colored products."
+          - prompt: "What is the main advantage of standardizing plastic into pellet form across the industry?"
+            choices:
+              - text: "There is no advantage"
+              - text: "It allows for consistent quality, easy measurement, and compatibility with standard processing equipment"
+                correct: true
+              - text: "It makes plastic more expensive"
+              - text: "It is required by law"
+            explanation: "Standardized pellets ensure consistency in manufacturing, allow for precise measurement of materials, enable easy mixing of additives, and work with industry-standard equipment worldwide."
+          - prompt: "A factory receives 1000 kg of polyethylene pellets. If each pellet weighs approximately 0.02 grams, approximately how many pellets are in this shipment?"
+            choices:
+              - text: "50,000 pellets"
+              - text: "500,000 pellets"
+              - text: "50,000,000 pellets"
+                correct: true
+              - text: "20,000 pellets"
+            explanation: "1000 kg = 1,000,000 grams. Dividing by 0.02 grams per pellet: 1,000,000 ÷ 0.02 = 50,000,000 pellets."
+          - prompt: "Why must pellets be kept dry before processing?"
+            choices:
+              - text: "Dry pellets are cheaper"
+              - text: "Moisture can cause defects like bubbles and weak spots during melting and molding"
+                correct: true
+              - text: "Wet pellets dissolve"
+              - text: "This is not necessary"
+            explanation: "Water trapped in pellets vaporizes during melting, creating bubbles, voids, and surface defects in the final product. Many plastics are hygroscopic and must be dried before processing."
+          - prompt: "What happens to plastic pellets during the final product manufacturing stage?"
+            choices:
+              - text: "They remain as pellets"
+              - text: "They are melted and formed into the desired shape"
+                correct: true
+              - text: "They are dissolved in water"
+              - text: "They are broken into powder"
+            explanation: "Pellets are melted and then shaped using various processes like injection molding, blow molding, or extrusion to create the final plastic products."
+          - prompt: "Can different types of plastic pellets (LDPE, HDPE, polypropylene) be mixed together for manufacturing?"
+            choices:
+              - text: "Yes, with no consequences"
+              - text: "Generally no, mixing different polymers typically results in poor quality products with incompatible properties"
+                correct: true
+              - text: "They automatically separate"
+              - text: "Mixing is required"
+            explanation: "Different polymers have different melting points, chemical structures, and properties. Mixing them usually creates incompatible blends with poor mechanical properties, though some specific blends are engineered for particular purposes."
+
+      - name: "injection-molding"
+        description: "Understanding how pellets are formed into solid plastic products"
+        prerequisites: ["plastic-pellets"]
+        contents:
+          - "Injection molding is used to create solid plastic objects like containers, toys, and bottle caps"
+          - "Pellets are fed into a heated barrel where they melt"
+          - "The melted plastic is injected under high pressure into a mold cavity"
+          - "The plastic cools and solidifies in the shape of the mold, then is ejected"
+        questions:
+          - prompt: "What provides the shape to an injection-molded product?"
+            choices:
+              - text: "The pellets' natural shape"
+              - text: "The mold cavity into which the melted plastic is injected"
+                correct: true
+              - text: "The injection pressure"
+              - text: "The temperature"
+            explanation: "The mold cavity is precisely machined to the desired product shape. When plastic is injected and solidifies, it takes on the exact shape of this cavity."
+          - prompt: "Why is pressure needed during injection molding?"
+            choices:
+              - text: "To force the melted plastic to completely fill the mold cavity, including fine details"
+                correct: true
+              - text: "To color the plastic"
+              - text: "To cool the plastic"
+              - text: "Pressure is not needed"
+            explanation: "High pressure ensures the melted plastic flows into every part of the mold, including small details and thin sections, before it begins to cool and solidify."
+          - prompt: "What would happen if the mold were opened before the plastic fully cooled?"
+            choices:
+              - text: "Nothing"
+              - text: "The part would deform or collapse because the plastic is still soft"
+                correct: true
+              - text: "The part would be stronger"
+              - text: "The plastic would turn to gas"
+            explanation: "Semi-molten plastic doesn't have structural integrity. Opening the mold too early would cause the part to deform under its own weight or from handling."
+          - prompt: "A manufacturer wants to produce 1000 identical plastic toy parts per hour. What advantage does injection molding offer?"
+            choices:
+              - text: "No advantage"
+              - text: "Injection molding enables rapid, automated production of identical parts using the same mold"
+                correct: true
+              - text: "Each part must be hand-crafted"
+              - text: "Injection molding is slower than other methods"
+            explanation: "Once a mold is created, injection molding can rapidly produce thousands of identical parts with minimal labor, making it ideal for high-volume production."
+          - prompt: "Why is cooling time important in the injection molding cycle?"
+            choices:
+              - text: "It is not important"
+              - text: "Insufficient cooling results in warping and dimensional inaccuracy when the part is removed"
+                correct: true
+              - text: "To make the plastic transparent"
+              - text: "To change the chemical composition"
+            explanation: "If ejected too soon, the part is still partially molten and will warp or deform. Adequate cooling ensures dimensional stability and proper shape retention."
+          - prompt: "How does the cost of the mold affect the economics of injection molding?"
+            choices:
+              - text: "Molds are free"
+              - text: "Molds are expensive to create but can produce thousands of parts, making the process economical for large production runs"
+                correct: true
+              - text: "Molds must be replaced after each part"
+              - text: "Mold cost is irrelevant"
+            explanation: "Precision molds are expensive to manufacture, but they can produce tens of thousands of parts. The per-part cost decreases dramatically with volume, making injection molding economical for mass production."
+          - prompt: "What happens to the plastic in the heated barrel before injection?"
+            choices:
+              - text: "It remains as solid pellets"
+              - text: "It melts into a flowable liquid while being mixed and heated"
+                correct: true
+              - text: "It turns to gas"
+              - text: "It crystallizes"
+            explanation: "The heated barrel melts the pellets and uses a rotating screw to mix and homogenize the melted plastic, ensuring consistent temperature and composition before injection."
+          - prompt: "If a complex product requires multiple colors, how can this be achieved with injection molding?"
+            choices:
+              - text: "It cannot be done"
+              - text: "Using multi-cavity molds or overmolding techniques where different colored plastics are injected in sequence"
+                correct: true
+              - text: "Painting after molding is the only option"
+              - text: "All parts must be one color"
+            explanation: "Advanced techniques like overmolding, multi-shot molding, or using molds with multiple cavities allow for products with multiple colors or materials integrated during the molding process."
+
+      - name: "blow-molding"
+        description: "Understanding how hollow plastic products like bottles are made"
+        prerequisites: ["plastic-pellets"]
+        contents:
+          - "Blow molding is used to create hollow products like bottles and containers"
+          - "A tube of melted plastic (parison) is extruded or formed"
+          - "The parison is clamped inside a mold and air is blown into it"
+          - "The air pressure forces the plastic against the mold walls, creating a hollow shape"
+        questions:
+          - prompt: "What is the key difference between injection molding and blow molding?"
+            choices:
+              - text: "Injection molding creates solid objects; blow molding creates hollow objects"
+                correct: true
+              - text: "They are identical processes"
+              - text: "Blow molding uses ice instead of air"
+              - text: "Injection molding creates hollow objects"
+            explanation: "Injection molding fills a mold cavity completely to make solid parts. Blow molding uses air pressure to expand plastic against mold walls, creating hollow products."
+          - prompt: "What is the parison in blow molding?"
+            choices:
+              - text: "The final product"
+              - text: "A tube of semi-molten plastic that will be inflated into the final shape"
+                correct: true
+              - text: "The mold"
+              - text: "The air compressor"
+            explanation: "The parison is a tube-shaped piece of hot, pliable plastic that serves as the starting form. Air inflates it like a balloon to match the mold's interior shape."
+          - prompt: "Why is air blown into the parison during blow molding?"
+            choices:
+              - text: "To cool the plastic"
+              - text: "To expand the plastic outward against the mold walls, forming the hollow shape"
+                correct: true
+              - text: "To add oxygen to the plastic"
+              - text: "Air is not used"
+            explanation: "Air pressure inflates the parison, forcing the soft plastic outward against the cooled mold walls. This creates the hollow interior and detailed exterior shape."
+          - prompt: "A plastic bottle has a volume of 500 mL. How does blow molding ensure this volume is consistent between bottles?"
+            choices:
+              - text: "It doesn't matter"
+              - text: "The mold cavity defines the outer shape and volume; consistent parison size and inflation pressure ensure uniform wall thickness"
+                correct: true
+              - text: "Each bottle is measured individually"
+              - text: "Bottles are always different sizes"
+            explanation: "The mold's internal cavity defines the exact external shape and overall volume. Controlling the amount of plastic in the parison and the inflation pressure ensures consistent wall thickness and capacity."
+          - prompt: "What would happen if the plastic were too cool when air is blown in?"
+            choices:
+              - text: "Better results"
+              - text: "The plastic would be too stiff to expand properly, resulting in incomplete shaping or rupture"
+                correct: true
+              - text: "The plastic would expand more easily"
+              - text: "Temperature doesn't matter"
+            explanation: "The plastic must be at the right temperature to be pliable. Too cool and it won't stretch; too hot and it will sag or tear. Proper temperature control is critical."
+          - prompt: "Why do blow-molded bottles often have a seam line visible?"
+            choices:
+              - text: "This is a defect"
+              - text: "The seam marks where the two halves of the mold meet"
+                correct: true
+              - text: "It is decorative"
+              - text: "Bottles don't have seams"
+            explanation: "Most blow molds consist of two halves that close around the parison. Where they meet, a thin seam line appears on the finished product, showing the mold parting line."
+          - prompt: "How does the wall thickness of a blow-molded bottle compare at different locations?"
+            choices:
+              - text: "Always perfectly uniform"
+              - text: "Can vary, with thinner walls where the plastic stretched more during inflation"
+                correct: true
+              - text: "Always thicker at the top"
+              - text: "Wall thickness cannot be controlled"
+            explanation: "Areas that stretch more during inflation have thinner walls. Design and process control aim for acceptable uniformity, but some variation occurs, especially in complex shapes."
+          - prompt: "What happens to the plastic after it takes the shape of the mold in blow molding?"
+            choices:
+              - text: "It is immediately removed"
+              - text: "It is held in the mold while cooling to solidify, then the mold opens and the part is ejected"
+                correct: true
+              - text: "It is heated more"
+              - text: "It is dissolved"
+            explanation: "The plastic must cool and solidify while in contact with the mold to maintain its shape. Once solid, the mold opens and the hollow product is removed."
+
+  - title: "Additives and Plastic Properties"
+    knowledge_points:
+      - name: "plastic-additives"
+        description: "Understanding how chemicals are added to modify plastic properties"
+        prerequisites: ["plastic-pellets"]
+        contents:
+          - "Pure polyethylene is rarely used alone; additives modify its properties"
+          - "Colorants (pigments and dyes) provide color"
+          - "UV stabilizers prevent degradation from sunlight"
+          - "Plasticizers increase flexibility, while fillers reduce cost and modify properties"
+        questions:
+          - prompt: "Why are UV stabilizers added to outdoor plastic products?"
+            choices:
+              - text: "To make them glow"
+              - text: "To prevent polymer chain breakdown from UV radiation, which causes brittleness and discoloration"
+                correct: true
+              - text: "To make them heavier"
+              - text: "UV stabilizers are not used"
+            explanation: "UV radiation from sunlight can break polymer bonds, causing the plastic to become brittle, crack, and discolor. UV stabilizers absorb or reflect UV radiation, protecting the polymer."
+          - prompt: "A manufacturer wants to make plastic garden furniture that won't fade in sunlight. Which additive is essential?"
+            choices:
+              - text: "Plasticizers"
+              - text: "UV stabilizers"
+                correct: true
+              - text: "Fillers"
+              - text: "No additives needed"
+            explanation: "UV stabilizers are essential for products exposed to sunlight, preventing both color fading and structural degradation from UV radiation."
+          - prompt: "What is the purpose of adding plasticizers to polyethylene?"
+            choices:
+              - text: "To make it more rigid"
+              - text: "To increase flexibility by reducing intermolecular forces between polymer chains"
+                correct: true
+              - text: "To add color"
+              - text: "To make it heavier"
+            explanation: "Plasticizers are small molecules that insert between polymer chains, reducing intermolecular forces and allowing chains to move more freely, increasing flexibility."
+          - prompt: "A company adds calcium carbonate (a mineral) as a filler to their plastic products. What effect does this have?"
+            choices:
+              - text: "Makes the plastic more flexible"
+              - text: "Reduces material cost and can modify properties like stiffness and opacity"
+                correct: true
+              - text: "Makes the plastic transparent"
+              - text: "No effect"
+            explanation: "Fillers like calcium carbonate are cheaper than pure polymer. They reduce costs while potentially improving properties like stiffness, impact resistance, or opacity."
+          - prompt: "If a clear plastic bag is desired, what consideration must be made regarding additives?"
+            choices:
+              - text: "Additives don't affect transparency"
+              - text: "Pigments and fillers must be avoided or used in forms that don't scatter light"
+                correct: true
+              - text: "More colorants should be added"
+              - text: "Transparency is impossible"
+            explanation: "Most colorants and fillers scatter light, making plastic opaque. For transparency, either no additives are used or special additives that don't scatter light are carefully selected."
+          - prompt: "How do additives affect the recycling of plastics?"
+            choices:
+              - text: "They have no effect"
+              - text: "Different additives can make recycling more complex because mixed additives may create inconsistent properties"
+                correct: true
+              - text: "Additives make recycling easier"
+              - text: "All plastics with additives cannot be recycled"
+            explanation: "Recycling mixes plastics with different additive packages. Incompatible additives can lead to poor quality recycled material, though some additives can be removed or managed."
+          - prompt: "A plastic product requires 98% polyethylene and 2% additives. If producing 1000 kg of this plastic, how much additive is needed?"
+            choices:
+              - text: "2 kg"
+              - text: "20 kg"
+                correct: true
+              - text: "200 kg"
+              - text: "980 kg"
+            explanation: "2% of 1000 kg = 0.02 × 1000 = 20 kg of additives are needed."
+          - prompt: "Why might flame retardants be added to plastics used in electronics?"
+            choices:
+              - text: "To make them colorful"
+              - text: "To reduce fire risk by interfering with combustion processes"
+                correct: true
+              - text: "To make them conduct electricity"
+              - text: "They are not used in electronics"
+            explanation: "Flame retardants are chemical additives that inhibit or suppress combustion, reducing the fire hazard of plastic components in electrical and electronic devices."
+
+      - name: "plastic-properties-summary"
+        description: "Understanding how structure determines plastic properties"
+        prerequisites: ["polymerization-conditions", "plastic-additives"]
+        contents:
+          - "Polymer chain length affects strength and melting point"
+          - "Branching affects density, flexibility, and crystallinity"
+          - "Crystalline regions make plastic stronger and more rigid"
+          - "Additives fine-tune properties for specific applications"
+        questions:
+          - prompt: "Why does increasing polymer chain length generally increase strength?"
+            choices:
+              - text: "Longer chains have more intermolecular interactions holding the material together"
+                correct: true
+              - text: "Longer chains are heavier"
+              - text: "Longer chains are always weaker"
+              - text: "Chain length doesn't affect strength"
+            explanation: "Longer chains have more contact points and more opportunities for intermolecular forces (like van der Waals forces) to act between chains, creating a stronger material."
+          - prompt: "HDPE has a higher melting point than LDPE. Why?"
+            choices:
+              - text: "HDPE contains different atoms"
+              - text: "HDPE's linear structure allows better packing and more crystallinity, requiring more energy to melt"
+                correct: true
+              - text: "LDPE melts at a higher temperature"
+              - text: "They have identical melting points"
+            explanation: "HDPE's linear chains pack tightly into crystalline regions. More energy is needed to disrupt this organized structure, resulting in a higher melting point than branched LDPE."
+          - prompt: "What is a crystalline region in a polymer?"
+            choices:
+              - text: "A region where polymer chains are aligned in an organized, ordered structure"
+                correct: true
+              - text: "A region containing actual crystals"
+              - text: "A transparent region"
+              - text: "A colored region"
+            explanation: "Crystalline regions are areas where polymer chains are aligned in regular, ordered arrangements (like stacked sheets), similar to how molecules arrange in crystals, creating stronger, stiffer regions."
+          - prompt: "Why can't polyethylene be 100% crystalline?"
+            choices:
+              - text: "It can be 100% crystalline"
+              - text: "The long, flexible chains and any branching prevent complete alignment and ordering throughout the entire material"
+                correct: true
+              - text: "Crystalline regions are impossible in plastics"
+              - text: "Additives prevent crystallinity"
+            explanation: "Polymer chains are long and flexible, making perfect alignment impossible throughout. Even HDPE is only 60-80% crystalline, with amorphous (disordered) regions between crystalline zones."
+          - prompt: "A plastic product needs to be flexible for packaging applications but strong enough to resist tearing. What structural features would be desirable?"
+            choices:
+              - text: "Short chains and high crystallinity"
+              - text: "Moderate chain length with some branching and a balance of crystalline and amorphous regions"
+                correct: true
+              - text: "Maximum crystallinity"
+              - text: "No polymer chains at all"
+            explanation: "Moderate chain length provides strength, some branching adds flexibility, and a balance of crystalline (strength) and amorphous (flexibility) regions creates the desired combination of properties."
+          - prompt: "How does the molecular structure explain why HDPE is used for rigid containers while LDPE is used for plastic bags?"
+            choices:
+              - text: "They have the same structure"
+              - text: "HDPE's linear chains create a more rigid, crystalline structure; LDPE's branched chains create a flexible, less crystalline structure"
+                correct: true
+              - text: "HDPE is always cheaper"
+              - text: "Color is the only difference"
+            explanation: "HDPE's linear chains pack tightly, creating high crystallinity and rigidity ideal for containers. LDPE's branching prevents tight packing, resulting in flexibility ideal for bags."
+          - prompt: "If a plastic sample has a very high degree of crystallinity, which property would most likely be observed?"
+            choices:
+              - text: "High flexibility and low melting point"
+              - text: "High stiffness and high melting point"
+                correct: true
+              - text: "It would be a liquid"
+              - text: "It would be transparent"
+            explanation: "High crystallinity means well-organized, tightly packed chains that resist movement and deformation, resulting in greater stiffness and requiring more energy (higher temperature) to melt."
+          - prompt: "Why is understanding the relationship between structure and properties important for plastic manufacturing?"
+            choices:
+              - text: "It is not important"
+              - text: "It allows manufacturers to control processing conditions and additives to create plastics with specific desired properties for different applications"
+                correct: true
+              - text: "All plastics are identical"
+              - text: "Properties cannot be controlled"
+            explanation: "By understanding how molecular structure affects properties, manufacturers can adjust polymerization conditions, chain length, branching, and additives to engineer plastics for specific applications—from flexible films to rigid pipes."
+
+  - title: "Complete Manufacturing Process"
+    knowledge_points:
+      - name: "oil-to-product-overview"
+        description: "Understanding the complete journey from crude oil to finished plastic product"
+        prerequisites: ["fractional-distillation", "thermal-cracking", "addition-polymerization", "injection-molding", "blow-molding"]
+        contents:
+          - "The process begins with crude oil extraction from underground"
+          - "Fractional distillation separates crude oil into fractions including naphtha"
+          - "Steam cracking breaks naphtha into ethylene and other small molecules"
+          - "Polymerization converts ethylene into polyethylene chains"
+          - "The polymer is formed into pellets"
+          - "Pellets are melted and shaped into final products through various molding techniques"
+        questions:
+          - prompt: "Which step in plastic manufacturing directly uses the most energy?"
+            choices:
+              - text: "Pelletizing"
+              - text: "Steam cracking, which requires temperatures of 800-900°C"
+                correct: true
+              - text: "Injection molding"
+              - text: "Fractional distillation"
+            explanation: "Steam cracking requires extremely high temperatures (800-900°C) to break carbon-carbon bonds, making it the most energy-intensive step in the process."
+          - prompt: "If a problem occurs during polymerization resulting in very short polymer chains, what would be the consequence for the final product?"
+            choices:
+              - text: "No consequence"
+              - text: "The plastic would be weak and possibly unsuitable for its intended application"
+                correct: true
+              - text: "The plastic would be stronger"
+              - text: "The plastic would be impossible to mold"
+            explanation: "Short chains mean fewer intermolecular forces and lower molecular weight, resulting in weaker material that may not meet the strength requirements for its application."
+          - prompt: "Why must the naphtha fraction be cracked rather than directly polymerized?"
+            choices:
+              - text: "Naphtha molecules (5-12 carbons) are too large and lack the reactive double bonds needed for polymerization"
+                correct: true
+              - text: "Naphtha is too expensive"
+              - text: "Naphtha is radioactive"
+              - text: "Polymerization of naphtha is faster"
+            explanation: "Naphtha consists of saturated hydrocarbons (single bonds only). They must be cracked into smaller molecules like ethylene that have double bonds, which can be opened for polymerization."
+          - prompt: "At which stage does the material transition from a mixture of different molecules to long chains of repeating units?"
+            choices:
+              - text: "During distillation"
+              - text: "During polymerization"
+                correct: true
+              - text: "During cracking"
+              - text: "During molding"
+            explanation: "Polymerization is where small monomer molecules (ethylene) are chemically bonded into long polymer chains with repeating units, transforming the nature of the material."
+          - prompt: "Why is it economically beneficial that cracking produces multiple products (ethylene, propylene, hydrogen) rather than just ethylene?"
+            choices:
+              - text: "It is not beneficial"
+              - text: "All byproducts have commercial value, improving the overall economics of the process"
+                correct: true
+              - text: "Multiple products create waste"
+              - text: "Only ethylene has value"
+            explanation: "Propylene makes polypropylene plastic, hydrogen is used in refineries and chemical synthesis, and other fractions become fuels. Selling all products improves profitability."
+          - prompt: "If the goal is to produce a blue plastic toy car, at which stage would blue colorant most likely be added?"
+            choices:
+              - text: "During crude oil extraction"
+              - text: "Mixed with pellets before injection molding"
+                correct: true
+              - text: "During polymerization"
+              - text: "During cracking"
+            explanation: "Colorants are typically added just before the final shaping process, allowing the same base polymer pellets to be used for different colored products as needed."
+          - prompt: "Which step determines whether the final plastic will be LDPE or HDPE?"
+            choices:
+              - text: "Crude oil extraction"
+              - text: "Polymerization conditions (temperature, pressure, catalysts)"
+                correct: true
+              - text: "Injection molding"
+              - text: "Cracking"
+            explanation: "The polymerization conditions determine chain structure (linear vs. branched) and therefore whether LDPE or HDPE is produced."
+          - prompt: "In the complete process from oil to product, how many times is the material heated to high temperatures?"
+            choices:
+              - text: "Only once"
+              - text: "At least three times: distillation, cracking, and final molding"
+                correct: true
+              - text: "Never"
+              - text: "Only during molding"
+            explanation: "Crude oil is heated during distillation, naphtha is heated to extreme temperatures during cracking, and pellets are melted during the final molding process—at least three heating steps."
+          - prompt: "Why is the plastic manufacturing process described as 'energy intensive'?"
+            choices:
+              - text: "It is not energy intensive"
+              - text: "Multiple steps require significant heating, high pressure, and complex processing"
+                correct: true
+              - text: "Only molding uses energy"
+              - text: "Energy use is minimal"
+            explanation: "The process requires energy for: distillation, extreme temperatures for cracking (800-900°C), polymerization reactions, pelletizing, and melting/molding. This cumulative energy use is substantial."
+
+      - name: "environmental-considerations"
+        description: "Understanding environmental impacts of plastic production and use"
+        prerequisites: ["oil-to-product-overview"]
+        contents:
+          - "Plastic production consumes fossil fuel resources both as raw material and energy"
+          - "The manufacturing process releases greenhouse gases, primarily CO₂"
+          - "Plastics are durable and resistant to degradation, causing long-term waste issues"
+          - "Recycling can reduce resource consumption but has limitations"
+        questions:
+          - prompt: "Why is plastic production linked to climate change?"
+            choices:
+              - text: "It is not linked"
+              - text: "Burning fossil fuels for energy and extracting/processing oil releases CO₂, a greenhouse gas"
+                correct: true
+              - text: "Plastic absorbs heat"
+              - text: "Plastic produces oxygen"
+            explanation: "The energy for heating, cracking, and processing comes largely from burning fossil fuels, releasing CO₂. Additionally, some carbon from the oil feedstock is released as CO₂ during various stages."
+          - prompt: "What property of polyethylene that makes it useful also makes it an environmental problem?"
+            choices:
+              - text: "Its color"
+              - text: "Its resistance to degradation means it persists in the environment for hundreds of years"
+                correct: true
+              - text: "Its weight"
+              - text: "Its conductivity"
+            explanation: "Polyethylene's strong carbon-carbon bonds resist breakdown by microorganisms, water, and sunlight—the same durability that makes it useful means it persists as waste for centuries."
+          - prompt: "Why can't all plastic waste be recycled indefinitely like aluminum?"
+            choices:
+              - text: "All plastic can be recycled indefinitely"
+              - text: "Polymer chains break during reprocessing, and contaminants accumulate, degrading quality with each cycle"
+                correct: true
+              - text: "Plastic cannot be recycled at all"
+              - text: "Recycling is forbidden"
+            explanation: "Each time plastic is melted and reprocessed, chains break, reducing molecular weight and properties. Contaminants and mixed polymers also limit recycling quality and cycles."
+          - prompt: "If producing 1 kg of polyethylene requires 2 kg of crude oil equivalent (as feedstock and energy), what percentage is converted to plastic?"
+            choices:
+              - text: "100%"
+              - text: "50%"
+                correct: true
+              - text: "200%"
+              - text: "25%"
+            explanation: "If 2 kg of oil produces 1 kg of plastic, then 1/2 = 50% of the oil is converted to plastic. The remainder provides energy and becomes byproducts."
+          - prompt: "Why might biodegradable plastics made from plant materials be considered more sustainable?"
+            choices:
+              - text: "They are cheaper"
+              - text: "They use renewable resources and can break down more easily in the environment"
+                correct: true
+              - text: "They last longer"
+              - text: "They are stronger"
+            explanation: "Plant-based plastics use renewable resources (plants regrow) rather than finite fossil fuels, and some can biodegrade more readily, though this depends on specific materials and conditions."
+          - prompt: "What is one major challenge in plastic recycling?"
+            choices:
+              - text: "Plastic is too easy to recycle"
+              - text: "Different types of plastics must be separated because they are incompatible when melted together"
+                correct: true
+              - text: "All plastics are identical"
+              - text: "Recycling creates new plastic"
+            explanation: "Different plastics (LDPE, HDPE, polypropylene, etc.) have different melting points and properties. Mixing them creates poor-quality material, so separation is essential but challenging."
+          - prompt: "How does reducing plastic use compare to recycling in terms of environmental impact?"
+            choices:
+              - text: "They have identical impacts"
+              - text: "Reducing use is more effective because it avoids resource extraction, energy use, and waste generation entirely"
+                correct: true
+              - text: "Recycling is always better"
+              - text: "Neither has any environmental benefit"
+            explanation: "Reducing use prevents all upstream impacts (extraction, processing, manufacturing) and downstream impacts (waste). Recycling is beneficial but still requires energy and has limits."
+          - prompt: "Why is single-use plastic particularly problematic environmentally?"
+            choices:
+              - text: "It is not problematic"
+              - text: "The material persists for centuries but the product is used only briefly, creating a large waste-to-benefit ratio"
+                correct: true
+              - text: "It degrades too quickly"
+              - text: "It is always recycled"
+            explanation: "Single-use plastics like bags or straws are used for minutes but persist for hundreds of years, representing a highly unfavorable ratio of environmental cost to functional benefit."
