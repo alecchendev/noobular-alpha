@@ -32,9 +32,9 @@ REVIEW_CORRECT_COUNT_THRESHOLD = 3
 # number of wrong answers for a knowledge point at which you will fail and have to restart a lesson
 INCORRECT_COUNT_FAIL_THRESHOLD = 3
 # number of knowledge points completed before a quiz is ready
-QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 8
+QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 2
 # number of questions in a quiz
-QUIZ_QUESTION_COUNT = 4
+QUIZ_QUESTION_COUNT = 2
 assert QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD >= QUIZ_QUESTION_COUNT
 # number of minutes allowed for a quiz
 QUIZ_TIME_LIMIT_MINUTES = 15
@@ -152,9 +152,11 @@ def init_database() -> None:
     cursor.execute("""CREATE TABLE IF NOT EXISTS quizzes (
         id INTEGER PRIMARY KEY,
         course_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         started_at TIMESTAMP,
-        FOREIGN KEY (course_id) REFERENCES courses (id)
+        FOREIGN KEY (course_id) REFERENCES courses (id),
+        FOREIGN KEY (user_id) REFERENCES users (id)
     )""")
 
     # Create quiz_questions table (links quizzes to questions)
@@ -171,8 +173,11 @@ def init_database() -> None:
     cursor.execute("""CREATE TABLE IF NOT EXISTS reviews (
         id INTEGER PRIMARY KEY,
         knowledge_point_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points (id)
+        FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points (id),
+        FOREIGN KEY (user_id) REFERENCES users (id),
+        UNIQUE(knowledge_point_id, user_id)
     )""")
 
     # Create review_questions table (links reviews to questions)
@@ -189,8 +194,11 @@ def init_database() -> None:
     cursor.execute("""CREATE TABLE IF NOT EXISTS diagnostics (
         id INTEGER PRIMARY KEY,
         course_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (course_id) REFERENCES courses (id)
+        FOREIGN KEY (course_id) REFERENCES courses (id),
+        FOREIGN KEY (user_id) REFERENCES users (id),
+        UNIQUE(course_id, user_id)
     )""")
 
     # Create diagnostic_questions table (links diagnostics to questions)
@@ -783,14 +791,24 @@ def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
             question_rows = cursor.fetchall()
 
             cursor.execute(
-                """SELECT q.id FROM quiz_questions qq JOIN questions q on qq.question_id = q.id WHERE q.knowledge_point_id = ?""",
-                (kp_db_id,),
+                """SELECT q.id
+                   FROM quiz_questions qq
+                   JOIN quizzes qu ON qq.quiz_id = qu.id
+                   JOIN questions q ON qq.question_id = q.id
+                   WHERE q.knowledge_point_id = ?
+                   AND qu.user_id = ?""",
+                (kp_db_id, user_id),
             )
             quizzed_question_ids = set(row[0] for row in cursor.fetchall())
 
             cursor.execute(
-                """SELECT q.id FROM review_questions rq JOIN questions q on rq.question_id = q.id WHERE q.knowledge_point_id = ?""",
-                (kp_db_id,),
+                """SELECT q.id
+                   FROM review_questions rq
+                   JOIN reviews r ON rq.review_id = r.id
+                   JOIN questions q ON rq.question_id = q.id
+                   WHERE q.knowledge_point_id = ?
+                   AND r.user_id = ?""",
+                (kp_db_id, user_id),
             )
             # We need to keep these in order so that when we answer later with
             # the index, we can find the right question. Later we should
@@ -800,8 +818,13 @@ def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
             }
 
             cursor.execute(
-                """SELECT q.id FROM diagnostic_questions dq JOIN questions q on dq.question_id = q.id WHERE q.knowledge_point_id = ?""",
-                (kp_db_id,),
+                """SELECT q.id
+                   FROM diagnostic_questions dq
+                   JOIN diagnostics d ON dq.diagnostic_id = d.id
+                   JOIN questions q ON dq.question_id = q.id
+                   WHERE q.knowledge_point_id = ?
+                   AND d.user_id = ?""",
+                (kp_db_id, user_id),
             )
             # We need to keep these in order so that when we answer later with
             # the index, we can find the right question. Later we should
@@ -1081,12 +1104,15 @@ def course_page(course_id: int) -> str:
 
     # Create a diagnostic if one doesn't exist for this course
     cursor.execute(
-        "SELECT id FROM diagnostics WHERE course_id = ?",
-        (course_id,),
+        "SELECT id FROM diagnostics WHERE course_id = ? AND user_id = ?",
+        (course_id, g.user.id),
     )
     diagnostic_row = cursor.fetchone()
     if not diagnostic_row:
-        cursor.execute("INSERT INTO diagnostics (course_id) VALUES (?)", (course_id,))
+        cursor.execute(
+            "INSERT INTO diagnostics (course_id, user_id) VALUES (?, ?)",
+            (course_id, g.user.id),
+        )
         db.commit()
         diagnostic_id = cursor.lastrowid
     else:
@@ -1094,8 +1120,8 @@ def course_page(course_id: int) -> str:
 
     # Get the creation time of the last quiz (or use epoch if no quizzes exist)
     cursor.execute(
-        "SELECT created_at FROM quizzes WHERE course_id = ? ORDER BY created_at DESC LIMIT 1",
-        (course_id,),
+        "SELECT created_at FROM quizzes WHERE course_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1",
+        (course_id, g.user.id),
     )
     last_quiz_row = cursor.fetchone()
     last_quiz_time = last_quiz_row[0] if last_quiz_row else "1970-01-01 00:00:00"
@@ -1133,7 +1159,10 @@ def course_page(course_id: int) -> str:
         # Create quiz, then insert all quiz questions in one query
         assert len(quiz_questions) > 0
 
-        cursor.execute("INSERT INTO quizzes (course_id) VALUES (?)", (course_id,))
+        cursor.execute(
+            "INSERT INTO quizzes (course_id, user_id) VALUES (?, ?)",
+            (course_id, g.user.id),
+        )
         quiz_id = cursor.lastrowid
 
         cursor.executemany(
@@ -1143,7 +1172,10 @@ def course_page(course_id: int) -> str:
         db.commit()
 
     # Load all quizzes for this course
-    cursor.execute("SELECT id FROM quizzes WHERE course_id = ?", (course_id,))
+    cursor.execute(
+        "SELECT id FROM quizzes WHERE course_id = ? AND user_id = ?",
+        (course_id, g.user.id),
+    )
     quiz_rows = cursor.fetchall()
 
     # Separate quizzes into available and completed
@@ -1219,8 +1251,9 @@ def course_page(course_id: int) -> str:
            FROM reviews r
            JOIN knowledge_points kp ON r.knowledge_point_id = kp.id
            JOIN lessons l ON kp.lesson_id = l.id
-           WHERE l.course_id = ?""",
-        (course_id,),
+           WHERE l.course_id = ?
+           AND r.user_id = ?""",
+        (course_id, g.user.id),
     )
     kp_ids_with_reviews = set(kp_id for _, kp_id in cursor.fetchall())
 
@@ -1234,8 +1267,8 @@ def course_page(course_id: int) -> str:
         )
         if len(completed_kp_ids_after_kp) >= REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD:
             cursor.execute(
-                "INSERT INTO reviews (knowledge_point_id) VALUES (?)",
-                (knowledge_point.id,),
+                "INSERT INTO reviews (knowledge_point_id, user_id) VALUES (?, ?)",
+                (knowledge_point.id, g.user.id),
             )
     db.commit()
 
@@ -1245,8 +1278,9 @@ def course_page(course_id: int) -> str:
            FROM reviews r
            JOIN knowledge_points kp ON r.knowledge_point_id = kp.id
            JOIN lessons l ON kp.lesson_id = l.id
-           WHERE l.course_id = ?""",
-        (course_id,),
+           WHERE l.course_id = ?
+           AND r.user_id = ?""",
+        (course_id, g.user.id),
     )
     review_rows = cursor.fetchall()
 
@@ -1505,8 +1539,8 @@ def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
 
     # Verify quiz exists and belongs to course, and get started_at
     cursor.execute(
-        "SELECT started_at FROM quizzes WHERE id = ? AND course_id = ?",
-        (quiz_id, course_id),
+        "SELECT started_at FROM quizzes WHERE id = ? AND course_id = ? AND user_id = ?",
+        (quiz_id, course_id, g.user.id),
     )
     quiz_row = cursor.fetchone()
     if not quiz_row:
@@ -1579,7 +1613,8 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
     # Set started_at if this is the first time loading the quiz
     if quiz.started_at is None:
         cursor.execute(
-            "UPDATE quizzes SET started_at = CURRENT_TIMESTAMP WHERE id = ?", (quiz_id,)
+            "UPDATE quizzes SET started_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?",
+            (quiz_id, g.user.id),
         )
         db.commit()
 
@@ -1655,7 +1690,10 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
 
     # Create reviews for incorrect knowledge points
     for kp_id in incorrect_kp_ids:
-        cursor.execute("INSERT INTO reviews (knowledge_point_id) VALUES (?)", (kp_id,))
+        cursor.execute(
+            "INSERT INTO reviews (knowledge_point_id, user_id) VALUES (?, ?)",
+            (kp_id, g.user.id),
+        )
 
     db.commit()
 
@@ -1741,7 +1779,10 @@ def review_page(course_id: int, review_id: int) -> str:
     cursor = db.cursor()
 
     # Get the knowledge_point_id for this review
-    cursor.execute("SELECT knowledge_point_id FROM reviews WHERE id = ?", (review_id,))
+    cursor.execute(
+        "SELECT knowledge_point_id FROM reviews WHERE id = ? AND user_id = ?",
+        (review_id, g.user.id),
+    )
     review_row = cursor.fetchone()
     if not review_row:
         abort(404)
@@ -1791,7 +1832,10 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
     cursor = db.cursor()
 
     # Get the knowledge_point_id for this review
-    cursor.execute("SELECT knowledge_point_id FROM reviews WHERE id = ?", (review_id,))
+    cursor.execute(
+        "SELECT knowledge_point_id FROM reviews WHERE id = ? AND user_id = ?",
+        (review_id, g.user.id),
+    )
     review_row = cursor.fetchone()
     if not review_row:
         abort(404)
@@ -1884,7 +1928,10 @@ def review_next_question(course_id: int, review_id: int) -> str:
     cursor = db.cursor()
 
     # Get the knowledge_point_id for this review
-    cursor.execute("SELECT knowledge_point_id FROM reviews WHERE id = ?", (review_id,))
+    cursor.execute(
+        "SELECT knowledge_point_id FROM reviews WHERE id = ? AND user_id = ?",
+        (review_id, g.user.id),
+    )
     review_row = cursor.fetchone()
     if not review_row:
         abort(404)
@@ -1992,8 +2039,8 @@ def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
 
     # Verify diagnostic exists and belongs to course
     cursor.execute(
-        "SELECT id FROM diagnostics WHERE id = ? AND course_id = ?",
-        (diagnostic_id, course_id),
+        "SELECT id FROM diagnostics WHERE id = ? AND course_id = ? AND user_id = ?",
+        (diagnostic_id, course_id, g.user.id),
     )
     if not cursor.fetchone():
         abort(404)
@@ -2047,8 +2094,8 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
 
     # Verify diagnostic exists
     cursor.execute(
-        "SELECT id FROM diagnostics WHERE id = ? AND course_id = ?",
-        (diagnostic_id, course_id),
+        "SELECT id FROM diagnostics WHERE id = ? AND course_id = ? AND user_id = ?",
+        (diagnostic_id, course_id, g.user.id),
     )
     if not cursor.fetchone():
         abort(404)
@@ -2151,8 +2198,8 @@ def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
 
     # Verify diagnostic exists
     cursor.execute(
-        "SELECT id FROM diagnostics WHERE id = ? AND course_id = ?",
-        (diagnostic_id, course_id),
+        "SELECT id FROM diagnostics WHERE id = ? AND course_id = ? AND user_id = ?",
+        (diagnostic_id, course_id, g.user.id),
     )
     if not cursor.fetchone():
         abort(404)
