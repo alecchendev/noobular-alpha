@@ -12,25 +12,19 @@
         {% for question in quiz.questions %}
             <p>{{ loop.index }}. {{ question.prompt }}</p>
             {% for choice in question.choices %}
-                <div>
+                <label>
                     <input type="radio"
                            name="question_{{ question.id }}"
                            value="{{ loop.index0 }}"
                            {% if question.answer and question.answer.choice_id == choice.id %}checked{% endif %}
                            disabled>
-                    {% if question.answer and question.answer.choice_id == choice.id %}
-                        {% if choice.correct %}
-                            ✅ {{ choice.text }}
-                        {% else %}
-                            ❌ {{ choice.text }}
-                        {% endif %}
-                    {% elif choice.correct %}
-                        ✓ {{ choice.text }}
-                    {% else %}
                         {{ choice.text }}
-                    {% endif %}
-                </div>
+                </label>
             {% endfor %}
+            {% set is_correct = question.answer.choice_id == question.correct_choice().id %}
+            {% set correct_answer_text = question.correct_choice().text %}
+            {% set explanation = question.explanation %}
+            {% include 'answer_feedback.html' %}
         {% endfor %}
     {% else %}
         <p>Time remaining: <span id="timer"></span></p>
@@ -39,10 +33,10 @@
             {% for question in quiz.questions %}
                 <p>{{ loop.index }}. {{ question.prompt }}</p>
                 {% for choice in question.choices %}
-                    <div>
+                    <label>
                         <input type="radio" name="question_{{ question.id }}" value="{{ loop.index0 }}" required>
                         {{ choice.text }}
-                    </div>
+                    </label>
                 {% endfor %}
             {% endfor %}
             <button type="submit">Submit Quiz</button>

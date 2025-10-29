@@ -26,6 +26,10 @@
             hx-swap="outerHTML"
         >Submit</button>
     {% else %}
+        {% set is_correct = question.answer.choice_id == question.correct_choice().id %}
+        {% set correct_answer_text = question.correct_choice().text %}
+        {% set explanation = question.explanation %}
+        {% include 'answer_feedback.html' %}
         {% include 'question_next_button.html' %}
     {% endif %}
 {% endif %}

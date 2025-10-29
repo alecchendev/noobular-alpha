@@ -111,6 +111,7 @@ def init_database() -> None:
         id INTEGER PRIMARY KEY,
         knowledge_point_id INTEGER NOT NULL,
         prompt TEXT NOT NULL,
+        explanation TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points (id)
     )""")
@@ -313,6 +314,7 @@ class Question:
     choices: List[Choice]
     answer: Optional[Answer]
     knowledge_point_id: int
+    explanation: str
 
     def correct_choice(self) -> Choice:
         # Assumes there is a correct choice (should be validated upon course load)
@@ -518,6 +520,11 @@ def validate_course(course_data: dict[str, Any]) -> None:
                         f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} missing required field: 'prompt'"
                     )
 
+                if "explanation" not in question_data:
+                    raise ValueError(
+                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data.get('prompt', 'unknown')}') missing required field: 'explanation'"
+                    )
+
                 if "choices" not in question_data:
                     raise ValueError(
                         f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data.get('prompt', 'unknown')}') missing required field: 'choices'"
@@ -660,9 +667,13 @@ def save_course(
             for question_data in kp_data["questions"]:
                 cursor.execute(
                     """INSERT INTO questions
-                                 (knowledge_point_id, prompt)
-                                 VALUES (?, ?)""",
-                    (knowledge_point_db_id, question_data["prompt"]),
+                                 (knowledge_point_id, prompt, explanation)
+                                 VALUES (?, ?, ?)""",
+                    (
+                        knowledge_point_db_id,
+                        question_data["prompt"],
+                        question_data["explanation"],
+                    ),
                 )
                 question_id = cursor.lastrowid
 
@@ -785,7 +796,7 @@ def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
 
             # Get questions for this knowledge point
             cursor.execute(
-                "SELECT id, prompt FROM questions WHERE knowledge_point_id = ?",
+                "SELECT id, prompt, explanation FROM questions WHERE knowledge_point_id = ?",
                 (kp_db_id,),
             )
             question_rows = cursor.fetchall()
@@ -835,13 +846,13 @@ def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
 
             questions = []
             quizzed_questions = []
-            reviewed_questions: list[Question] = [Question(-1, "", [], None, -1)] * len(
-                reviewed_question_id_to_idx
-            )
+            reviewed_questions: list[Question] = [
+                Question(-1, "", [], None, -1, "")
+            ] * len(reviewed_question_id_to_idx)
             diagnostic_questions: list[Question] = [
-                Question(-1, "", [], None, -1)
+                Question(-1, "", [], None, -1, "")
             ] * len(diagnostic_question_id_to_idx)
-            for question_id, prompt in question_rows:
+            for question_id, prompt, explanation in question_rows:
                 # Get choices for this question
                 cursor.execute(
                     "SELECT id, text, is_correct FROM choices WHERE question_id = ?",
@@ -870,6 +881,7 @@ def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
                     choices=choices,
                     answer=answer,
                     knowledge_point_id=kp_db_id,
+                    explanation=explanation,
                 )
                 if question.id in quizzed_question_ids:
                     quizzed_questions.append(question)
@@ -1438,10 +1450,12 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     )
     correct_answer_text = question.choices[correct_answer_index].text
 
-    if is_correct:
-        feedback = f"✅ Correct! The correct answer is: {correct_answer_text}"
-    else:
-        feedback = f"❌ Incorrect. The correct answer is: {correct_answer_text}"
+    feedback = render_template(
+        "answer_feedback.html",
+        is_correct=is_correct,
+        correct_answer_text=correct_answer_text,
+        explanation=question.explanation,
+    )
 
     # Check if user has failed the knowledge point (3+ wrong answers)
     knowledge_point = lesson.knowledge_points[kp_index]
@@ -1483,7 +1497,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
             i=i,
         )
 
-    return f"<p>{feedback}</p>{failure_message}{next_button_html}"
+    return f"{feedback}{failure_message}{next_button_html}"
 
 
 @app.route("/validate-course", methods=["POST"])
@@ -1550,7 +1564,7 @@ def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
 
     # Load quiz questions
     cursor.execute(
-        """SELECT q.id, q.prompt, q.knowledge_point_id
+        """SELECT q.id, q.prompt, q.knowledge_point_id, q.explanation
            FROM quiz_questions qq
            JOIN questions q ON qq.question_id = q.id
            WHERE qq.quiz_id = ?""",
@@ -1559,7 +1573,7 @@ def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
     question_rows = cursor.fetchall()
 
     questions = []
-    for q_id, q_prompt, q_kp_id in question_rows:
+    for q_id, q_prompt, q_kp_id, q_explanation in question_rows:
         # Load choices for this question
         cursor.execute(
             "SELECT id, text, is_correct FROM choices WHERE question_id = ?", (q_id,)
@@ -1588,6 +1602,7 @@ def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
                 choices=choices,
                 answer=answer,
                 knowledge_point_id=q_kp_id,
+                explanation=q_explanation,
             )
         )
 
@@ -1893,10 +1908,12 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
     )
     correct_answer_text = question.choices[correct_answer_index].text
 
-    if is_correct:
-        feedback = f"✅ Correct! The correct answer is: {correct_answer_text}"
-    else:
-        feedback = f"❌ Incorrect. The correct answer is: {correct_answer_text}"
+    feedback = render_template(
+        "answer_feedback.html",
+        is_correct=is_correct,
+        correct_answer_text=correct_answer_text,
+        explanation=question.explanation,
+    )
 
     # Create new question if needed (haven't answered enough correct in a row, and unanswered questions left)
     if (
@@ -1915,7 +1932,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
         i=i,
     )
 
-    return f"<p>{feedback}</p>{next_button_html}"
+    return f"{feedback}{next_button_html}"
 
 
 @app.route("/course/<int:course_id>/review/<int:review_id>/next", methods=["POST"])
@@ -2165,10 +2182,12 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     )
     correct_answer_text = question.choices[correct_answer_index].text
 
-    if is_correct:
-        feedback = f"✅ Correct! The correct answer is: {correct_answer_text}"
-    else:
-        feedback = f"❌ Incorrect. The correct answer is: {correct_answer_text}"
+    feedback = render_template(
+        "answer_feedback.html",
+        is_correct=is_correct,
+        correct_answer_text=correct_answer_text,
+        explanation=None,
+    )
 
     # Create new question if more questions are needed
     # For now, just create one new question
@@ -2182,7 +2201,7 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
         i=i,
     )
 
-    return f"<p>{feedback}</p>{next_button_html}"
+    return f"{feedback}{next_button_html}"
 
 
 @app.route(
