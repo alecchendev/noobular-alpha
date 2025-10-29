@@ -32,12 +32,12 @@ REVIEW_CORRECT_COUNT_THRESHOLD = 3
 # number of wrong answers for a knowledge point at which you will fail and have to restart a lesson
 INCORRECT_COUNT_FAIL_THRESHOLD = 3
 # number of knowledge points completed before a quiz is ready
-QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 2
+QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 8
 # number of questions in a quiz
-QUIZ_QUESTION_COUNT = 2
+QUIZ_QUESTION_COUNT = 4
 assert QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD >= QUIZ_QUESTION_COUNT
 # number of minutes allowed for a quiz
-QUIZ_TIME_LIMIT_MINUTES = 15
+QUIZ_TIME_LIMIT_MINUTES = 10
 # TODO: have a cutoff of knowledge points before they must take a quiz
 # number of knowledge points completed before a review will surface
 # (if the knowledge point is completed and has no postreqs)
