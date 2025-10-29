@@ -15,7 +15,7 @@
                 <label>
                     <input type="radio"
                            name="question_{{ question.id }}"
-                           value="{{ loop.index0 }}"
+                           value="{{ choice.id }}"
                            {% if question.answer and question.answer.choice_id == choice.id %}checked{% endif %}
                            disabled>
                         {{ choice.text }}
@@ -34,7 +34,7 @@
                 <p>{{ loop.index }}. {{ question.prompt }}</p>
                 {% for choice in question.choices %}
                     <label>
-                        <input type="radio" name="question_{{ question.id }}" value="{{ loop.index0 }}" required>
+                        <input type="radio" name="question_{{ question.id }}" value="{{ choice.id }}" required>
                         {{ choice.text }}
                     </label>
                 {% endfor %}

@@ -11,7 +11,7 @@
             <form id="knowledge-point-{{ knowledge_point_index }}-question-form-{{ question_index }}">
                 {% for choice in question.choices %}
                     <label>
-                        <input type="radio" name="answer" value="{{ loop.index0 }}" required
+                        <input type="radio" name="answer" value="{{ choice.id }}" required
                             {% if question.answer is not none %}
                                 disabled
                                 {% if choice.id == question.answer.choice_id %}checked{% endif %}

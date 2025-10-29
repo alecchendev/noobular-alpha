@@ -863,6 +863,8 @@ def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
                     Choice(id=id, text=text, correct=bool(is_correct))
                     for id, text, is_correct in choice_rows
                 ]
+                # Shuffle choices so they appear in random order
+                random.shuffle(choices)
 
                 cursor.execute(
                     """SELECT id, question_id, choice_id FROM answers
@@ -1423,11 +1425,17 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     kp_index = int(kp_index_str)
     question_index = int(question_index_str)
     i = int(i_str)
-    answer_index = int(answer_str)
+    choice_id = int(answer_str)
 
     # Validate the answer
     question = lesson.knowledge_points[kp_index].questions[question_index]
-    user_choice = question.choices[answer_index]
+    # Find the choice by ID instead of using index
+    user_choice = next((c for c in question.choices if c.id == choice_id), None)
+    if not user_choice:
+        print(
+            f"Could not find choice {choice_id} in {[c.id for c in question.choices]}"
+        )
+        abort(404)
 
     # Save the user's answer to the database
     db = get_db()
@@ -1687,11 +1695,11 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
     for question in quiz.questions:
         answer_key = f"question_{question.id}"
         if answer_key in request.form:
-            choice_index = int(request.form[answer_key])
+            choice_id = int(request.form[answer_key])
 
-            if choice_index < len(question.choices):
-                choice_id = question.choices[choice_index].id
-
+            # Find the choice by ID
+            user_choice = next((c for c in question.choices if c.id == choice_id), None)
+            if user_choice:
                 # Store the answer
                 cursor.execute(
                     "INSERT OR REPLACE INTO answers (user_id, question_id, choice_id) VALUES (?, ?, ?)",
@@ -1699,7 +1707,7 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
                 )
 
                 # Check if answer is incorrect
-                is_correct = question.choices[choice_index].correct
+                is_correct = user_choice.correct
                 if not is_correct:
                     incorrect_kp_ids.add(question.knowledge_point_id)
 
@@ -1876,7 +1884,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
         abort(404)
 
     i = int(i_str)
-    answer_index = int(answer_str)
+    choice_id = int(answer_str)
 
     # Get the question at this index
     if i >= len(knowledge_point.reviewed_questions):
@@ -1886,7 +1894,13 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
     print(knowledge_point.reviewed_questions)
     question = knowledge_point.reviewed_questions[i]
 
-    user_choice = question.choices[answer_index]
+    # Find the choice by ID
+    user_choice = next((c for c in question.choices if c.id == choice_id), None)
+    if not user_choice:
+        print(
+            f"Could not find choice {choice_id} in {[c.id for c in question.choices]}"
+        )
+        abort(404)
 
     # Save the user's answer to the database
     print(question.id)
@@ -2123,7 +2137,7 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
         abort(404)
 
     i = int(i_str)
-    answer_index = int(answer_str)
+    choice_id = int(answer_str)
 
     # Get diagnostic questions
     cursor.execute(
@@ -2159,7 +2173,13 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     assert question_kp_idx is not None
     assert question_idx is not None
 
-    user_choice = question.choices[answer_index]
+    # Find the choice by ID
+    user_choice = next((c for c in question.choices if c.id == choice_id), None)
+    if not user_choice:
+        print(
+            f"Could not find choice {choice_id} in {[c.id for c in question.choices]}"
+        )
+        abort(404)
 
     # Save the user's answer to the database
     cursor.execute(
