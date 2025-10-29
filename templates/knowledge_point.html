@@ -3,9 +3,9 @@
     {% if i < knowledge_point.contents|length %}
         <p class="content">{{ knowledge_point.contents[i].text }}</p>
         {% include 'next_button.html' %}
-    {% elif i < knowledge_point.contents|length + knowledge_point.questions|length %}
+    {% elif i < knowledge_point.contents|length + knowledge_point.lesson_questions|length %}
         {% set question_index = i - knowledge_point.contents|length %}
-        {% set question = knowledge_point.questions[question_index] %}
+        {% set question = knowledge_point.lesson_questions[question_index] %}
         <div class="question">
             <p><strong>{{ question.prompt }}</strong></p>
             <form id="knowledge-point-{{ knowledge_point_index }}-question-form-{{ question_index }}">

@@ -212,6 +212,16 @@ def init_database() -> None:
         FOREIGN KEY (question_id) REFERENCES questions (id)
     )""")
 
+    # Create lesson_questions table (tracks which questions are used in lessons)
+    cursor.execute("""CREATE TABLE IF NOT EXISTS lesson_questions (
+        id INTEGER PRIMARY KEY,
+        question_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (question_id) REFERENCES questions (id),
+        FOREIGN KEY (user_id) REFERENCES users (id)
+    )""")
+
     # Create default global user if it doesn't exist
     cursor.execute(
         "INSERT OR IGNORE INTO users (username) VALUES (?)", (GLOBAL_USERNAME,)
@@ -346,15 +356,14 @@ class KnowledgePoint:
     description: str
     prerequisites: List[int]
     contents: List[Content]
-    questions: List[
-        Question
-    ]  # Does not include questions used in a quiz, review, or diagnostic
+    questions: List[Question]  # Unused unanswered questions
+    lesson_questions: List[Question]  # Includes questions used in a lesson
     quizzed_questions: List[Question]  # Includes questions used in a quiz
     reviewed_questions: List[Question]  # Includes questions used in a review
     diagnostic_questions: List[Question]  # Includes questions used in a diagnostic
 
     def last_consecutive_correct_answers(self) -> int:
-        return last_consecutive_correct_answers(self.questions)
+        return last_consecutive_correct_answers(self.lesson_questions)
 
     def last_consecutive_correct_review_answers(self) -> int:
         return last_consecutive_correct_answers(self.reviewed_questions)
@@ -844,7 +853,22 @@ def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
                 row[0]: i for i, row in enumerate(cursor.fetchall())
             }
 
+            cursor.execute(
+                """SELECT q.id
+                   FROM lesson_questions lq
+                   JOIN questions q ON lq.question_id = q.id
+                   WHERE q.knowledge_point_id = ?
+                   AND lq.user_id = ?""",
+                (kp_db_id, user_id),
+            )
+            lesson_question_id_to_idx = {
+                row[0]: i for i, row in enumerate(cursor.fetchall())
+            }
+
             questions = []
+            lesson_questions: list[Question] = [
+                Question(-1, "", [], None, -1, "")
+            ] * len(lesson_question_id_to_idx)
             quizzed_questions = []
             reviewed_questions: list[Question] = [
                 Question(-1, "", [], None, -1, "")
@@ -895,10 +919,13 @@ def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
                     diagnostic_questions[diagnostic_question_id_to_idx[question.id]] = (
                         question
                     )
+                elif question.id in lesson_question_id_to_idx.keys():
+                    lesson_questions[lesson_question_id_to_idx[question.id]] = question
                 else:
                     questions.append(question)
             assert all(q.id != -1 for q in reviewed_questions)
             assert all(q.id != -1 for q in diagnostic_questions)
+            assert all(q.id != -1 for q in lesson_questions)
 
             knowledge_points.append(
                 KnowledgePoint(
@@ -908,6 +935,7 @@ def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
                     prerequisites=prerequisites,
                     contents=contents,
                     questions=questions,
+                    lesson_questions=lesson_questions,
                     quizzed_questions=quizzed_questions,
                     reviewed_questions=reviewed_questions,
                     diagnostic_questions=diagnostic_questions,
@@ -1062,12 +1090,12 @@ def course_page(course_id: int) -> str:
             # Either all questions have been answered, or last X questions were
             # answered correctly in a row
             answered_questions = [
-                question for question in kp.questions if question.answer
+                question for question in kp.lesson_questions if question.answer
             ]
             if (
-                len(answered_questions) == len(kp.questions)
-                or kp.last_consecutive_correct_answers() >= CORRECT_COUNT_THRESHOLD
-            ):
+                len(answered_questions) == len(kp.lesson_questions)
+                and len(kp.questions) == 0
+            ) or kp.last_consecutive_correct_answers() >= CORRECT_COUNT_THRESHOLD:
                 completed_kp_ids.add(kp.id)
             passed_diagnostic = len(kp.diagnostic_questions) > 0 and all(
                 q.answer is not None and q.answer.choice_id == q.correct_choice().id
@@ -1163,11 +1191,8 @@ def course_page(course_id: int) -> str:
         # Collect one unanswered question from each selected KP
         quiz_questions = []
         for kp in selected_kps:
-            unanswered = [q for q in kp.questions if q.answer is None]
-            # TODO: consider separate bank for quiz questions, or better enforce
-            # assumption of large question bank upon course creation
-            assert len(unanswered) > 0
-            question = random.choice(unanswered)
+            assert len(kp.questions) > 0
+            question = random.choice(kp.questions)
             quiz_questions.append(question.id)
 
         # Create quiz, then insert all quiz questions in one query
@@ -1428,7 +1453,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     choice_id = int(answer_str)
 
     # Validate the answer
-    question = lesson.knowledge_points[kp_index].questions[question_index]
+    question = lesson.knowledge_points[kp_index].lesson_questions[question_index]
     # Find the choice by ID instead of using index
     user_choice = next((c for c in question.choices if c.id == choice_id), None)
     if not user_choice:
@@ -1447,7 +1472,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     answer_id = cursor.lastrowid
     assert answer_id is not None
     # Important that we populate this the rest of this handler can assume correct state
-    lesson.knowledge_points[kp_index].questions[question_index].answer = Answer(
+    lesson.knowledge_points[kp_index].lesson_questions[question_index].answer = Answer(
         id=answer_id, question_id=question.id, choice_id=user_choice.id
     )
     db.commit()
@@ -1470,7 +1495,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     incorrect_count = len(
         [
             question
-            for question in knowledge_point.questions
+            for question in knowledge_point.lesson_questions
             if question.answer is not None
             and question.answer.choice_id != question.correct_choice().id
         ]
@@ -1482,7 +1507,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     if failed_knowledge_point:
         # Delete all answers for questions in this lesson
         for kp in lesson.knowledge_points:
-            for q in kp.questions:
+            for q in kp.lesson_questions:
                 if q.answer:
                     cursor.execute(
                         "DELETE FROM answers WHERE id = ? and user_id = ?",
@@ -1754,11 +1779,29 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
     )
     question_index = i - len(knowledge_point.contents)
     new_question = question_index >= len(
-        [question for question in knowledge_point.questions if question.answer]
+        [question for question in knowledge_point.lesson_questions if question.answer]
     )
     if completed_kp and new_question:
         kp_index += 1
         i = 0
+    elif new_question and len(knowledge_point.questions) > 0:
+        next_question = random.choice(knowledge_point.questions)
+        print(next_question)
+        # Add to lesson_questions table
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            "INSERT INTO lesson_questions (question_id, user_id) VALUES (?, ?)",
+            (next_question.id, g.user.id),
+        )
+        db.commit()
+        # Reload the course to get the updated lesson_questions
+        course = load_course_from_db(course_id, g.user.id)
+        assert course is not None
+        for lesson_obj in course.lessons:
+            if lesson_obj.id == lesson_id:
+                lesson = lesson_obj
+                break
 
     return render_template(
         "knowledge_point.html",
@@ -1933,7 +1976,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
     if (
         knowledge_point.last_consecutive_correct_review_answers()
         < REVIEW_CORRECT_COUNT_THRESHOLD
-        and len([q for q in knowledge_point.questions if q.answer is None]) > 0
+        and len(knowledge_point.questions) > 0
     ):
         new_question = create_review_question(review_id, knowledge_point)
         assert new_question is not None
@@ -2045,9 +2088,8 @@ def create_diagnostic_question(
     }
     next_knowledge_point = id_to_knowledge_points[next_knowledge_point_ids[0]]
 
-    unanswered = [q for q in next_knowledge_point.questions if q.answer is None]
-    assert len(unanswered) > 0
-    selected_question = random.choice(unanswered)
+    assert len(next_knowledge_point.questions) > 0
+    selected_question = random.choice(next_knowledge_point.questions)
 
     # Create review_question entry
     cursor.execute(
