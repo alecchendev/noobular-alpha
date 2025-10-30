@@ -42,6 +42,8 @@ QUIZ_TIME_LIMIT_MINUTES = 10
 # number of knowledge points completed before a review will surface
 # (if the knowledge point is completed and has no postreqs)
 REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD = 8
+# minimum number of questions per knowledge point
+MIN_QUESTION_COUNT = 2  # 8
 GLOBAL_ID = 1
 GLOBAL_USERNAME = "global"
 
@@ -493,6 +495,12 @@ def validate_course(course_data: dict[str, Any]) -> None:
             if not isinstance(kp_data["questions"], list):
                 raise ValueError(
                     f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') field 'questions' must be a list"
+                )
+
+            # Validate minimum question count
+            if len(kp_data["questions"]) < MIN_QUESTION_COUNT:
+                raise ValueError(
+                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') must have at least {MIN_QUESTION_COUNT} questions, found {len(kp_data['questions'])}"
                 )
 
             # Validate prerequisites
@@ -998,7 +1006,7 @@ def logout() -> Any:
 
 @app.route("/create")
 def create_course_page() -> str:
-    sample_yaml_path = COURSES_DIRECTORY / "sample.yaml"
+    sample_yaml_path = Path("sample.yaml")
     sample_content = ""
     if sample_yaml_path.exists():
         with open(sample_yaml_path, "r") as f:
@@ -1059,19 +1067,16 @@ def knowledge_point_ids_completed_after_time(
 ) -> List[int]:
     placeholders = ",".join("?" * len(completed_kp_ids))
     cursor.execute(
-        f"""SELECT DISTINCT q.knowledge_point_id
-            FROM questions q
+        f"""SELECT DISTINCT kp.id
+            FROM knowledge_points kp
+            JOIN questions q ON q.knowledge_point_id = kp.id
+            JOIN lesson_questions lq ON lq.question_id = q.id
             JOIN answers a ON a.question_id = q.id
-            LEFT JOIN quiz_questions qq ON qq.question_id = q.id
-            LEFT JOIN review_questions rq ON rq.question_id = q.id
-            LEFT JOIN diagnostic_questions dq ON dq.question_id = q.id
-            WHERE q.knowledge_point_id IN ({placeholders})
+            WHERE kp.id IN ({placeholders})
+            AND lq.user_id = ?
             AND a.user_id = ?
-            AND a.created_at > ?
-            AND qq.question_id IS NULL
-            AND rq.question_id is NULL
-            AND dq.question_id is NULL""",
-        (*completed_kp_ids, user_id, time),
+            AND a.created_at > ?""",
+        (*completed_kp_ids, user_id, user_id, time),
     )
     return [row[0] for row in cursor.fetchall()]
 

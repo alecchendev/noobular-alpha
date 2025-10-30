@@ -5,8 +5,8 @@ Lessons and knowledge points should be atomic and scaffolded such that students 
 Make sure there are 2-4 knowledge points per lesson.
 Make sure there are at least 8 questions per knowledge point.
 Knowledge points should try to lean towards active problem solving and application of knowledge instead of just regurgitating information.
-Questions should be relevant to the content in a knowledge point.
-Answers should not be obvious and should not include hints.
+Questions should be directly relevant to the content in a knowledge point.
+Answers should be difficult to guess. No choice should be obviously wrong.
 There should be a realistic structure formed through the prerequisites field between knowledge points.
 Create the the entire course yaml straight away without further questions.
 
