@@ -9,6 +9,7 @@ from flask import (
     send_file,
     make_response,
 )
+from markupsafe import escape
 import yaml
 import sqlite3
 import hashlib
@@ -17,6 +18,7 @@ from typing import Any, Dict, List, Optional
 import random
 from dataclasses import dataclass
 from visualize_course import create_knowledge_graph, KnowledgeGraph
+import argparse
 
 # Init app
 app = Flask(__name__)
@@ -993,7 +995,14 @@ def login() -> Any:
 
     # Create response with redirect and set cookie
     response = make_response(redirect("/"))
-    response.set_cookie("username", username, httponly=True, samesite="Lax", path="/")
+    response.set_cookie(
+        "username",
+        username,
+        httponly=True,
+        samesite="Lax",
+        secure=not app.debug,
+        path="/",
+    )
     return response
 
 
@@ -1052,14 +1061,14 @@ def create_course() -> str:
         db.commit()
 
         # return message based on success or error
-        return f'<p>Success! Course "{course_data["title"]}" created. <a href="/course/{course_id}">View course</a></p>'
+        return f'<p>Success! Course "{escape(course_data["title"])}" created. <a href="/course/{course_id}">View course</a></p>'
 
     except yaml.YAMLError as e:
-        return f"<p>Error: YAML parsing failed: {str(e)}</p>"
+        return f"<p>Error: YAML parsing failed: {escape(str(e))}</p>"
     except ValueError as e:
-        return f"<p>Error: {str(e)}</p>"
+        return f"<p>Error: {escape(str(e))}</p>"
     except Exception as e:
-        return f"<p>Error: {str(e)}</p>"
+        return f"<p>Error: {escape(str(e))}</p>"
 
 
 def knowledge_point_ids_completed_after_time(
@@ -2331,6 +2340,13 @@ def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run the Noobular Flask application")
+    parser.add_argument("--debug", action="store_true", help="Run in debug mode")
+    parser.add_argument(
+        "--port", type=int, default=5000, help="Port to run on (default: 5000)"
+    )
+    args = parser.parse_args()
+
     init_database()
     load_courses_to_database()
-    app.run(debug=True, port=5000)
+    app.run(debug=args.debug, port=args.port)

@@ -1,96 +1,93 @@
-<!DOCTYPE html>
-<html>
-<head>
-    {% include 'header.html' %}
-    <title>{{ course.title }} - Course Catalog</title>
-</head>
-<body>
-    <h1>{{ course.title }}</h1>
+{% extends 'base.html' %}
 
-    <p><a href="/course/{{ course.id }}/graph">View Knowledge Graph</a></p>
+{% block title %}{{ course.title }} - Course Catalog{% endblock %}
 
-    <h2>Diagnostic Quiz</h2>
+{% block content %}
+<h1>{{ course.title }}</h1>
+
+<p><a href="/course/{{ course.id }}/graph">View Knowledge Graph</a></p>
+
+<h2>Diagnostic Quiz</h2>
+<ul>
+    <li><a href="/course/{{ course.id }}/diagnostic/{{ diagnostic_id }}">Diagnostic Quiz</a></li>
+</ul>
+
+<h2>Next Lessons</h2>
+{% if next_lessons|length > 0 %}
     <ul>
-        <li><a href="/course/{{ course.id }}/diagnostic/{{ diagnostic_id }}">Diagnostic Quiz</a></li>
+    {% for lesson in next_lessons %}
+        <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
+    {% endfor %}
     </ul>
+{% else %}
+    <p>No lessons available</p>
+{% endif %}
 
-    <h2>Next Lessons</h2>
-    {% if next_lessons|length > 0 %}
-        <ul>
-        {% for lesson in next_lessons %}
-            <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No lessons available</p>
-    {% endif %}
+<h2>Completed Lessons</h2>
+{% if completed_lessons|length > 0 %}
+    <ul>
+    {% for lesson in completed_lessons %}
+        <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No completed lessons</p>
+{% endif %}
 
-    <h2>Completed Lessons</h2>
-    {% if completed_lessons|length > 0 %}
-        <ul>
-        {% for lesson in completed_lessons %}
-            <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No completed lessons</p>
-    {% endif %}
+<h2>Remaining Lessons</h2>
+{% if remaining_lessons|length > 0 %}
+    <ul>
+    {% for lesson in remaining_lessons %}
+        <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No remaining lessons</p>
+{% endif %}
 
-    <h2>Remaining Lessons</h2>
-    {% if remaining_lessons|length > 0 %}
-        <ul>
-        {% for lesson in remaining_lessons %}
-            <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No remaining lessons</p>
-    {% endif %}
+<h2>Available Quizzes</h2>
+{% if available_quizzes|length > 0 %}
+    <ul>
+    {% for quiz in available_quizzes %}
+        <li><a href="/course/{{ course.id }}/quiz/{{ quiz.id }}">Quiz {{ quiz.id }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No quizzes available yet</p>
+{% endif %}
 
-    <h2>Available Quizzes</h2>
-    {% if available_quizzes|length > 0 %}
-        <ul>
-        {% for quiz in available_quizzes %}
-            <li><a href="/course/{{ course.id }}/quiz/{{ quiz.id }}">Quiz {{ quiz.id }}</a></li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No quizzes available yet</p>
-    {% endif %}
+<h2>Completed Quizzes</h2>
+{% if completed_quizzes|length > 0 %}
+    <ul>
+    {% for quiz in completed_quizzes %}
+        <li><a href="/course/{{ course.id }}/quiz/{{ quiz.id }}">Quiz {{ quiz.id }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No completed quizzes</p>
+{% endif %}
 
-    <h2>Completed Quizzes</h2>
-    {% if completed_quizzes|length > 0 %}
-        <ul>
-        {% for quiz in completed_quizzes %}
-            <li><a href="/course/{{ course.id }}/quiz/{{ quiz.id }}">Quiz {{ quiz.id }}</a></li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No completed quizzes</p>
-    {% endif %}
+<h2>Available Reviews</h2>
+{% if available_reviews|length > 0 %}
+    <ul>
+    {% for review in available_reviews %}
+        <li><a href="/course/{{ course.id }}/review/{{ review.id }}">Review: {{ review.knowledge_point.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No reviews available</p>
+{% endif %}
 
-    <h2>Available Reviews</h2>
-    {% if available_reviews|length > 0 %}
-        <ul>
-        {% for review in available_reviews %}
-            <li><a href="/course/{{ course.id }}/review/{{ review.id }}">Review: {{ review.knowledge_point.name }}</a></li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No reviews available</p>
-    {% endif %}
+<h2>Completed Reviews</h2>
+{% if completed_reviews|length > 0 %}
+    <ul>
+    {% for review in completed_reviews %}
+        <li><a href="/course/{{ course.id }}/review/{{ review.id }}">Review: {{ review.knowledge_point.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No completed reviews</p>
+{% endif %}
 
-    <h2>Completed Reviews</h2>
-    {% if completed_reviews|length > 0 %}
-        <ul>
-        {% for review in completed_reviews %}
-            <li><a href="/course/{{ course.id }}/review/{{ review.id }}">Review: {{ review.knowledge_point.name }}</a></li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No completed reviews</p>
-    {% endif %}
-
-    <a class="back" href="/">← Back to Course Catalog</a>
-</body>
-</html>
+<a class="back" href="/">← Back to Course Catalog</a>
+{% endblock %}

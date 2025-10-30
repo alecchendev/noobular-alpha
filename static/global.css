@@ -2,9 +2,24 @@
 body {
     font-family: system-ui, -apple-system, sans-serif;
     line-height: 1.6;
+    margin: 0;
+}
+
+.main {
     max-width: 800px;
     margin: 0 auto;
     padding: 20px;
+}
+
+/* Alpha banner */
+.alpha-banner {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 14px;
+    border-radius: 0;
 }
 
 a {

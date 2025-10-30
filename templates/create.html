@@ -1,57 +1,54 @@
-<!DOCTYPE html>
-<html>
-<head>
-    {% include 'header.html' %}
-    <title>Create New Course</title>
-</head>
-<body>
-    <h1>Create New Course</h1>
+{% extends 'base.html' %}
 
-    <div class="instructions">
-        <h3>How to create a course:</h3>
-        <p>Either create a course by hand, or:</p>
-        <ol>
-            <li>Go to your favorite AI/LLM (e.g.
-                <a href="https://chatgpt.com" target="_blank">ChatGPT</a>,
-                <a href="https://claude.ai" target="_blank">Claude</a>,
-                <a href="https://grok.com" target="_blank">Grok</a>,
-                <a href="https://chat.deepseek.com" target="_blank">DeepSeek</a>) - I anecdotally find Claude to work best for this</li>
-            <li>Copy the prompt below and paste it there (feel free to modify the prompt however you see fit!)</li>
-            <li>Replace <code>[TOPIC]</code> with your desired subject</li>
-            <li>Copy the generated YAML and paste it in the textbox below and click the button</li>
-            <li>Paste errors back into chat until all are fixed</li>
-        </ol>
-        <button onclick="copyPrompt()">Copy Sample Prompt</button>
-        <p id="copy-feedback">✓ Copied to clipboard!</p>
-    </div>
+{% block title %}Create New Course{% endblock %}
 
-    <form hx-post="/create" hx-target="#message-container" hx-swap="innerHTML">
-        <label for="yaml-content">
-            <strong>Paste YAML course content below:</strong>
-        </label>
-        <textarea name="yaml_content" id="yaml-content" rows="20" cols="80">{{ sample_content }}</textarea>
-        <button type="submit">Create Course</button>
-    </form>
+{% block content %}
+<h1>Create New Course</h1>
 
-    <div id="message-container"></div>
+<div class="instructions">
+    <h3>How to create a course:</h3>
+    <p>Either create a course by hand, or:</p>
+    <ol>
+        <li>Go to your favorite AI/LLM (e.g.
+            <a href="https://chatgpt.com" target="_blank">ChatGPT</a>,
+            <a href="https://claude.ai" target="_blank">Claude</a>,
+            <a href="https://grok.com" target="_blank">Grok</a>,
+            <a href="https://chat.deepseek.com" target="_blank">DeepSeek</a>) - I anecdotally find Claude to work best for this</li>
+        <li>Copy the prompt below and paste it there (feel free to modify the prompt however you see fit!)</li>
+        <li>Replace <code>[TOPIC]</code> with your desired subject</li>
+        <li>Copy the generated YAML and paste it in the textbox below and click the button</li>
+        <li>Paste errors back into chat until all are fixed</li>
+    </ol>
+    <button onclick="copyPrompt()">Copy Sample Prompt</button>
+    <p id="copy-feedback">✓ Copied to clipboard!</p>
+</div>
 
-    <a class="back" href="/">&larr; Back to Course Catalog</a>
+<form hx-post="/create" hx-target="#message-container" hx-swap="innerHTML">
+    <label for="yaml-content">
+        <strong>Paste YAML course content below:</strong>
+    </label>
+    <textarea name="yaml_content" id="yaml-content" rows="20" cols="80">{{ sample_content }}</textarea>
+    <button type="submit">Create Course</button>
+</form>
 
-    <!-- Easier to just plop here instead of sanitizing multiline string in js -->
-    <p id="sample-prompt" hidden>{{ prompt_text }}</p>
+<div id="message-container"></div>
 
-    <script>
-        const promptText = document.getElementById('sample-prompt').innerHTML;
+<a class="back" href="/">&larr; Back to Course Catalog</a>
 
-        function copyPrompt() {
-            navigator.clipboard.writeText(promptText).then(() => {
-                const feedback = document.getElementById('copy-feedback');
-                feedback.style.display = 'inline';
-                setTimeout(() => {
-                    feedback.style.display = 'none';
-                }, 2000);
-            });
-        }
-    </script>
-</body>
-</html>
+<!-- Easier to just plop here instead of sanitizing multiline string in js -->
+<p id="sample-prompt" hidden>{{ prompt_text }}</p>
+
+<script>
+    const promptText = document.getElementById('sample-prompt').innerHTML;
+
+    function copyPrompt() {
+        navigator.clipboard.writeText(promptText).then(() => {
+            const feedback = document.getElementById('copy-feedback');
+            feedback.style.display = 'inline';
+            setTimeout(() => {
+                feedback.style.display = 'none';
+            }, 2000);
+        });
+    }
+</script>
+{% endblock %}

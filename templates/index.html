@@ -1,32 +1,28 @@
-<!DOCTYPE html>
-<html>
-<head>
-    {% include 'header.html' %}
-    <title>Course Catalog</title>
-</head>
-<body>
-    <h1>Course Catalog</h1>
+{% extends 'base.html' %}
 
-    {% if user %}
-        <p>Logged in: {{ g.user.username }}</p>
-        <p><a href="/logout">Logout</a></p>
-    {% else %}
-        <p><a href="/login">Login</a></p>
-    {% endif %}
-    <p><a href="/create">Create New Course</a></p>
+{% block title %}Course Catalog{% endblock %}
 
-    <!-- Courses list -->
-    <h2>Available Courses</h2>
-    {% if courses %}
-        <ul>
-        {% for id, title in courses %}
-            <li><a href="/course/{{ id }}">{{ title }}</a></li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No courses available.</p>
-    {% endif %}
+{% block content %}
+<h1>Course Catalog</h1>
 
-</body>
-</html>
+{% if user %}
+    <p>Logged in: {{ g.user.username }}</p>
+    <p><a href="/logout">Logout</a></p>
+{% else %}
+    <p><a href="/login">Login</a></p>
+{% endif %}
+<p><a href="/create">Create New Course</a></p>
+
+<!-- Courses list -->
+<h2>Available Courses</h2>
+{% if courses %}
+    <ul>
+    {% for id, title in courses %}
+        <li><a href="/course/{{ id }}">{{ title }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No courses available.</p>
+{% endif %}
+{% endblock %}
 

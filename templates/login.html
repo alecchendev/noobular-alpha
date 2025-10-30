@@ -1,15 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-    {% include 'header.html' %}
-    <title>Register/Login</title>
-</head>
-<body>
-    <h1>Register/Login</h1>
+{% extends 'base.html' %}
 
-    <form method="POST" action="/login">
-        <input type="text" id="username" name="username" placeholder="Enter your username" required>
-        <button type="submit">Submit</button>
-    </form>
-</body>
-</html>
+{% block title %}Register/Login{% endblock %}
+
+{% block content %}
+<h1>Register/Login</h1>
+
+<form method="POST" action="/login">
+    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+    <button type="submit">Submit</button>
+</form>
+{% endblock %}

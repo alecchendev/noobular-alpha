@@ -1,18 +1,15 @@
-<!DOCTYPE html>
-<html>
-<head>
-    {% include 'header.html' %}
-    <title>{{ lesson.title }} - {{ course.title }}</title>
-</head>
-<body>
-    <h1>{{ lesson.title }}</h1>
-    <p><strong>Course:</strong> {{ course.title }}</p>
+{% extends 'base.html' %}
 
-    {% set knowledge_point = lesson.knowledge_points[0] %}
-    {% set knowledge_point_index = 0 %}
-    {% set i = 0 %}
-    {% include 'knowledge_point.html' %}
+{% block title %}{{ lesson.title }} - {{ course.title }}{% endblock %}
 
-    <a class="back" href="/course/{{ course.id }}">← Back to {{ course.title }}</a>
-</body>
-</html>
+{% block content %}
+<h1>{{ lesson.title }}</h1>
+<p><strong>Course:</strong> {{ course.title }}</p>
+
+{% set knowledge_point = lesson.knowledge_points[0] %}
+{% set knowledge_point_index = 0 %}
+{% set i = 0 %}
+{% include 'knowledge_point.html' %}
+
+<a class="back" href="/course/{{ course.id }}">← Back to {{ course.title }}</a>
+{% endblock %}
