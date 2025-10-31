@@ -23,11 +23,17 @@
     <p id="copy-feedback">✓ Copied to clipboard!</p>
 </div>
 
-<form hx-post="/create" hx-target="#message-container" hx-swap="innerHTML">
+<form hx-post="/create" hx-target="#message-container" hx-swap="innerHTML" hx-encoding="multipart/form-data">
     <label for="yaml-content">
         <strong>Paste YAML course content below:</strong>
     </label>
     <textarea name="yaml_content" id="yaml-content" rows="20" cols="80">{{ sample_content }}</textarea>
+    <div class="file-upload">
+        <label for="yaml-file">
+            <strong>Or upload a YAML file (max 1 MB):</strong>
+        </label>
+        <input type="file" name="yaml_file" id="yaml-file" accept=".yaml,.yml">
+    </div>
     <button type="submit">Create Course</button>
 </form>
 

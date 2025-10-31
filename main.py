@@ -19,9 +19,12 @@ import random
 from dataclasses import dataclass
 from visualize_course import create_knowledge_graph, KnowledgeGraph
 import argparse
+from werkzeug.exceptions import RequestEntityTooLarge
 
 # Init app
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024  # allow up to ~1MB uploads
+app.config["MAX_FORM_MEMORY_SIZE"] = 1 * 1024 * 1024
 
 DATABASE = "database.db"
 COURSES_DIRECTORY = Path("courses")
@@ -1036,7 +1039,18 @@ def create_course_page() -> str:
 @app.route("/create", methods=["POST"])
 def create_course() -> str:
     # Read input
-    yaml_content = request.form.get("yaml_content")
+    yaml_content = ""
+
+    uploaded_file = request.files.get("yaml_file")
+    if uploaded_file and uploaded_file.filename:
+        try:
+            yaml_content = uploaded_file.read().decode("utf-8")
+        except UnicodeDecodeError:
+            return "<p>Error: Uploaded file must be UTF-8 encoded text.</p>"
+
+    if not yaml_content:
+        yaml_content = request.form.get("yaml_content", "")
+
     if not yaml_content or not yaml_content.strip():
         return "<p>Error: No YAML content provided</p>"
 
@@ -1069,6 +1083,14 @@ def create_course() -> str:
         return f"<p>Error: {escape(str(e))}</p>"
     except Exception as e:
         return f"<p>Error: {escape(str(e))}</p>"
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def handle_large_upload(_: RequestEntityTooLarge) -> tuple[str, int]:
+    return (
+        "<p>Error: Upload too large. Maximum supported size is 1 MB.</p>",
+        413,
+    )
 
 
 def knowledge_point_ids_completed_after_time(
