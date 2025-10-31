@@ -1,15 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-    {% include 'header.html' %}
-    <title>{{ page_title }} - {{ course.title }}</title>
-</head>
-<body>
-    <h1>{{ page_title }}</h1>
-    <p><strong>Course:</strong> {{ course.title }}</p>
+{% extends 'base.html' %}
 
-    {% include 'question_form.html' %}
+{% block title %}{{ page_title }} - {{ course.title }}{% endblock %}
 
-    <a class="back" href="/course/{{ course.id }}">← Back to {{ course.title }}</a>
-</body>
-</html>
+{% block content %}
+<h1>{{ page_title }}</h1>
+<p><strong>Course:</strong> {{ course.title }}</p>
+
+{% include 'question_form.html' %}
+
+<a class="back" href="/course/{{ course.id }}">← Back to {{ course.title }}</a>
+{% endblock %}
