@@ -7,20 +7,23 @@
 
 <p><a href="/course/{{ course.id }}/graph">View Knowledge Graph</a></p>
 
-<h2>Diagnostic Quiz</h2>
-<ul>
-    <li><a href="/course/{{ course.id }}/diagnostic/{{ diagnostic_id }}">Diagnostic Quiz</a></li>
-</ul>
-
-<h2>Next Lessons</h2>
-{% if next_lessons|length > 0 %}
+<h2>Next</h2>
+{% if next_items|length > 0 %}
     <ul>
-    {% for lesson in next_lessons %}
-        <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
+    {% for item in next_items %}
+        {% if item.type == 'lesson' %}
+            <li><a href="/course/{{ course.id }}/lesson/{{ item.item.id }}">Lesson: {{ item.item.title }}</a></li>
+        {% elif item.type == 'quiz' %}
+            <li><a href="/course/{{ course.id }}/quiz/{{ item.item.id }}">Quiz {{ item.item.id }}</a></li>
+        {% elif item.type == 'review' %}
+            <li><a href="/course/{{ course.id }}/review/{{ item.item.id }}">Review: {{ item.item.knowledge_point.name }}</a></li>
+        {% elif item.type == 'diagnostic' %}
+            <li><a href="/course/{{ course.id }}/diagnostic/{{ item.item.id }}">Diagnostic Quiz</a></li>
+        {% endif %}
     {% endfor %}
     </ul>
 {% else %}
-    <p>No lessons available</p>
+    <p>Nothing available</p>
 {% endif %}
 
 <h2>Remaining Lessons</h2>
@@ -32,28 +35,6 @@
     </ul>
 {% else %}
     <p>No remaining lessons</p>
-{% endif %}
-
-<h2>Available Quizzes</h2>
-{% if available_quizzes|length > 0 %}
-    <ul>
-    {% for quiz in available_quizzes %}
-        <li><a href="/course/{{ course.id }}/quiz/{{ quiz.id }}">Quiz {{ quiz.id }}</a></li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>No quizzes available yet</p>
-{% endif %}
-
-<h2>Available Reviews</h2>
-{% if available_reviews|length > 0 %}
-    <ul>
-    {% for review in available_reviews %}
-        <li><a href="/course/{{ course.id }}/review/{{ review.id }}">Review: {{ review.knowledge_point.name }}</a></li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>No reviews available</p>
 {% endif %}
 
 <h2>Completed</h2>

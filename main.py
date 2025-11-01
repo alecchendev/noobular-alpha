@@ -1512,48 +1512,65 @@ def course_page(course_id: int) -> str:
     )
     diagnostic_question_ids = [row[0] for row in cursor.fetchall()]
 
-    if diagnostic_question_ids:
-        # Check if all diagnostic questions are answered
-        placeholders = ",".join("?" * len(diagnostic_question_ids))
+    placeholders = ",".join("?" * len(diagnostic_question_ids))
+    cursor.execute(
+        f"""SELECT COUNT(*) FROM answers a
+            WHERE a.question_id IN ({placeholders})
+            AND a.user_id = ?""",
+        (*diagnostic_question_ids, g.user.id),
+    )
+    answered_count = cursor.fetchone()[0]
+    diagnostic_complete = (
+        answered_count == len(diagnostic_question_ids)
+        and len(diagnostic_question_ids) > 0
+    )
+    if diagnostic_complete:
+        # Get completion date
         cursor.execute(
-            f"""SELECT COUNT(*) FROM answers a
+            f"""SELECT MAX(a.created_at)
+                FROM answers a
                 WHERE a.question_id IN ({placeholders})
                 AND a.user_id = ?""",
             (*diagnostic_question_ids, g.user.id),
         )
-        answered_count = cursor.fetchone()[0]
-
-        if answered_count == len(diagnostic_question_ids):
-            # Get completion date
-            cursor.execute(
-                f"""SELECT MAX(a.created_at)
-                    FROM answers a
-                    WHERE a.question_id IN ({placeholders})
-                    AND a.user_id = ?""",
-                (*diagnostic_question_ids, g.user.id),
+        completion_date = cursor.fetchone()[0]
+        completed_items.append(
+            CourseItem(
+                type="diagnostic",
+                item=Diagnostic(id=diagnostic_id, course_id=course_id),
+                completion_date=completion_date,
             )
-            completion_date = cursor.fetchone()[0]
-            if completion_date:
-                completed_items.append(
-                    CourseItem(
-                        type="diagnostic",
-                        item=Diagnostic(id=diagnostic_id, course_id=course_id),
-                        completion_date=completion_date,
-                    )
-                )
+        )
 
-    # Sort by completion date (newest first)
+    # Sort by completion date (latest completed first)
     completed_items.sort(key=lambda x: x.completion_date or "", reverse=True)
+
+    # Determine what to show in "Next" section (prioritized order)
+    next_items: List[CourseItem] = []
+
+    if not diagnostic_complete:
+        next_items.append(
+            CourseItem(
+                type="diagnostic",
+                item=Diagnostic(id=diagnostic_id, course_id=course_id),
+            )
+        )
+    elif available_quizzes:
+        for quiz in available_quizzes:
+            next_items.append(CourseItem(type="quiz", item=quiz))
+    elif available_reviews:
+        for review in available_reviews:
+            next_items.append(CourseItem(type="review", item=review))
+    elif next_lessons:
+        for lesson in next_lessons:
+            next_items.append(CourseItem(type="lesson", item=lesson))
 
     return render_template(
         "course.html",
         course=course,
-        next_lessons=next_lessons,
+        next_items=next_items,
         remaining_lessons=remaining_lessons,
-        available_quizzes=available_quizzes,
-        available_reviews=available_reviews,
         completed_items=completed_items,
-        diagnostic_id=diagnostic_id,
     )
 
 
