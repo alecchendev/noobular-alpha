@@ -1448,6 +1448,23 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
         abort(404)
     assert len(lesson.knowledge_points) > 0
 
+    # Create lesson questions for all knowledge points in this lesson if they don't exist
+    db = get_db()
+    cursor = db.cursor()
+
+    for i, kp in enumerate(lesson.knowledge_points):
+        # Check if we already have lesson questions for this knowledge point
+        if len(kp.lesson_questions) == 0 and len(kp.questions) > 0:
+            # Create lesson questions for all available questions
+            next_question = random.choice(kp.questions)
+            cursor.execute(
+                "INSERT INTO lesson_questions (question_id, user_id) VALUES (?, ?)",
+                (next_question.id, g.user.id),
+            )
+            lesson.knowledge_points[i].lesson_questions.append(next_question)
+
+    db.commit()
+
     return render_template(
         "lesson.html",
         course=course,
@@ -1558,6 +1575,14 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         </div>
         """
     else:
+        if knowledge_point.last_consecutive_correct_answers() < CORRECT_COUNT_THRESHOLD:
+            next_question = random.choice(knowledge_point.questions)
+            cursor.execute(
+                "INSERT INTO lesson_questions (question_id, user_id) VALUES (?, ?)",
+                (next_question.id, g.user.id),
+            )
+            db.commit()
+            lesson.knowledge_points[kp_index].lesson_questions.append(next_question)
         next_button_html = render_template(
             "next_button.html",
             course=course,
@@ -1567,6 +1592,51 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         )
 
     return f"{feedback}{failure_message}{next_button_html}"
+
+
+@app.route("/course/<int:course_id>/lesson/<int:lesson_id>/next", methods=["POST"])
+def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
+    course = load_course_from_db(course_id, g.user.id)
+    if not course:
+        abort(404)
+
+    # Find the lesson
+    lesson = None
+    for lesson_obj in course.lessons:
+        if lesson_obj.id == lesson_id:
+            lesson = lesson_obj
+            break
+
+    if not lesson:
+        abort(404)
+
+    kp_index_str = request.form.get("knowledge_point_index")
+    i_str = request.form.get("i")
+    if not kp_index_str or not i_str:
+        abort(404)
+    kp_index = int(kp_index_str)
+    assert kp_index < len(lesson.knowledge_points)
+    i = int(i_str)
+
+    knowledge_point = lesson.knowledge_points[kp_index]
+    completed_kp = (
+        knowledge_point.last_consecutive_correct_answers() >= CORRECT_COUNT_THRESHOLD
+    )
+    question_index = i - len(knowledge_point.contents)
+    new_question = question_index >= len(
+        [question for question in knowledge_point.lesson_questions if question.answer]
+    )
+    if completed_kp and new_question:
+        kp_index += 1
+        i = 0
+
+    return render_template(
+        "knowledge_point.html",
+        course=course,
+        lesson=lesson,
+        knowledge_point_index=kp_index,
+        i=i,
+    )
 
 
 @app.route("/validate-course", methods=["POST"])
@@ -1783,69 +1853,6 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
 
     # Redirect to quiz page to show results
     return redirect(f"/course/{course_id}/quiz/{quiz_id}")
-
-
-@app.route("/course/<int:course_id>/lesson/<int:lesson_id>/next", methods=["POST"])
-def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
-    if not course:
-        abort(404)
-
-    # Find the lesson
-    lesson = None
-    for lesson_obj in course.lessons:
-        if lesson_obj.id == lesson_id:
-            lesson = lesson_obj
-            break
-
-    if not lesson:
-        abort(404)
-
-    kp_index_str = request.form.get("knowledge_point_index")
-    i_str = request.form.get("i")
-    if not kp_index_str or not i_str:
-        abort(404)
-    kp_index = int(kp_index_str)
-    assert kp_index < len(lesson.knowledge_points)
-    i = int(i_str)
-
-    knowledge_point = lesson.knowledge_points[kp_index]
-    completed_kp = (
-        knowledge_point.last_consecutive_correct_answers() >= CORRECT_COUNT_THRESHOLD
-    )
-    question_index = i - len(knowledge_point.contents)
-    new_question = question_index >= len(
-        [question for question in knowledge_point.lesson_questions if question.answer]
-    )
-    if completed_kp and new_question:
-        kp_index += 1
-        i = 0
-    elif new_question and len(knowledge_point.questions) > 0:
-        next_question = random.choice(knowledge_point.questions)
-        print(next_question)
-        # Add to lesson_questions table
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO lesson_questions (question_id, user_id) VALUES (?, ?)",
-            (next_question.id, g.user.id),
-        )
-        db.commit()
-        # Reload the course to get the updated lesson_questions
-        course = load_course_from_db(course_id, g.user.id)
-        assert course is not None
-        for lesson_obj in course.lessons:
-            if lesson_obj.id == lesson_id:
-                lesson = lesson_obj
-                break
-
-    return render_template(
-        "knowledge_point.html",
-        course=course,
-        lesson=lesson,
-        knowledge_point_index=kp_index,
-        i=i,
-    )
 
 
 def create_review_question(

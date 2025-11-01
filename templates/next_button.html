@@ -1,6 +1,6 @@
 {% if knowledge_point_index < lesson.knowledge_points|length %}
     {% set knowledge_point = lesson.knowledge_points[knowledge_point_index] %}
-    {% set kp_len = knowledge_point.contents|length + knowledge_point.questions|length %}
+    {% set kp_len = knowledge_point.contents|length + knowledge_point.lesson_questions|length %}
     {% if knowledge_point_index < lesson.knowledge_points|length - 1 or i < kp_len - 1 %}
         {% set next_kp_index = knowledge_point_index %}
         {% set next_i = i + 1 %}
