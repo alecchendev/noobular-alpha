@@ -23,17 +23,6 @@
     <p>No lessons available</p>
 {% endif %}
 
-<h2>Completed Lessons</h2>
-{% if completed_lessons|length > 0 %}
-    <ul>
-    {% for lesson in completed_lessons %}
-        <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>No completed lessons</p>
-{% endif %}
-
 <h2>Remaining Lessons</h2>
 {% if remaining_lessons|length > 0 %}
     <ul>
@@ -56,17 +45,6 @@
     <p>No quizzes available yet</p>
 {% endif %}
 
-<h2>Completed Quizzes</h2>
-{% if completed_quizzes|length > 0 %}
-    <ul>
-    {% for quiz in completed_quizzes %}
-        <li><a href="/course/{{ course.id }}/quiz/{{ quiz.id }}">Quiz {{ quiz.id }}</a></li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>No completed quizzes</p>
-{% endif %}
-
 <h2>Available Reviews</h2>
 {% if available_reviews|length > 0 %}
     <ul>
@@ -78,15 +56,23 @@
     <p>No reviews available</p>
 {% endif %}
 
-<h2>Completed Reviews</h2>
-{% if completed_reviews|length > 0 %}
+<h2>Completed</h2>
+{% if completed_items|length > 0 %}
     <ul>
-    {% for review in completed_reviews %}
-        <li><a href="/course/{{ course.id }}/review/{{ review.id }}">Review: {{ review.knowledge_point.name }}</a></li>
+    {% for item in completed_items %}
+        {% if item.type == 'lesson' %}
+            <li><a href="/course/{{ course.id }}/lesson/{{ item.item.id }}">Lesson: {{ item.item.title }}</a></li>
+        {% elif item.type == 'quiz' %}
+            <li><a href="/course/{{ course.id }}/quiz/{{ item.item.id }}">Quiz {{ item.item.id }}</a></li>
+        {% elif item.type == 'review' %}
+            <li><a href="/course/{{ course.id }}/review/{{ item.item.id }}">Review: {{ item.item.knowledge_point.name }}</a></li>
+        {% elif item.type == 'diagnostic' %}
+            <li><a href="/course/{{ course.id }}/diagnostic/{{ item.item.id }}">Diagnostic Quiz</a></li>
+        {% endif %}
     {% endfor %}
     </ul>
 {% else %}
-    <p>No completed reviews</p>
+    <p>Nothing completed yet</p>
 {% endif %}
 
 <a class="back" href="/">← Back to Course Catalog</a>

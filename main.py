@@ -14,7 +14,7 @@ import yaml
 import sqlite3
 import hashlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional, NoReturn
+from typing import Any, Dict, List, Optional, NoReturn, Union
 import random
 from dataclasses import dataclass
 from visualize_course import create_knowledge_graph, KnowledgeGraph
@@ -395,6 +395,19 @@ class Quiz:
 class Review:
     id: int
     knowledge_point: KnowledgePoint
+
+
+@dataclass
+class Diagnostic:
+    id: int
+    course_id: int
+
+
+@dataclass
+class CourseItem:
+    type: str  # 'lesson', 'quiz', 'review', or 'diagnostic'
+    item: Union[Lesson, Quiz, Review, Diagnostic]
+    completion_date: Optional[str] = None
 
 
 @dataclass
@@ -1226,6 +1239,7 @@ def course_page(course_id: int) -> str:
         diagnostic_id = cursor.lastrowid
     else:
         diagnostic_id = diagnostic_row[0]
+    assert diagnostic_id is not None
 
     # Get the creation time of the last quiz (or use epoch if no quizzes exist)
     cursor.execute(
@@ -1417,16 +1431,128 @@ def course_page(course_id: int) -> str:
         else:
             available_reviews.append(review)
 
+    # Get completion dates for all completed items
+    completed_items: List[CourseItem] = []
+
+    # Add completed lessons with their completion dates
+    for lesson in completed_lessons:
+        # Get the latest answer date for any question in this lesson
+        lesson_kp_ids = set([kp.id for kp in lesson.knowledge_points])
+        if len(lesson_kp_ids) == 0:
+            continue
+        placeholders = ",".join("?" * len(lesson_kp_ids))
+        cursor.execute(
+            f"""SELECT MAX(a.created_at)
+                FROM answers a
+                JOIN questions q ON a.question_id = q.id
+                WHERE q.knowledge_point_id IN ({placeholders})
+                AND a.user_id = ?""",
+            (*lesson_kp_ids, g.user.id),
+        )
+        completion_date = cursor.fetchone()[0]
+        if completion_date:
+            completed_items.append(
+                CourseItem(
+                    type="lesson",
+                    item=lesson,
+                    completion_date=completion_date,
+                )
+            )
+
+    # Add completed quizzes with their completion dates
+    for quiz in completed_quizzes:
+        quiz_question_ids = [q.id for q in quiz.questions]
+        if quiz_question_ids:
+            placeholders = ",".join("?" * len(quiz_question_ids))
+            cursor.execute(
+                f"""SELECT MAX(a.created_at)
+                    FROM answers a
+                    WHERE a.question_id IN ({placeholders})
+                    AND a.user_id = ?""",
+                (*quiz_question_ids, g.user.id),
+            )
+            completion_date = cursor.fetchone()[0]
+            if completion_date:
+                completed_items.append(
+                    CourseItem(
+                        type="quiz",
+                        item=quiz,
+                        completion_date=completion_date,
+                    )
+                )
+
+    # Add completed reviews with their completion dates
+    for review in completed_reviews:
+        review_question_ids = [q.id for q in review.knowledge_point.reviewed_questions]
+        if review_question_ids:
+            placeholders = ",".join("?" * len(review_question_ids))
+            cursor.execute(
+                f"""SELECT MAX(a.created_at)
+                    FROM answers a
+                    WHERE a.question_id IN ({placeholders})
+                    AND a.user_id = ?""",
+                (*review_question_ids, g.user.id),
+            )
+            completion_date = cursor.fetchone()[0]
+            if completion_date:
+                completed_items.append(
+                    CourseItem(
+                        type="review",
+                        item=review,
+                        completion_date=completion_date,
+                    )
+                )
+
+    # Check if diagnostic is completed
+    cursor.execute(
+        """SELECT question_id FROM diagnostic_questions
+           WHERE diagnostic_id = ?
+           ORDER BY id""",
+        (diagnostic_id,),
+    )
+    diagnostic_question_ids = [row[0] for row in cursor.fetchall()]
+
+    if diagnostic_question_ids:
+        # Check if all diagnostic questions are answered
+        placeholders = ",".join("?" * len(diagnostic_question_ids))
+        cursor.execute(
+            f"""SELECT COUNT(*) FROM answers a
+                WHERE a.question_id IN ({placeholders})
+                AND a.user_id = ?""",
+            (*diagnostic_question_ids, g.user.id),
+        )
+        answered_count = cursor.fetchone()[0]
+
+        if answered_count == len(diagnostic_question_ids):
+            # Get completion date
+            cursor.execute(
+                f"""SELECT MAX(a.created_at)
+                    FROM answers a
+                    WHERE a.question_id IN ({placeholders})
+                    AND a.user_id = ?""",
+                (*diagnostic_question_ids, g.user.id),
+            )
+            completion_date = cursor.fetchone()[0]
+            if completion_date:
+                completed_items.append(
+                    CourseItem(
+                        type="diagnostic",
+                        item=Diagnostic(id=diagnostic_id, course_id=course_id),
+                        completion_date=completion_date,
+                    )
+                )
+
+    # Sort by completion date (newest first)
+    completed_items.sort(key=lambda x: x.completion_date or "", reverse=True)
+
     return render_template(
         "course.html",
         course=course,
         next_lessons=next_lessons,
-        completed_lessons=completed_lessons,
         remaining_lessons=remaining_lessons,
         available_quizzes=available_quizzes,
-        completed_quizzes=completed_quizzes,
         available_reviews=available_reviews,
-        completed_reviews=completed_reviews,
+        completed_items=completed_items,
         diagnostic_id=diagnostic_id,
     )
 
