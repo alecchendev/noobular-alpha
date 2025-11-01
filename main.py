@@ -14,7 +14,7 @@ import yaml
 import sqlite3
 import hashlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, NoReturn
 import random
 from dataclasses import dataclass
 from visualize_course import create_knowledge_graph, KnowledgeGraph
@@ -255,13 +255,6 @@ def get_db() -> sqlite3.Connection:
     return db
 
 
-def close_db() -> None:
-    """Close database connection"""
-    db = g.pop("db", None)
-    if db is not None:
-        db.close()
-
-
 @app.teardown_appcontext
 def close_db_connection(error: Any) -> None:
     """Automatically close db connection at end of request"""
@@ -423,6 +416,44 @@ class ValidationError:
 
     def jsonify(self) -> tuple[Any, int]:
         return jsonify({"error": self.error}), self.status_code
+
+
+# Helper functions for common abort patterns
+def abort_course_not_found(course_id: int) -> NoReturn:
+    """Abort with a 404 error for course not found"""
+    abort(404, description=f"Course with ID {course_id} not found")
+
+
+def abort_lesson_not_found(lesson_id: int, course_id: int) -> NoReturn:
+    """Abort with a 404 error for lesson not found"""
+    abort(
+        404, description=f"Lesson with ID {lesson_id} not found in course {course_id}"
+    )
+
+
+def abort_quiz_not_found(quiz_id: int, course_id: int) -> NoReturn:
+    """Abort with a 404 error for quiz not found"""
+    abort(404, description=f"Quiz with ID {quiz_id} not found in course {course_id}")
+
+
+def abort_review_not_found(review_id: int, course_id: int) -> NoReturn:
+    """Abort with a 404 error for review not found"""
+    abort(
+        404, description=f"Review with ID {review_id} not found in course {course_id}"
+    )
+
+
+def abort_diagnostic_not_found(diagnostic_id: int, course_id: int) -> NoReturn:
+    """Abort with a 404 error for diagnostic not found"""
+    abort(
+        404,
+        description=f"Diagnostic with ID {diagnostic_id} not found in course {course_id}",
+    )
+
+
+def abort_missing_parameters(*param_names: str) -> NoReturn:
+    """Abort with a 400 error for missing parameters"""
+    abort(400, description=f"Missing required parameters: {', '.join(param_names)}")
 
 
 def validate_course(course_data: dict[str, Any]) -> None:
@@ -1116,7 +1147,7 @@ def knowledge_point_ids_completed_after_time(
 def course_page(course_id: int) -> str:
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     # Build a map of knowledge point ID to completion status
     completed_kp_ids = set()
@@ -1422,7 +1453,7 @@ def course_graph(course_id: int) -> Any:
     """Generate and return the knowledge graph visualization for a course"""
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     graph = extract_graph_data_from_course(course)
     output_path = f"course_{course_id}_graph"
@@ -1435,7 +1466,7 @@ def course_graph(course_id: int) -> Any:
 def lesson_page(course_id: int, lesson_id: int) -> str:
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     # Find the lesson with matching ID
     lesson = None
@@ -1445,7 +1476,7 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
             break
 
     if not lesson:
-        abort(404)
+        abort_lesson_not_found(lesson_id, course_id)
     assert len(lesson.knowledge_points) > 0
 
     # Create lesson questions for all knowledge points in this lesson if they don't exist
@@ -1476,7 +1507,7 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
 def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     # Find the lesson
     lesson = None
@@ -1486,7 +1517,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
             break
 
     if not lesson:
-        abort(404)
+        abort_lesson_not_found(lesson_id, course_id)
 
     kp_index_str = request.form.get("knowledge_point_index")
     question_index_str = request.form.get("question_index")
@@ -1498,7 +1529,9 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         or i_str is None
         or answer_str is None
     ):
-        abort(404)
+        abort_missing_parameters(
+            "knowledge_point_index", "question_index", "i", "answer"
+        )
 
     kp_index = int(kp_index_str)
     question_index = int(question_index_str)
@@ -1513,7 +1546,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         print(
             f"Could not find choice {choice_id} in {[c.id for c in question.choices]}"
         )
-        abort(404)
+        abort(400, description=f"Invalid choice ID: {choice_id}")
 
     # Save the user's answer to the database
     db = get_db()
@@ -1598,7 +1631,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
 def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     # Find the lesson
     lesson = None
@@ -1608,12 +1641,12 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
             break
 
     if not lesson:
-        abort(404)
+        abort_lesson_not_found(lesson_id, course_id)
 
     kp_index_str = request.form.get("knowledge_point_index")
     i_str = request.form.get("i")
     if not kp_index_str or not i_str:
-        abort(404)
+        abort_missing_parameters("knowledge_point_index", "i")
     kp_index = int(kp_index_str)
     assert kp_index < len(lesson.knowledge_points)
     i = int(i_str)
@@ -1754,12 +1787,12 @@ def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
 def quiz_page(course_id: int, quiz_id: int) -> str:
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     # Load quiz using helper function
     quiz = load_quiz(quiz_id, course_id)
     if not quiz:
-        abort(404)
+        abort_quiz_not_found(quiz_id, course_id)
 
     db = get_db()
     cursor = db.cursor()
@@ -1803,7 +1836,7 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
 def quiz_submit(course_id: int, quiz_id: int) -> Any:
     quiz = load_quiz(quiz_id, course_id)
     if not quiz or quiz.started_at is None:
-        abort(404)
+        abort_quiz_not_found(quiz_id, course_id)
 
     # Validate submission time (within 10 seconds of expected end time)
     from datetime import datetime, timedelta
@@ -1814,7 +1847,7 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
 
     # Check if submission is within 10 seconds after expected end time
     if now > expected_end_time + timedelta(seconds=10):
-        abort(400)  # Bad request - time limit exceeded
+        abort(400, description="Quiz time limit exceeded")
 
     db = get_db()
     cursor = db.cursor()
@@ -1882,7 +1915,7 @@ def create_review_question(
 def review_page(course_id: int, review_id: int) -> str:
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     db = get_db()
     cursor = db.cursor()
@@ -1894,7 +1927,7 @@ def review_page(course_id: int, review_id: int) -> str:
     )
     review_row = cursor.fetchone()
     if not review_row:
-        abort(404)
+        abort_review_not_found(review_id, course_id)
 
     kp_id = review_row[0]
 
@@ -1909,7 +1942,7 @@ def review_page(course_id: int, review_id: int) -> str:
             break
 
     if not knowledge_point:
-        abort(404)
+        abort(404, description=f"Knowledge point with ID {kp_id} not found")
 
     review = Review(id=review_id, knowledge_point=knowledge_point)
 
@@ -1935,7 +1968,7 @@ def review_page(course_id: int, review_id: int) -> str:
 def review_submit_answer(course_id: int, review_id: int) -> str:
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     db = get_db()
     cursor = db.cursor()
@@ -1947,7 +1980,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
     )
     review_row = cursor.fetchone()
     if not review_row:
-        abort(404)
+        abort_review_not_found(review_id, course_id)
 
     kp_id = review_row[0]
 
@@ -1962,12 +1995,12 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
             break
 
     if not knowledge_point:
-        abort(404)
+        abort(404, description=f"Knowledge point with ID {kp_id} not found")
 
     i_str = request.form.get("i")
     answer_str = request.form.get("answer")
     if i_str is None or answer_str is None:
-        abort(404)
+        abort_missing_parameters("i", "answer")
 
     i = int(i_str)
     choice_id = int(answer_str)
@@ -1975,7 +2008,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
     # Get the question at this index
     if i >= len(knowledge_point.reviewed_questions):
         print(f"Tried to submit answer for reviewed question index out of bounds: {i}")
-        abort(404)
+        abort(400, description=f"Invalid question index: {i}")
     print(i)
     print(knowledge_point.reviewed_questions)
     question = knowledge_point.reviewed_questions[i]
@@ -1986,7 +2019,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
         print(
             f"Could not find choice {choice_id} in {[c.id for c in question.choices]}"
         )
-        abort(404)
+        abort(400, description=f"Invalid choice ID: {choice_id}")
 
     # Save the user's answer to the database
     print(question.id)
@@ -2039,7 +2072,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
 def review_next_question(course_id: int, review_id: int) -> str:
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     db = get_db()
     cursor = db.cursor()
@@ -2051,7 +2084,7 @@ def review_next_question(course_id: int, review_id: int) -> str:
     )
     review_row = cursor.fetchone()
     if not review_row:
-        abort(404)
+        abort_review_not_found(review_id, course_id)
 
     kp_id = review_row[0]
 
@@ -2066,11 +2099,11 @@ def review_next_question(course_id: int, review_id: int) -> str:
             break
 
     if not knowledge_point:
-        abort(404)
+        abort(404, description=f"Knowledge point with ID {kp_id} not found")
 
     i_str = request.form.get("i")
     if not i_str:
-        abort(404)
+        abort_missing_parameters("i")
     i = int(i_str)
 
     if i >= len(knowledge_point.reviewed_questions):
@@ -2148,7 +2181,7 @@ def create_diagnostic_question(
 def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     db = get_db()
     cursor = db.cursor()
@@ -2159,7 +2192,7 @@ def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
         (diagnostic_id, course_id, g.user.id),
     )
     if not cursor.fetchone():
-        abort(404)
+        abort_diagnostic_not_found(diagnostic_id, course_id)
 
     # Get diagnostic questions
     cursor.execute(
@@ -2203,7 +2236,7 @@ def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
 def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     db = get_db()
     cursor = db.cursor()
@@ -2214,12 +2247,12 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
         (diagnostic_id, course_id, g.user.id),
     )
     if not cursor.fetchone():
-        abort(404)
+        abort_diagnostic_not_found(diagnostic_id, course_id)
 
     i_str = request.form.get("i")
     answer_str = request.form.get("answer")
     if i_str is None or answer_str is None:
-        abort(404)
+        abort_missing_parameters("i", "answer")
 
     i = int(i_str)
     choice_id = int(answer_str)
@@ -2234,7 +2267,7 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     diagnostic_question_ids = [row[0] for row in cursor.fetchall()]
 
     if i >= len(diagnostic_question_ids):
-        abort(404)
+        abort(400, description=f"Invalid question index: {i}")
 
     question_id = diagnostic_question_ids[i]
 
@@ -2253,7 +2286,7 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
                     question_idx = q_idx
 
     if not question:
-        abort(404)
+        abort(404, description=f"Question with ID {question_id} not found")
     assert question_lesson_idx is not None
     assert question_kp_idx is not None
     assert question_idx is not None
@@ -2264,7 +2297,7 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
         print(
             f"Could not find choice {choice_id} in {[c.id for c in question.choices]}"
         )
-        abort(404)
+        abort(400, description=f"Invalid choice ID: {choice_id}")
 
     # Save the user's answer to the database
     cursor.execute(
@@ -2315,7 +2348,7 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
 def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
     course = load_course_from_db(course_id, g.user.id)
     if not course:
-        abort(404)
+        abort_course_not_found(course_id)
 
     db = get_db()
     cursor = db.cursor()
@@ -2326,11 +2359,11 @@ def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
         (diagnostic_id, course_id, g.user.id),
     )
     if not cursor.fetchone():
-        abort(404)
+        abort_diagnostic_not_found(diagnostic_id, course_id)
 
     i_str = request.form.get("i")
     if not i_str:
-        abort(404)
+        abort_missing_parameters("i")
     i = int(i_str)
 
     # Get diagnostic questions
@@ -2366,6 +2399,39 @@ def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
         question=question,
         i=i,
     )
+
+
+# Error handlers
+@app.errorhandler(400)
+def handle_400(e: Any) -> tuple[str, int]:
+    """Handle bad request errors"""
+    return render_template(
+        "error.html", error_code=400, error_message=e.description
+    ), 400
+
+
+@app.errorhandler(403)
+def handle_403(e: Any) -> tuple[str, int]:
+    """Handle forbidden errors"""
+    return render_template(
+        "error.html", error_code=403, error_message=e.description
+    ), 403
+
+
+@app.errorhandler(404)
+def handle_404(e: Any) -> tuple[str, int]:
+    """Handle not found errors"""
+    return render_template(
+        "error.html", error_code=404, error_message=e.description
+    ), 404
+
+
+@app.errorhandler(500)
+def handle_500(e: Any) -> tuple[str, int]:
+    """Handle internal server errors"""
+    return render_template(
+        "error.html", error_code=500, error_message=e.description
+    ), 500
 
 
 if __name__ == "__main__":
