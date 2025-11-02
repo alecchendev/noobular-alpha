@@ -1555,12 +1555,15 @@ def course_page(course_id: int) -> str:
                 item=Diagnostic(id=diagnostic_id, course_id=course_id),
             )
         )
+        remaining_lessons = next_lessons + remaining_lessons
     elif available_quizzes:
         for quiz in available_quizzes:
             next_items.append(CourseItem(type="quiz", item=quiz))
+        remaining_lessons = next_lessons + remaining_lessons
     elif available_reviews:
         for review in available_reviews:
             next_items.append(CourseItem(type="review", item=review))
+        remaining_lessons = next_lessons + remaining_lessons
     elif next_lessons:
         for lesson in next_lessons:
             next_items.append(CourseItem(type="lesson", item=lesson))
