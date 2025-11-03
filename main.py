@@ -47,7 +47,7 @@ QUIZ_TIME_LIMIT_MINUTES = 10
 # TODO: have a cutoff of knowledge points before they must take a quiz
 # number of knowledge points completed before a review will surface
 # (if the knowledge point is completed and has no postreqs)
-REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD = 8
+REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD = 4
 # minimum number of questions per knowledge point
 MIN_QUESTION_COUNT = 2  # 8
 GLOBAL_ID = 1
