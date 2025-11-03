@@ -1185,9 +1185,9 @@ def course_page(course_id: int) -> str:
             if passed_diagnostic:
                 completed_kp_via_diagnostic_ids.add(kp.id)
 
-    next_lessons = []
-    completed_lessons = []
-    remaining_lessons = []
+    next_lessons: list[Lesson] = []
+    completed_lessons: list[Lesson] = []
+    remaining_lessons: list[Lesson] = []
     for lesson in course.lessons:
         # Check if lesson is completed
         lesson_completed = all(
@@ -1438,17 +1438,16 @@ def course_page(course_id: int) -> str:
     # Add completed lessons with their completion dates
     for lesson in completed_lessons:
         # Get the latest answer date for any question in this lesson
-        lesson_kp_ids = set([kp.id for kp in lesson.knowledge_points])
-        if len(lesson_kp_ids) == 0:
-            continue
-        placeholders = ",".join("?" * len(lesson_kp_ids))
+        lesson_question_ids = []
+        for kp in lesson.knowledge_points:
+            lesson_question_ids += [q.id for q in kp.lesson_questions]
+        placeholders = ",".join("?" * len(lesson_question_ids))
         cursor.execute(
             f"""SELECT MAX(a.created_at)
                 FROM answers a
-                JOIN questions q ON a.question_id = q.id
-                WHERE q.knowledge_point_id IN ({placeholders})
+                WHERE a.question_id IN ({placeholders})
                 AND a.user_id = ?""",
-            (*lesson_kp_ids, g.user.id),
+            (*lesson_question_ids, g.user.id),
         )
         completion_date = cursor.fetchone()[0]
         if completion_date:
