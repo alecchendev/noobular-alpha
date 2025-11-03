@@ -13,6 +13,7 @@ from markupsafe import escape
 import yaml
 import sqlite3
 import hashlib
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional, NoReturn, Union
 import random
@@ -1602,10 +1603,10 @@ def course_graph(course_id: int) -> Any:
         abort_course_not_found(course_id)
 
     graph = extract_graph_data_from_course(course)
-    output_path = f"course_{course_id}_graph"
-    create_knowledge_graph(graph, output_path)
+    dot = create_knowledge_graph(graph)
+    png_bytes = dot.pipe(format="png")
 
-    return send_file(f"{output_path}.png", mimetype="image/png")
+    return send_file(BytesIO(png_bytes), mimetype="image/png")
 
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>")
