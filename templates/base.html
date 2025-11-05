@@ -9,5 +9,28 @@
     <div class="main">
         {% block content %}{% endblock %}
     </div>
+    <script>
+        function renderMath() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError : false
+            });
+        }
+
+        // Render math on page load
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMath();
+        });
+
+        // Re-render math after htmx swaps content
+        document.body.addEventListener("htmx:afterSwap", function(event) {
+            renderMath();
+        });
+    </script>
 </body>
 </html>
