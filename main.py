@@ -32,8 +32,8 @@ app.config["MAX_FORM_MEMORY_SIZE"] = 1 * 1024 * 1024
 # Jinja filter for rendering markdown
 @app.template_filter("markdown")
 def markdown_filter(text: str) -> Markup:
-    """Convert markdown text to HTML"""
-    return Markup(markdown.markdown(text))
+    """Convert markdown text to HTML with KaTeX support"""
+    return Markup(markdown.markdown(text, extensions=["markdown_katex"]))
 
 
 DATABASE = "database.db"
