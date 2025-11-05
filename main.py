@@ -9,7 +9,7 @@ from flask import (
     send_file,
     make_response,
 )
-from markupsafe import escape
+from markupsafe import escape, Markup
 import yaml
 import sqlite3
 import hashlib
@@ -21,11 +21,20 @@ from dataclasses import dataclass
 from visualize_course import create_knowledge_graph, KnowledgeGraph
 import argparse
 from werkzeug.exceptions import RequestEntityTooLarge
+import markdown
 
 # Init app
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024  # allow up to ~1MB uploads
 app.config["MAX_FORM_MEMORY_SIZE"] = 1 * 1024 * 1024
+
+
+# Jinja filter for rendering markdown
+@app.template_filter("markdown")
+def markdown_filter(text: str) -> Markup:
+    """Convert markdown text to HTML"""
+    return Markup(markdown.markdown(text))
+
 
 DATABASE = "database.db"
 COURSES_DIRECTORY = Path("courses")

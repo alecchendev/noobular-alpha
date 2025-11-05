@@ -1,6 +1,6 @@
 {% if question %}
     <div class="question">
-        <p><strong>{{ question.prompt }}</strong></p>
+        <div>{{ question.prompt | markdown }}</div>
         <form id="question-form-{{ i }}">
             {% for choice in question.choices %}
                 <label>
@@ -10,7 +10,7 @@
                             {% if choice.id == question.answer.choice_id %}checked{% endif %}
                         {% endif %}
                     >
-                    {{ choice.text }}
+                    <div>{{ choice.text | markdown }}</div>
                 </label>
             {% endfor %}
         </form>

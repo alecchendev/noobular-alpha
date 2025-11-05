@@ -1,9 +1,9 @@
 {% if is_correct %}
-<p>✅ Correct! The correct answer is: {{ correct_answer_text }}</p>
+<p>✅ Correct! The correct answer is: {{ correct_answer_text | markdown }}</p>
 {% else %}
-<p>❌ Incorrect. The correct answer is: {{ correct_answer_text }}</p>
+<p>❌ Incorrect. The correct answer is: {{ correct_answer_text | markdown }}</p>
 {% endif %}
 
 {% if explanation %}
-<p><strong>Explanation:</strong> {{ explanation }}</p>
+<div><strong>Explanation:</strong> {{ explanation | markdown }}</div>
 {% endif %}

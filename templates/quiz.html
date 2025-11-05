@@ -8,7 +8,7 @@
 {% if is_submitted %}
     <h2>Score: {{ score }}</h2>
     {% for question in quiz.questions %}
-        <p>{{ loop.index }}. {{ question.prompt }}</p>
+        <div>{{ question.prompt | markdown }}</div>
         {% for choice in question.choices %}
             <label>
                 <input type="radio"
@@ -16,7 +16,7 @@
                        value="{{ choice.id }}"
                        {% if question.answer and question.answer.choice_id == choice.id %}checked{% endif %}
                        disabled>
-                    {{ choice.text }}
+                    <div>{{ choice.text | markdown }}</div>
             </label>
         {% endfor %}
         {% set is_correct = question.answer.choice_id == question.correct_choice().id %}
@@ -29,11 +29,11 @@
 
     <form id="quiz-form" method="POST" action="/course/{{ course.id }}/quiz/{{ quiz.id }}/submit">
         {% for question in quiz.questions %}
-            <p>{{ loop.index }}. {{ question.prompt }}</p>
+            <div>{{ question.prompt | markdown }}</div>
             {% for choice in question.choices %}
                 <label>
                     <input type="radio" name="question_{{ question.id }}" value="{{ choice.id }}" {% if loop.first %}checked{% endif %} required>
-                    {{ choice.text }}
+                    <div>{{ choice.text | markdown }}</div>
                 </label>
             {% endfor %}
         {% endfor %}

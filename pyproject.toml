@@ -21,6 +21,7 @@ dev = [
   "ruff",
   "pre-commit",
   "types-pyyaml",
+  "types-Markdown",
 ]
 
 [build-system]

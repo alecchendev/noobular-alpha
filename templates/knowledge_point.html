@@ -1,13 +1,13 @@
 {% if knowledge_point_index < lesson.knowledge_points|length %}
     {% set knowledge_point = lesson.knowledge_points[knowledge_point_index] %}
     {% if i < knowledge_point.contents|length %}
-        <p class="content">{{ knowledge_point.contents[i].text }}</p>
+        <div class="content">{{ knowledge_point.contents[i].text | markdown }}</div>
         {% include 'next_button.html' %}
     {% elif i < knowledge_point.contents|length + knowledge_point.lesson_questions|length %}
         {% set question_index = i - knowledge_point.contents|length %}
         {% set question = knowledge_point.lesson_questions[question_index] %}
         <div class="question">
-            <p><strong>{{ question.prompt }}</strong></p>
+            <div>{{ question.prompt | markdown }}</div>
             <form id="knowledge-point-{{ knowledge_point_index }}-question-form-{{ question_index }}">
                 {% for choice in question.choices %}
                     <label>
@@ -17,7 +17,7 @@
                                 {% if choice.id == question.answer.choice_id %}checked{% endif %}
                             {% endif %}
                         >
-                        {{ choice.text }}
+                        <div>{{ choice.text | markdown }}</div>
                     </label>
                 {% endfor %}
             </form>

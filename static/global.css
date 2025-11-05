@@ -65,7 +65,17 @@ input[type="text"] {
 }
 
 label {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+label div p:first-child {
+    margin-top: 0;
+}
+
+label div p:last-child {
+    margin-bottom: 0;
 }
 
 .question {
