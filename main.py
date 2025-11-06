@@ -1079,7 +1079,7 @@ def create_course_page() -> str:
             sample_content = f.read()
 
     # Read the prompt template
-    prompt_path = Path("create_course_prompt.txt")
+    prompt_path = Path("prompt/create.txt")
     prompt_text = ""
     if prompt_path.exists():
         with open(prompt_path, "r") as f:
