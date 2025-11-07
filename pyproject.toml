@@ -29,9 +29,9 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main"]
+py-modules = ["main", "validate", "visualize_course"]
 
 [tool.mypy]
-files = ["main.py", "visualize_course.py"]   # folders or files to always check
+files = ["main.py", "visualize_course.py", "validate.py"]   # folders or files to always check
 python_version = "3.9"
 strict = true

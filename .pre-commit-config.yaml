@@ -27,12 +27,7 @@ repos:
         pass_filenames: false
       - id: validate-courses
         name: validate courses
-        entry: >
-          bash -c 'for file in courses/*.yaml; do
-          curl -s -X POST http://127.0.0.1:5000/validate-course
-          -H "Content-Type: application/json"
-          -d "{\"filename\": \"$(basename $file)\"}" |
-          grep -q "\"success\": true" || exit 1; done'
+        entry: bash -c 'for file in courses/*.yaml; do python3 validate.py "$file" || exit 1; done'
         language: system
         always_run: true
         pass_filenames: false
