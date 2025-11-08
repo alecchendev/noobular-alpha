@@ -1552,7 +1552,10 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         </div>
         """
     else:
-        if knowledge_point.last_consecutive_correct_answers() < CORRECT_COUNT_THRESHOLD:
+        if (
+            knowledge_point.last_consecutive_correct_answers() < CORRECT_COUNT_THRESHOLD
+            and len(knowledge_point.questions) > 0
+        ):
             next_question = random.choice(knowledge_point.questions)
             cursor.execute(
                 "INSERT INTO lesson_questions (question_id, user_id) VALUES (?, ?)",
