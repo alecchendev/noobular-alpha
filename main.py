@@ -1543,6 +1543,10 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
                         "DELETE FROM answers WHERE id = ? and user_id = ?",
                         (q.answer.id, g.user.id),
                     )
+                cursor.execute(
+                    "DELETE FROM lesson_questions WHERE question_id = ? and user_id = ?",
+                    (q.id, g.user.id),
+                )
         db.commit()
 
         failure_message = f"""
