@@ -4,7 +4,6 @@ from flask import (
     abort,
     request,
     g,
-    jsonify,
     redirect,
     send_file,
     make_response,
@@ -280,11 +279,26 @@ def get_db() -> sqlite3.Connection:
     return db
 
 
+@app.after_request
+def commit_db_transaction(response: Any) -> Any:
+    """Commit database transaction if request was successful"""
+    db = g.get("db", None)
+    if db is None:
+        return response
+    # Only commit if response was successful (2xx or 3xx status code)
+    if 200 <= response.status_code < 400:
+        db.commit()
+    else:
+        db.rollback()
+    return response
+
+
 @app.teardown_appcontext
 def close_db_connection(error: Any) -> None:
     """Automatically close db connection at end of request"""
     db = g.pop("db", None)
     if db is not None:
+        # Rollback if there was an uncaught exception
         if error:
             db.rollback()
         db.close()
@@ -433,27 +447,6 @@ class CourseItem:
     type: str  # 'lesson', 'quiz', 'review', or 'diagnostic'
     item: Union[Lesson, Quiz, Review, Diagnostic]
     completion_date: Optional[str] = None
-
-
-@dataclass
-class ValidationSuccess:
-    success: bool
-    message: str
-    status_code: int = 200
-
-    def jsonify(self) -> tuple[Any, int]:
-        return jsonify(
-            {"success": self.success, "message": self.message}
-        ), self.status_code
-
-
-@dataclass
-class ValidationError:
-    error: str
-    status_code: int = 400
-
-    def jsonify(self) -> tuple[Any, int]:
-        return jsonify({"error": self.error}), self.status_code
 
 
 # Helper functions for common abort patterns
@@ -850,7 +843,6 @@ def login() -> Any:
     # Try to create the user (will fail silently if username already exists due to UNIQUE constraint)
     try:
         cursor.execute("INSERT INTO users (username) VALUES (?)", (username,))
-        db.commit()
     except sqlite3.IntegrityError:
         # Username already exists, which is fine - just log them in
         pass
@@ -931,7 +923,6 @@ def create_course() -> str:
 
         # save in db if it doesn't exist
         course_id = save_course(cursor, course_data, file_hash)
-        db.commit()
 
         # return message based on success or error
         return f'<p>Success! Course "{escape(course_data["title"])}" created. <a href="/course/{course_id}">View course</a></p>'
@@ -1054,7 +1045,6 @@ def course_page(course_id: int) -> str:
             "INSERT INTO diagnostics (course_id, user_id) VALUES (?, ?)",
             (course_id, g.user.id),
         )
-        db.commit()
         diagnostic_id = cursor.lastrowid
     else:
         diagnostic_id = diagnostic_row[0]
@@ -1108,7 +1098,6 @@ def course_page(course_id: int) -> str:
             "INSERT INTO quiz_questions (quiz_id, question_id) VALUES (?, ?)",
             zip([quiz_id] * len(quiz_questions), quiz_questions),
         )
-        db.commit()
 
     # Load all quizzes for this course
     cursor.execute(
@@ -1212,7 +1201,6 @@ def course_page(course_id: int) -> str:
                 "INSERT INTO reviews (knowledge_point_id, user_id) VALUES (?, ?)",
                 (knowledge_point.id, g.user.id),
             )
-    db.commit()
 
     # Load all reviews for this course using a single query with JOINs
     cursor.execute(
@@ -1461,8 +1449,6 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
             )
             lesson.knowledge_points[i].lesson_questions.append(next_question)
 
-    db.commit()
-
     return render_template(
         "lesson.html",
         course=course,
@@ -1528,7 +1514,6 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
     lesson.knowledge_points[kp_index].lesson_questions[question_index].answer = Answer(
         id=answer_id, question_id=question.id, choice_id=user_choice.id
     )
-    db.commit()
 
     is_correct = user_choice.correct
     correct_answer_index = next(
@@ -1570,7 +1555,6 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
                     "DELETE FROM lesson_questions WHERE question_id = ? and user_id = ?",
                     (q.id, g.user.id),
                 )
-        db.commit()
 
         failure_message = f"""
         <div>
@@ -1589,7 +1573,6 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
                 "INSERT INTO lesson_questions (question_id, user_id) VALUES (?, ?)",
                 (next_question.id, g.user.id),
             )
-            db.commit()
             lesson.knowledge_points[kp_index].lesson_questions.append(next_question)
         next_button_html = render_template(
             "next_button.html",
@@ -1733,7 +1716,6 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
             "UPDATE quizzes SET started_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?",
             (quiz_id, g.user.id),
         )
-        db.commit()
 
     # Check if quiz has been submitted (all questions have answers)
     is_submitted = all(q.answer is not None for q in quiz.questions)
@@ -1812,8 +1794,6 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
             (kp_id, g.user.id),
         )
 
-    db.commit()
-
     # Redirect to quiz page to show results
     return redirect(f"/course/{course_id}/quiz/{quiz_id}")
 
@@ -1836,7 +1816,6 @@ def create_review_question(
         "INSERT INTO review_questions (review_id, question_id) VALUES (?, ?)",
         (review_id, selected_question.id),
     )
-    db.commit()
 
     return selected_question
 
@@ -1963,7 +1942,6 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
     knowledge_point.reviewed_questions[i].answer = Answer(
         id=answer_id, question_id=question.id, choice_id=user_choice.id
     )
-    db.commit()
 
     is_correct = user_choice.correct
     correct_answer_index = next(
@@ -2102,7 +2080,6 @@ def create_diagnostic_question(
         "INSERT INTO diagnostic_questions (diagnostic_id, question_id) VALUES (?, ?)",
         (diagnostic_id, selected_question.id),
     )
-    db.commit()
 
     return selected_question
 
@@ -2236,7 +2213,6 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     )
     answer_id = cursor.lastrowid
     assert answer_id is not None
-    db.commit()
     # Important that we populate this the rest of this handler can assume correct state
     course.lessons[question_lesson_idx].knowledge_points[
         question_kp_idx
