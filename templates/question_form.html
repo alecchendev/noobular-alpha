@@ -19,7 +19,7 @@
         <button
             id="submit-button"
             type="submit"
-            hx-post="/course/{{ course.id }}/{{ entity_type }}/{{ entity_id }}/submit"
+            hx-post="/course/{{ course_id }}/{{ entity_type }}/{{ entity_id }}/submit"
             hx-target="#submit-button"
             hx-vals='{"i": {{ i }}}'
             hx-include="#question-form-{{ i }}"

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Quiz {{ quiz.id }} - {{ course.title }}{% endblock %}
+{% block title %}Quiz {{ quiz.id }} - {{ course_title }}{% endblock %}
 
 {% block content %}
 <h1>Quiz {{ quiz.id }}</h1>
@@ -27,7 +27,7 @@
 {% else %}
     <p>Time remaining: <span id="timer"></span></p>
 
-    <form id="quiz-form" method="POST" action="/course/{{ course.id }}/quiz/{{ quiz.id }}/submit">
+    <form id="quiz-form" method="POST" action="/course/{{ course_id }}/quiz/{{ quiz.id }}/submit">
         {% for question in quiz.questions %}
             <div>{{ question.prompt | markdown }}</div>
             {% for choice in question.choices %}
@@ -41,7 +41,7 @@
     </form>
 {% endif %}
 
-<a class="back" href="/course/{{ course.id }}">← Back to Course</a>
+<a class="back" href="/course/{{ course_id }}">← Back to Course</a>
 
 <script>
     const startTime = {% if quiz.started_at %}new Date("{{ quiz.started_at }}".replace(' ', 'T') + 'Z').getTime(){% else %}Date.now(){% endif %};

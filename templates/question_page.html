@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ page_title }} - {{ course.title }}{% endblock %}
+{% block title %}{{ page_title }} - {{ course_title }}{% endblock %}
 
 {% block content %}
 <h1>{{ page_title }}</h1>
-<p><strong>Course:</strong> {{ course.title }}</p>
+<p><strong>Course:</strong> {{ course_title }}</p>
 
 {% include 'question_form.html' %}
 
-<a class="back" href="/course/{{ course.id }}">← Back to {{ course.title }}</a>
+<a class="back" href="/course/{{ course_id }}">← Back to {{ course_title }}</a>
 {% endblock %}

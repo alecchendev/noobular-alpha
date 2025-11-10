@@ -1352,7 +1352,8 @@ def course_page(course_id: int) -> str:
 
     return render_template(
         "course.html",
-        course=course,
+        course_id=course.id,
+        course_title=course.title,
         next_items=next_items,
         remaining_lessons=remaining_lessons,
         completed_items=completed_items,
@@ -1421,7 +1422,8 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
 
     return render_template(
         "lesson.html",
-        course=course,
+        course_id=course.id,
+        course_title=course.title,
         lesson=lesson,
     )
 
@@ -1592,7 +1594,7 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
 
     return render_template(
         "knowledge_point.html",
-        course=course,
+        course_id=course.id,
         lesson=lesson,
         knowledge_point_index=kp_index,
         i=i,
@@ -1698,7 +1700,8 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
 
     return render_template(
         "quiz.html",
-        course=course,
+        course_id=course.id,
+        course_title=course.title,
         quiz=quiz,
         quiz_time_limit_minutes=config.quiz_time_limit_minutes,
         is_submitted=is_submitted,
@@ -1818,7 +1821,8 @@ def review_page(course_id: int, review_id: int) -> str:
     return render_template(
         "question_page.html",
         page_title=f"Review: {knowledge_point.name}",
-        course=course,
+        course_id=course.id,
+        course_title=course.title,
         entity_type="review",
         entity_id=review.id,
         question=question,
@@ -1917,7 +1921,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
 
     next_button_html = render_template(
         "question_next_button.html",
-        course=course,
+        course_id=course.id,
         entity_type="review",
         entity_id=review_id,
         i=i,
@@ -1969,7 +1973,7 @@ def review_next_question(course_id: int, review_id: int) -> str:
 
     return render_template(
         "question_form.html",
-        course=course,
+        course_id=course.id,
         entity_type="review",
         entity_id=review_id,
         question=question,
@@ -2073,7 +2077,8 @@ def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
     return render_template(
         "question_page.html",
         page_title="Diagnostic",
-        course=course,
+        course_id=course.id,
+        course_title=course.title,
         entity_type="diagnostic",
         entity_id=diagnostic_id,
         question=first_question,
@@ -2180,7 +2185,7 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
 
     next_button_html = render_template(
         "question_next_button.html",
-        course=course,
+        course_id=course.id,
         entity_type="diagnostic",
         entity_id=diagnostic_id,
         i=i,
@@ -2237,7 +2242,7 @@ def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
 
     return render_template(
         "question_form.html",
-        course=course,
+        course_id=course.id,
         entity_type="diagnostic",
         entity_id=diagnostic_id,
         question=question,

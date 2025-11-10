@@ -11,7 +11,7 @@
 
         <button
             id="submit-button"
-            hx-post="/course/{{ course.id }}/lesson/{{ lesson.id }}/next"
+            hx-post="/course/{{ course_id }}/lesson/{{ lesson.id }}/next"
             hx-target="#submit-button"
             hx-vals='{"knowledge_point_index": {{ next_kp_index }}, "i": {{ next_i }}}'
             hx-swap="outerHTML"

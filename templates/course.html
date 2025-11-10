@@ -1,24 +1,24 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ course.title }} - Course Catalog{% endblock %}
+{% block title %}{{ course_title }} - Course Catalog{% endblock %}
 
 {% block content %}
-<h1>{{ course.title }}</h1>
+<h1>{{ course_title }}</h1>
 
-<p><a href="/course/{{ course.id }}/graph">View Knowledge Graph</a></p>
+<p><a href="/course/{{ course_id }}/graph">View Knowledge Graph</a></p>
 
 <h2>Next</h2>
 {% if next_items|length > 0 %}
     <ul>
     {% for item in next_items %}
         {% if item.type == 'lesson' %}
-            <li><a href="/course/{{ course.id }}/lesson/{{ item.item.id }}">Lesson: {{ item.item.title }}</a></li>
+            <li><a href="/course/{{ course_id }}/lesson/{{ item.item.id }}">Lesson: {{ item.item.title }}</a></li>
         {% elif item.type == 'quiz' %}
-            <li><a href="/course/{{ course.id }}/quiz/{{ item.item.id }}">Quiz {{ item.item.id }}</a></li>
+            <li><a href="/course/{{ course_id }}/quiz/{{ item.item.id }}">Quiz {{ item.item.id }}</a></li>
         {% elif item.type == 'review' %}
-            <li><a href="/course/{{ course.id }}/review/{{ item.item.id }}">Review: {{ item.item.knowledge_point.name }}</a></li>
+            <li><a href="/course/{{ course_id }}/review/{{ item.item.id }}">Review: {{ item.item.knowledge_point.name }}</a></li>
         {% elif item.type == 'diagnostic' %}
-            <li><a href="/course/{{ course.id }}/diagnostic/{{ item.item.id }}">Diagnostic Quiz</a></li>
+            <li><a href="/course/{{ course_id }}/diagnostic/{{ item.item.id }}">Diagnostic Quiz</a></li>
         {% endif %}
     {% endfor %}
     </ul>
@@ -30,7 +30,7 @@
 {% if remaining_lessons|length > 0 %}
     <ul>
     {% for lesson in remaining_lessons %}
-        <li><a href="/course/{{ course.id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
+        <li><a href="/course/{{ course_id }}/lesson/{{ lesson.id }}">{{ lesson.title }}</a></li>
     {% endfor %}
     </ul>
 {% else %}
@@ -42,13 +42,13 @@
     <ul>
     {% for item in completed_items %}
         {% if item.type == 'lesson' %}
-            <li><a href="/course/{{ course.id }}/lesson/{{ item.item.id }}">Lesson: {{ item.item.title }}</a></li>
+            <li><a href="/course/{{ course_id }}/lesson/{{ item.item.id }}">Lesson: {{ item.item.title }}</a></li>
         {% elif item.type == 'quiz' %}
-            <li><a href="/course/{{ course.id }}/quiz/{{ item.item.id }}">Quiz {{ item.item.id }}</a></li>
+            <li><a href="/course/{{ course_id }}/quiz/{{ item.item.id }}">Quiz {{ item.item.id }}</a></li>
         {% elif item.type == 'review' %}
-            <li><a href="/course/{{ course.id }}/review/{{ item.item.id }}">Review: {{ item.item.knowledge_point.name }}</a></li>
+            <li><a href="/course/{{ course_id }}/review/{{ item.item.id }}">Review: {{ item.item.knowledge_point.name }}</a></li>
         {% elif item.type == 'diagnostic' %}
-            <li><a href="/course/{{ course.id }}/diagnostic/{{ item.item.id }}">Diagnostic Quiz</a></li>
+            <li><a href="/course/{{ course_id }}/diagnostic/{{ item.item.id }}">Diagnostic Quiz</a></li>
         {% endif %}
     {% endfor %}
     </ul>
