@@ -1081,7 +1081,8 @@ def course_page(course_id: int) -> str:
         # Collect one unanswered question from each selected KP
         quiz_questions = []
         for kp in selected_kps:
-            assert len(kp.questions) > 0
+            if len(kp.questions) == 0:
+                continue
             question = random.choice(kp.questions)
             quiz_questions.append(question.id)
 
@@ -1152,26 +1153,20 @@ def course_page(course_id: int) -> str:
     cursor.execute(
         """SELECT
             kp.id as knowledge_point_id,
-            kp.name,
             MAX(a.created_at) as last_answered_at
         FROM knowledge_points kp
         JOIN lessons l ON kp.lesson_id = l.id
         JOIN questions q ON q.knowledge_point_id = kp.id
+        JOIN lesson_questions lq ON lq.question_id = q.id AND lq.user_id = ?
         LEFT JOIN answers a ON a.question_id = q.id AND a.user_id = ?
-        LEFT JOIN quiz_questions qq ON qq.question_id = q.id
-        LEFT JOIN review_questions rq ON rq.question_id = q.id
-        LEFT JOIN diagnostic_questions dq ON dq.question_id = q.id
         WHERE l.course_id = ?
-        AND qq.question_id IS NULL
-        AND rq.question_id IS NULL
-        AND dq.question_id IS NULL
-        GROUP BY kp.id, kp.name
+        GROUP BY kp.id
         HAVING MAX(a.created_at) IS NOT NULL
         ORDER BY last_answered_at DESC""",
-        (g.user.id, course_id),
+        (g.user.id, g.user.id, course_id),
     )
     answered_kp_id_to_completed_time: Dict[int, str] = {
-        row[0]: row[2] for row in cursor.fetchall()
+        row[0]: row[1] for row in cursor.fetchall()
     }
 
     cursor.execute(
