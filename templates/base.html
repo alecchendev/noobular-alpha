@@ -13,7 +13,9 @@
     <title>{% block title %}Noobular{% endblock %}</title>
 </head>
 <body>
-    {% include 'banner.html' %}
+    <div class="alpha-banner">
+        ⚠️ This site is an experimental alpha - features may change and data may be reset
+    </div>
     <div class="main">
         {% block content %}{% endblock %}
     </div>
