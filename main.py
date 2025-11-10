@@ -37,29 +37,45 @@ def markdown_filter(text: str) -> Markup:
     return Markup(markdown.markdown(text))
 
 
-DATABASE = "database.db"
-COURSES_DIRECTORY = Path("courses")
-# Max number of knowledge points in a course
-MAX_COURSE_KNOWLEDGE_POINT_COUNT = 1000
-# number of answers correct in a row to let you skip the rest of the questions
-CORRECT_COUNT_THRESHOLD = 2
-# number of answers correct in a row to let you skip the rest of the questions
-REVIEW_CORRECT_COUNT_THRESHOLD = 3
-# number of wrong answers for a knowledge point at which you will fail and have to restart a lesson
-INCORRECT_COUNT_FAIL_THRESHOLD = 3
-# number of knowledge points completed before a quiz is ready
-QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD = 8
-# number of questions in a quiz
-QUIZ_QUESTION_COUNT = 4
-assert QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD >= QUIZ_QUESTION_COUNT
-# number of minutes allowed for a quiz
-QUIZ_TIME_LIMIT_MINUTES = 10
-# TODO: have a cutoff of knowledge points before they must take a quiz
-# number of knowledge points completed before a review will surface
-# (if the knowledge point is completed and has no postreqs)
-REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD = 4
-GLOBAL_ID = 1
-GLOBAL_USERNAME = "global"
+@dataclass
+class AppConfig:
+    database: str = "database.db"
+    courses_directory: Path = Path("courses")
+    # number of answers correct in a row to let you skip the rest of the questions
+    correct_count_threshold: int = 2
+    # number of answers correct in a row to let you skip the rest of the questions in a review
+    review_correct_count_threshold: int = 3
+    # number of wrong answers for a knowledge point at which you will fail and have to restart a lesson
+    incorrect_count_fail_threshold: int = 3
+    # number of knowledge points completed before a quiz is ready
+    quiz_knowledge_point_count_threshold: int = 8
+    # number of questions in a quiz
+    quiz_question_count: int = 4
+    # number of minutes allowed for a quiz
+    quiz_time_limit_minutes: int = 10
+    # number of knowledge points completed before a review will surface
+    # (if the knowledge point is completed and has no postreqs)
+    review_knowledge_point_count_threshold: int = 4
+    global_id: int = 1
+    global_username: str = "global"
+
+    @staticmethod
+    def prod() -> "AppConfig":
+        return AppConfig()
+
+    @staticmethod
+    def debug() -> "AppConfig":
+        return AppConfig(
+            quiz_knowledge_point_count_threshold=2,
+            quiz_question_count=2,
+        )
+
+    def __post_init__(self) -> None:
+        assert self.quiz_knowledge_point_count_threshold >= self.quiz_question_count
+
+
+# Config is initialized later in main() based on --debug flag
+config: AppConfig
 
 
 def init_database() -> None:
@@ -240,7 +256,7 @@ def init_database() -> None:
 
     # Create default global user if it doesn't exist
     cursor.execute(
-        "INSERT OR IGNORE INTO users (username) VALUES (?)", (GLOBAL_USERNAME,)
+        "INSERT OR IGNORE INTO users (username) VALUES (?)", (config.global_username,)
     )
     conn.commit()
 
@@ -250,7 +266,7 @@ def init_database() -> None:
 
 def create_db_connection() -> sqlite3.Connection:
     """Create a new database connection with foreign keys enabled"""
-    conn = sqlite3.connect(DATABASE)
+    conn = sqlite3.connect(config.database)
     conn.execute("PRAGMA foreign_keys = ON")  # Enable foreign key constraints
     return conn
 
@@ -285,7 +301,7 @@ def load_logged_in_user() -> None:
     """Load the logged-in user from the cookie and make it available in g.user"""
     username = request.cookies.get("username")
 
-    g.user = User(GLOBAL_ID, GLOBAL_USERNAME)
+    g.user = User(config.global_id, config.global_username)
     if username is None:
         return
     db = get_db()
@@ -575,7 +591,7 @@ def save_course(
 
 def load_courses_to_database() -> None:
     """Load courses from YAML files into database"""
-    if not COURSES_DIRECTORY.is_dir():
+    if not config.courses_directory.is_dir():
         print("No courses directory found, skipping course loading")
         return
 
@@ -584,7 +600,7 @@ def load_courses_to_database() -> None:
 
     # Parse new courses (file hash isn't in DB)
     courses: list[tuple[bytes, dict[str, Any]]] = []  # hash, course_data
-    for yaml_file in COURSES_DIRECTORY.glob("*.yaml"):
+    for yaml_file in config.courses_directory.glob("*.yaml"):
         with open(yaml_file, "r") as f:
             course_data = yaml.safe_load(f) or {}
 
@@ -812,7 +828,7 @@ def index() -> str:
     cursor.execute("SELECT id, title FROM courses")
     courses = [(id, title) for id, title in cursor.fetchall()]
 
-    user = None if g.user.username == GLOBAL_USERNAME else g.user
+    user = None if g.user.username == config.global_username else g.user
     return render_template("index.html", courses=courses, user=user)
 
 
@@ -972,9 +988,13 @@ def course_page(course_id: int) -> str:
                 question for question in kp.lesson_questions if question.answer
             ]
             if (
-                len(answered_questions) == len(kp.lesson_questions)
-                and len(kp.questions) == 0
-            ) or kp.last_consecutive_correct_answers() >= CORRECT_COUNT_THRESHOLD:
+                (
+                    len(answered_questions) == len(kp.lesson_questions)
+                    and len(kp.questions) == 0
+                )
+                or kp.last_consecutive_correct_answers()
+                >= config.correct_count_threshold
+            ):
                 completed_kp_ids.add(kp.id)
             passed_diagnostic = len(kp.diagnostic_questions) > 0 and all(
                 q.answer is not None and q.answer.choice_id == q.correct_choice().id
@@ -1056,7 +1076,7 @@ def course_page(course_id: int) -> str:
     )
 
     # Create a new quiz if threshold is met
-    if len(recent_completed_kp_ids) >= QUIZ_KNOWLEDGE_POINT_COUNT_THRESHOLD:
+    if len(recent_completed_kp_ids) >= config.quiz_knowledge_point_count_threshold:
         # Get recently completed KPs from the course data
 
         recent_kps: list[KnowledgePoint] = []
@@ -1065,8 +1085,8 @@ def course_page(course_id: int) -> str:
                 if kp.id in recent_completed_kp_ids:
                     recent_kps.append(kp)
 
-        # Randomly select up to QUIZ_QUESTION_COUNT KPs
-        selected_kps = random.sample(recent_kps, QUIZ_QUESTION_COUNT)
+        # Randomly select up to quiz_question_count KPs
+        selected_kps = random.sample(recent_kps, config.quiz_question_count)
 
         # Collect one unanswered question from each selected KP
         quiz_questions = []
@@ -1114,7 +1134,7 @@ def course_page(course_id: int) -> str:
 
         if quiz.started_at:
             start_time = datetime.fromisoformat(quiz.started_at)
-            end_time = start_time + timedelta(minutes=QUIZ_TIME_LIMIT_MINUTES)
+            end_time = start_time + timedelta(minutes=config.quiz_time_limit_minutes)
             now = datetime.now()
             time_is_up = now > end_time
 
@@ -1184,7 +1204,10 @@ def course_page(course_id: int) -> str:
         completed_kp_ids_after_kp = knowledge_point_ids_completed_after_time(
             cursor, list(completed_kp_ids), completed_time, g.user.id
         )
-        if len(completed_kp_ids_after_kp) >= REVIEW_KNOWLEDGE_POINT_COUNT_THRESHOLD:
+        if (
+            len(completed_kp_ids_after_kp)
+            >= config.review_knowledge_point_count_threshold
+        ):
             cursor.execute(
                 "INSERT INTO reviews (knowledge_point_id, user_id) VALUES (?, ?)",
                 (knowledge_point.id, g.user.id),
@@ -1224,7 +1247,7 @@ def course_page(course_id: int) -> str:
                 and len(answered_questions) == len(knowledge_point.reviewed_questions)
             )
             or knowledge_point.last_consecutive_correct_review_answers()
-            >= REVIEW_CORRECT_COUNT_THRESHOLD
+            >= config.review_correct_count_threshold
         ):
             completed_reviews.append(review)
         else:
@@ -1530,7 +1553,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
             and question.answer.choice_id != question.correct_choice().id
         ]
     )
-    failed_knowledge_point = incorrect_count >= INCORRECT_COUNT_FAIL_THRESHOLD
+    failed_knowledge_point = incorrect_count >= config.incorrect_count_fail_threshold
 
     failure_message = ""
     next_button_html = ""
@@ -1557,7 +1580,8 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         """
     else:
         if (
-            knowledge_point.last_consecutive_correct_answers() < CORRECT_COUNT_THRESHOLD
+            knowledge_point.last_consecutive_correct_answers()
+            < config.correct_count_threshold
             and len(knowledge_point.questions) > 0
         ):
             next_question = random.choice(knowledge_point.questions)
@@ -1604,7 +1628,8 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
 
     knowledge_point = lesson.knowledge_points[kp_index]
     completed_kp = (
-        knowledge_point.last_consecutive_correct_answers() >= CORRECT_COUNT_THRESHOLD
+        knowledge_point.last_consecutive_correct_answers()
+        >= config.correct_count_threshold
     )
     question_index = i - len(knowledge_point.contents)
     new_question = question_index >= len(
@@ -1731,7 +1756,7 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
         "quiz.html",
         course=course,
         quiz=quiz,
-        quiz_time_limit_minutes=QUIZ_TIME_LIMIT_MINUTES,
+        quiz_time_limit_minutes=config.quiz_time_limit_minutes,
         is_submitted=is_submitted,
         score=score,
     )
@@ -1747,7 +1772,7 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
     from datetime import datetime, timedelta
 
     start_time = datetime.fromisoformat(quiz.started_at)
-    expected_end_time = start_time + timedelta(minutes=QUIZ_TIME_LIMIT_MINUTES)
+    expected_end_time = start_time + timedelta(minutes=config.quiz_time_limit_minutes)
     now = datetime.now()
 
     # Check if submission is within 10 seconds after expected end time
@@ -1956,7 +1981,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
     # Create new question if needed (haven't answered enough correct in a row, and unanswered questions left)
     if (
         knowledge_point.last_consecutive_correct_review_answers()
-        < REVIEW_CORRECT_COUNT_THRESHOLD
+        < config.review_correct_count_threshold
         and len(knowledge_point.questions) > 0
     ):
         new_question = create_review_question(review_id, knowledge_point)
@@ -2339,14 +2364,19 @@ def handle_500(e: Any) -> tuple[str, int]:
     ), 500
 
 
-if __name__ == "__main__":
+def main() -> None:
     parser = argparse.ArgumentParser(description="Run the Noobular Flask application")
     parser.add_argument("--debug", action="store_true", help="Run in debug mode")
     parser.add_argument(
         "--port", type=int, default=5000, help="Port to run on (default: 5000)"
     )
     args = parser.parse_args()
-
+    global config  # Initialize the module level config instead of declaring new var
+    config = AppConfig.debug() if args.debug else AppConfig.prod()
     init_database()
     load_courses_to_database()
     app.run(debug=args.debug, port=args.port)
+
+
+if __name__ == "__main__":
+    main()

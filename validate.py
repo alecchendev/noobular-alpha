@@ -5,17 +5,28 @@ Can be used as a module or run as a CLI script to validate course YAML files.
 """
 
 import argparse
+from dataclasses import dataclass
 import sys
 import yaml
 from pathlib import Path
 from typing import Any
 
-# Configuration constants
-MIN_QUESTION_COUNT = 2  # minimum number of questions per knowledge point
+
+@dataclass
+class ValidationConfig:
+    # Max number of knowledge points in a course
+    max_course_knowledge_point_count: int
+    # minimum number of questions per knowledge point
+    min_question_count: int
 
 
 def validate_course(course_data: dict[str, Any]) -> None:
     """Validate course data and return a Course object. Raises ValueError on validation failure."""
+    # Config is just constant
+    config = ValidationConfig(
+        max_course_knowledge_point_count=1000, min_question_count=2
+    )
+
     # Validate required fields
     if "title" not in course_data:
         raise ValueError("Missing required field: 'title'")
@@ -92,9 +103,9 @@ def validate_course(course_data: dict[str, Any]) -> None:
                 )
 
             # Validate minimum question count
-            if len(kp_data["questions"]) < MIN_QUESTION_COUNT:
+            if len(kp_data["questions"]) < config.min_question_count:
                 raise ValueError(
-                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') must have at least {MIN_QUESTION_COUNT} questions, found {len(kp_data['questions'])}"
+                    f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}') must have at least {config.min_question_count} questions, found {len(kp_data['questions'])}"
                 )
 
             # Validate prerequisites
@@ -172,6 +183,15 @@ def validate_course(course_data: dict[str, Any]) -> None:
                     raise ValueError(
                         f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
                     )
+
+    knowledge_point_count = sum(
+        len(lesson_data.get("knowledge_points", []))
+        for lesson_data in course_data.get("lessons", [])
+    )
+    if knowledge_point_count > config.max_course_knowledge_point_count:
+        raise ValueError(
+            f"Too many knowledge points. Max knowledge point count: {config.max_course_knowledge_point_count}, observed: {knowledge_point_count}"
+        )
 
     # Validate prereq tree
     kp_to_prereqs: dict[str, set[str]] = {}
