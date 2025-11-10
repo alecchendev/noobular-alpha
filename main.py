@@ -8,6 +8,7 @@ from flask import (
     send_file,
     make_response,
 )
+from datetime import datetime, timedelta
 from markupsafe import escape, Markup
 import yaml
 import sqlite3
@@ -270,15 +271,6 @@ def create_db_connection() -> sqlite3.Connection:
     return conn
 
 
-def get_db() -> sqlite3.Connection:
-    """Get database connection for current request"""
-    if "db" not in g:
-        g.db = create_db_connection()
-        g.db.row_factory = sqlite3.Row  # Enable dict-like access
-    db: sqlite3.Connection = g.db
-    return db
-
-
 @app.after_request
 def commit_db_transaction(response: Any) -> Any:
     """Commit database transaction if request was successful"""
@@ -311,17 +303,20 @@ class User:
 
 
 @app.before_request
-def load_logged_in_user() -> None:
-    """Load the logged-in user from the cookie and make it available in g.user"""
-    username = request.cookies.get("username")
+def initialize_request() -> None:
+    """Initialize database connection and load user before each request"""
+    # Initialize database connection and cursor
+    g.db = create_db_connection()
+    g.db.row_factory = sqlite3.Row  # Enable dict-like access
+    g.cursor = g.db.cursor()
 
+    # Load logged-in user
+    username = request.cookies.get("username")
     g.user = User(config.global_id, config.global_username)
     if username is None:
         return
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("SELECT id, username FROM users WHERE username = ?", (username,))
-    user_row = cursor.fetchone()
+    g.cursor.execute("SELECT id, username FROM users WHERE username = ?", (username,))
+    user_row = g.cursor.fetchone()
     if user_row:
         id, username = user_row
         g.user = User(id, username)
@@ -624,11 +619,10 @@ def load_courses_to_database() -> None:
     conn.close()
 
 
-def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
+def load_course_from_db(
+    cursor: sqlite3.Cursor, course_id: int, user_id: int
+) -> Optional[Course]:
     """Load a course from the database by ID"""
-    db = get_db()
-    cursor = db.cursor()
-
     # Get course
     cursor.execute("SELECT title FROM courses WHERE id = ?", (course_id,))
     course_row = cursor.fetchone()
@@ -816,10 +810,8 @@ def load_course_from_db(course_id: int, user_id: int) -> Optional[Course]:
 
 @app.route("/")
 def index() -> str:
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("SELECT id, title FROM courses")
-    courses = [(id, title) for id, title in cursor.fetchall()]
+    g.cursor.execute("SELECT id, title FROM courses")
+    courses = [(id, title) for id, title in g.cursor.fetchall()]
 
     user = None if g.user.username == config.global_username else g.user
     return render_template("index.html", courses=courses, user=user)
@@ -837,12 +829,9 @@ def login() -> Any:
 
     username = username.strip()
 
-    db = get_db()
-    cursor = db.cursor()
-
     # Try to create the user (will fail silently if username already exists due to UNIQUE constraint)
     try:
-        cursor.execute("INSERT INTO users (username) VALUES (?)", (username,))
+        g.cursor.execute("INSERT INTO users (username) VALUES (?)", (username,))
     except sqlite3.IntegrityError:
         # Username already exists, which is fine - just log them in
         pass
@@ -915,14 +904,11 @@ def create_course() -> str:
 
         file_hash = hashlib.md5(yaml_content.encode()).digest()
 
-        db = get_db()
-        cursor = db.cursor()
-
-        if check_course_exists(cursor, file_hash):
+        if check_course_exists(g.cursor, file_hash):
             return "<p>Error: This course already exists</p>"
 
         # save in db if it doesn't exist
-        course_id = save_course(cursor, course_data, file_hash)
+        course_id = save_course(g.cursor, course_data, file_hash)
 
         # return message based on success or error
         return f'<p>Success! Course "{escape(course_data["title"])}" created. <a href="/course/{course_id}">View course</a></p>'
@@ -964,7 +950,7 @@ def knowledge_point_ids_completed_after_time(
 
 @app.route("/course/<int:course_id>")
 def course_page(course_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -978,14 +964,12 @@ def course_page(course_id: int) -> str:
             answered_questions = [
                 question for question in kp.lesson_questions if question.answer
             ]
-            if (
-                (
-                    len(answered_questions) == len(kp.lesson_questions)
-                    and len(kp.questions) == 0
-                )
-                or kp.last_consecutive_correct_answers()
-                >= config.correct_count_threshold
-            ):
+            all_questions_answered = len(answered_questions) == len(kp.lesson_questions)
+            no_new_questions = len(kp.questions) == 0
+            passed_consec_questions = (
+                kp.last_consecutive_correct_answers() >= config.correct_count_threshold
+            )
+            if (all_questions_answered and no_new_questions) or passed_consec_questions:
                 completed_kp_ids.add(kp.id)
             passed_diagnostic = len(kp.diagnostic_questions) > 0 and all(
                 q.answer is not None and q.answer.choice_id == q.correct_choice().id
@@ -1030,39 +1014,35 @@ def course_page(course_id: int) -> str:
 
         remaining_lessons.append(lesson)
 
-    # Check if we need to create a new quiz
-    db = get_db()
-    cursor = db.cursor()
-
     # Create a diagnostic if one doesn't exist for this course
-    cursor.execute(
+    g.cursor.execute(
         "SELECT id FROM diagnostics WHERE course_id = ? AND user_id = ?",
         (course_id, g.user.id),
     )
-    diagnostic_row = cursor.fetchone()
+    diagnostic_row = g.cursor.fetchone()
     if not diagnostic_row:
-        cursor.execute(
+        g.cursor.execute(
             "INSERT INTO diagnostics (course_id, user_id) VALUES (?, ?)",
             (course_id, g.user.id),
         )
-        diagnostic_id = cursor.lastrowid
+        diagnostic_id = g.cursor.lastrowid
     else:
         diagnostic_id = diagnostic_row[0]
     assert diagnostic_id is not None
 
     # Get the creation time of the last quiz (or use epoch if no quizzes exist)
-    cursor.execute(
+    g.cursor.execute(
         "SELECT created_at FROM quizzes WHERE course_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1",
         (course_id, g.user.id),
     )
-    last_quiz_row = cursor.fetchone()
+    last_quiz_row = g.cursor.fetchone()
     last_quiz_time = last_quiz_row[0] if last_quiz_row else "1970-01-01 00:00:00"
 
     # Get KP IDs completed after the last quiz using a single query
     # Exclude questions that are quiz questions
     # Exclude questions that are review questions
     recent_completed_kp_ids = knowledge_point_ids_completed_after_time(
-        cursor, list(completed_kp_ids), last_quiz_time, g.user.id
+        g.cursor, list(completed_kp_ids), last_quiz_time, g.user.id
     )
 
     # Create a new quiz if threshold is met
@@ -1089,32 +1069,30 @@ def course_page(course_id: int) -> str:
         # Create quiz, then insert all quiz questions in one query
         assert len(quiz_questions) > 0
 
-        cursor.execute(
+        g.cursor.execute(
             "INSERT INTO quizzes (course_id, user_id) VALUES (?, ?)",
             (course_id, g.user.id),
         )
-        quiz_id = cursor.lastrowid
+        quiz_id = g.cursor.lastrowid
 
-        cursor.executemany(
+        g.cursor.executemany(
             "INSERT INTO quiz_questions (quiz_id, question_id) VALUES (?, ?)",
             zip([quiz_id] * len(quiz_questions), quiz_questions),
         )
 
     # Load all quizzes for this course
-    cursor.execute(
+    g.cursor.execute(
         "SELECT id FROM quizzes WHERE course_id = ? AND user_id = ?",
         (course_id, g.user.id),
     )
-    quiz_rows = cursor.fetchall()
+    quiz_rows = g.cursor.fetchall()
 
     # Separate quizzes into available and completed
-    from datetime import datetime, timedelta
-
     available_quizzes = []
     completed_quizzes = []
 
     for (quiz_id,) in quiz_rows:
-        quiz = load_quiz(quiz_id, course_id)
+        quiz = load_quiz(g.cursor, quiz_id, course_id)
         if not quiz:
             continue
 
@@ -1150,7 +1128,7 @@ def course_page(course_id: int) -> str:
         for id, kp in id_to_knowledge_points.items()
         if id in completed_kp_ids and len(postreqs[id]) == 0
     ]
-    cursor.execute(
+    g.cursor.execute(
         """SELECT
             kp.id as knowledge_point_id,
             MAX(a.created_at) as last_answered_at
@@ -1166,10 +1144,10 @@ def course_page(course_id: int) -> str:
         (g.user.id, g.user.id, course_id),
     )
     answered_kp_id_to_completed_time: Dict[int, str] = {
-        row[0]: row[1] for row in cursor.fetchall()
+        row[0]: row[1] for row in g.cursor.fetchall()
     }
 
-    cursor.execute(
+    g.cursor.execute(
         """SELECT r.id, r.knowledge_point_id
            FROM reviews r
            JOIN knowledge_points kp ON r.knowledge_point_id = kp.id
@@ -1178,7 +1156,7 @@ def course_page(course_id: int) -> str:
            AND r.user_id = ?""",
         (course_id, g.user.id),
     )
-    kp_ids_with_reviews = set(kp_id for _, kp_id in cursor.fetchall())
+    kp_ids_with_reviews = set(kp_id for _, kp_id in g.cursor.fetchall())
 
     for knowledge_point in completed_kp_no_post_reqs:
         if knowledge_point.id in kp_ids_with_reviews:
@@ -1186,19 +1164,19 @@ def course_page(course_id: int) -> str:
         assert knowledge_point.id in answered_kp_id_to_completed_time.keys()
         completed_time = answered_kp_id_to_completed_time[knowledge_point.id]
         completed_kp_ids_after_kp = knowledge_point_ids_completed_after_time(
-            cursor, list(completed_kp_ids), completed_time, g.user.id
+            g.cursor, list(completed_kp_ids), completed_time, g.user.id
         )
         if (
             len(completed_kp_ids_after_kp)
             >= config.review_knowledge_point_count_threshold
         ):
-            cursor.execute(
+            g.cursor.execute(
                 "INSERT INTO reviews (knowledge_point_id, user_id) VALUES (?, ?)",
                 (knowledge_point.id, g.user.id),
             )
 
     # Load all reviews for this course using a single query with JOINs
-    cursor.execute(
+    g.cursor.execute(
         """SELECT r.id, r.knowledge_point_id
            FROM reviews r
            JOIN knowledge_points kp ON r.knowledge_point_id = kp.id
@@ -1207,7 +1185,7 @@ def course_page(course_id: int) -> str:
            AND r.user_id = ?""",
         (course_id, g.user.id),
     )
-    review_rows = cursor.fetchall()
+    review_rows = g.cursor.fetchall()
 
     available_reviews = []
     completed_reviews = []
@@ -1246,14 +1224,14 @@ def course_page(course_id: int) -> str:
         for kp in lesson.knowledge_points:
             lesson_question_ids += [q.id for q in kp.lesson_questions]
         placeholders = ",".join("?" * len(lesson_question_ids))
-        cursor.execute(
+        g.cursor.execute(
             f"""SELECT MAX(a.created_at)
                 FROM answers a
                 WHERE a.question_id IN ({placeholders})
                 AND a.user_id = ?""",
             (*lesson_question_ids, g.user.id),
         )
-        completion_date = cursor.fetchone()[0]
+        completion_date = g.cursor.fetchone()[0]
         if completion_date:
             completed_items.append(
                 CourseItem(
@@ -1268,14 +1246,14 @@ def course_page(course_id: int) -> str:
         quiz_question_ids = [q.id for q in quiz.questions]
         if quiz_question_ids:
             placeholders = ",".join("?" * len(quiz_question_ids))
-            cursor.execute(
+            g.cursor.execute(
                 f"""SELECT MAX(a.created_at)
                     FROM answers a
                     WHERE a.question_id IN ({placeholders})
                     AND a.user_id = ?""",
                 (*quiz_question_ids, g.user.id),
             )
-            completion_date = cursor.fetchone()[0]
+            completion_date = g.cursor.fetchone()[0]
             if completion_date:
                 completed_items.append(
                     CourseItem(
@@ -1290,14 +1268,14 @@ def course_page(course_id: int) -> str:
         review_question_ids = [q.id for q in review.knowledge_point.reviewed_questions]
         if review_question_ids:
             placeholders = ",".join("?" * len(review_question_ids))
-            cursor.execute(
+            g.cursor.execute(
                 f"""SELECT MAX(a.created_at)
                     FROM answers a
                     WHERE a.question_id IN ({placeholders})
                     AND a.user_id = ?""",
                 (*review_question_ids, g.user.id),
             )
-            completion_date = cursor.fetchone()[0]
+            completion_date = g.cursor.fetchone()[0]
             if completion_date:
                 completed_items.append(
                     CourseItem(
@@ -1308,36 +1286,36 @@ def course_page(course_id: int) -> str:
                 )
 
     # Check if diagnostic is completed
-    cursor.execute(
+    g.cursor.execute(
         """SELECT question_id FROM diagnostic_questions
            WHERE diagnostic_id = ?
            ORDER BY id""",
         (diagnostic_id,),
     )
-    diagnostic_question_ids = [row[0] for row in cursor.fetchall()]
+    diagnostic_question_ids = [row[0] for row in g.cursor.fetchall()]
 
     placeholders = ",".join("?" * len(diagnostic_question_ids))
-    cursor.execute(
+    g.cursor.execute(
         f"""SELECT COUNT(*) FROM answers a
             WHERE a.question_id IN ({placeholders})
             AND a.user_id = ?""",
         (*diagnostic_question_ids, g.user.id),
     )
-    answered_count = cursor.fetchone()[0]
+    answered_count = g.cursor.fetchone()[0]
     diagnostic_complete = (
         answered_count == len(diagnostic_question_ids)
         and len(diagnostic_question_ids) > 0
     )
     if diagnostic_complete:
         # Get completion date
-        cursor.execute(
+        g.cursor.execute(
             f"""SELECT MAX(a.created_at)
                 FROM answers a
                 WHERE a.question_id IN ({placeholders})
                 AND a.user_id = ?""",
             (*diagnostic_question_ids, g.user.id),
         )
-        completion_date = cursor.fetchone()[0]
+        completion_date = g.cursor.fetchone()[0]
         completed_items.append(
             CourseItem(
                 type="diagnostic",
@@ -1401,7 +1379,7 @@ def extract_graph_data_from_course(
 @app.route("/course/<int:course_id>/graph")
 def course_graph(course_id: int) -> Any:
     """Generate and return the knowledge graph visualization for a course"""
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -1414,7 +1392,7 @@ def course_graph(course_id: int) -> Any:
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>")
 def lesson_page(course_id: int, lesson_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -1430,15 +1408,12 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
     assert len(lesson.knowledge_points) > 0
 
     # Create lesson questions for all knowledge points in this lesson if they don't exist
-    db = get_db()
-    cursor = db.cursor()
-
     for i, kp in enumerate(lesson.knowledge_points):
         # Check if we already have lesson questions for this knowledge point
         if len(kp.lesson_questions) == 0 and len(kp.questions) > 0:
             # Create lesson questions for all available questions
             next_question = random.choice(kp.questions)
-            cursor.execute(
+            g.cursor.execute(
                 "INSERT INTO lesson_questions (question_id, user_id) VALUES (?, ?)",
                 (next_question.id, g.user.id),
             )
@@ -1453,7 +1428,7 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/submit", methods=["POST"])
 def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -1497,13 +1472,11 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         abort(400, description=f"Invalid choice ID: {choice_id}")
 
     # Save the user's answer to the database
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute(
+    g.cursor.execute(
         "INSERT INTO answers (user_id, question_id, choice_id) VALUES (?, ?, ?)",
         (g.user.id, question.id, user_choice.id),
     )
-    answer_id = cursor.lastrowid
+    answer_id = g.cursor.lastrowid
     assert answer_id is not None
     # Important that we populate this the rest of this handler can assume correct state
     lesson.knowledge_points[kp_index].lesson_questions[question_index].answer = Answer(
@@ -1542,11 +1515,11 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         for kp in lesson.knowledge_points:
             for q in kp.lesson_questions:
                 if q.answer:
-                    cursor.execute(
+                    g.cursor.execute(
                         "DELETE FROM answers WHERE id = ? and user_id = ?",
                         (q.answer.id, g.user.id),
                     )
-                cursor.execute(
+                g.cursor.execute(
                     "DELETE FROM lesson_questions WHERE question_id = ? and user_id = ?",
                     (q.id, g.user.id),
                 )
@@ -1564,7 +1537,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
             and len(knowledge_point.questions) > 0
         ):
             next_question = random.choice(knowledge_point.questions)
-            cursor.execute(
+            g.cursor.execute(
                 "INSERT INTO lesson_questions (question_id, user_id) VALUES (?, ?)",
                 (next_question.id, g.user.id),
             )
@@ -1582,7 +1555,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/next", methods=["POST"])
 def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -1626,11 +1599,8 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
     )
 
 
-def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
+def load_quiz(cursor: sqlite3.Cursor, quiz_id: int, course_id: int) -> Optional[Quiz]:
     """Load a quiz with its questions, choices, and answers from the database"""
-    db = get_db()
-    cursor = db.cursor()
-
     # Verify quiz exists and belongs to course, and get started_at
     cursor.execute(
         "SELECT started_at FROM quizzes WHERE id = ? AND course_id = ? AND user_id = ?",
@@ -1693,21 +1663,18 @@ def load_quiz(quiz_id: int, course_id: int) -> Optional[Quiz]:
 
 @app.route("/course/<int:course_id>/quiz/<int:quiz_id>")
 def quiz_page(course_id: int, quiz_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
     # Load quiz using helper function
-    quiz = load_quiz(quiz_id, course_id)
+    quiz = load_quiz(g.cursor, quiz_id, course_id)
     if not quiz:
         abort_quiz_not_found(quiz_id, course_id)
 
-    db = get_db()
-    cursor = db.cursor()
-
     # Set started_at if this is the first time loading the quiz
     if quiz.started_at is None:
-        cursor.execute(
+        g.cursor.execute(
             "UPDATE quizzes SET started_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?",
             (quiz_id, g.user.id),
         )
@@ -1741,7 +1708,7 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
 
 @app.route("/course/<int:course_id>/quiz/<int:quiz_id>/submit", methods=["POST"])
 def quiz_submit(course_id: int, quiz_id: int) -> Any:
-    quiz = load_quiz(quiz_id, course_id)
+    quiz = load_quiz(g.cursor, quiz_id, course_id)
     if not quiz or quiz.started_at is None:
         abort_quiz_not_found(quiz_id, course_id)
 
@@ -1756,9 +1723,6 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
     if now > expected_end_time + timedelta(seconds=10):
         abort(400, description="Quiz time limit exceeded")
 
-    db = get_db()
-    cursor = db.cursor()
-
     # Collect knowledge point IDs for incorrect answers
     incorrect_kp_ids = set()
 
@@ -1772,7 +1736,7 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
             user_choice = next((c for c in question.choices if c.id == choice_id), None)
             if user_choice:
                 # Store the answer
-                cursor.execute(
+                g.cursor.execute(
                     "INSERT OR REPLACE INTO answers (user_id, question_id, choice_id) VALUES (?, ?, ?)",
                     (g.user.id, question.id, choice_id),
                 )
@@ -1784,7 +1748,7 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
 
     # Create reviews for incorrect knowledge points
     for kp_id in incorrect_kp_ids:
-        cursor.execute(
+        g.cursor.execute(
             "INSERT INTO reviews (knowledge_point_id, user_id) VALUES (?, ?)",
             (kp_id, g.user.id),
         )
@@ -1794,11 +1758,8 @@ def quiz_submit(course_id: int, quiz_id: int) -> Any:
 
 
 def create_review_question(
-    review_id: int, knowledge_point: KnowledgePoint
+    cursor: sqlite3.Cursor, review_id: int, knowledge_point: KnowledgePoint
 ) -> Optional[Question]:
-    db = get_db()
-    cursor = db.cursor()
-
     if len(knowledge_point.questions) == 0:
         return None  # No more questions available
 
@@ -1817,19 +1778,16 @@ def create_review_question(
 
 @app.route("/course/<int:course_id>/review/<int:review_id>")
 def review_page(course_id: int, review_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
-    db = get_db()
-    cursor = db.cursor()
-
     # Get the knowledge_point_id for this review
-    cursor.execute(
+    g.cursor.execute(
         "SELECT knowledge_point_id FROM reviews WHERE id = ? AND user_id = ?",
         (review_id, g.user.id),
     )
-    review_row = cursor.fetchone()
+    review_row = g.cursor.fetchone()
     if not review_row:
         abort_review_not_found(review_id, course_id)
 
@@ -1855,7 +1813,7 @@ def review_page(course_id: int, review_id: int) -> str:
     if len(knowledge_point.reviewed_questions) > 0:
         question = knowledge_point.reviewed_questions[0]
     else:
-        question = create_review_question(review_id, knowledge_point)
+        question = create_review_question(g.cursor, review_id, knowledge_point)
 
     return render_template(
         "question_page.html",
@@ -1870,19 +1828,16 @@ def review_page(course_id: int, review_id: int) -> str:
 
 @app.route("/course/<int:course_id>/review/<int:review_id>/submit", methods=["POST"])
 def review_submit_answer(course_id: int, review_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
-    db = get_db()
-    cursor = db.cursor()
-
     # Get the knowledge_point_id for this review
-    cursor.execute(
+    g.cursor.execute(
         "SELECT knowledge_point_id FROM reviews WHERE id = ? AND user_id = ?",
         (review_id, g.user.id),
     )
-    review_row = cursor.fetchone()
+    review_row = g.cursor.fetchone()
     if not review_row:
         abort_review_not_found(review_id, course_id)
 
@@ -1927,11 +1882,11 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
 
     # Save the user's answer to the database
     print(question.id)
-    cursor.execute(
+    g.cursor.execute(
         "INSERT INTO answers (user_id, question_id, choice_id) VALUES (?, ?, ?)",
         (g.user.id, question.id, user_choice.id),
     )
-    answer_id = cursor.lastrowid
+    answer_id = g.cursor.lastrowid
     assert answer_id is not None
     # Important that we populate this the rest of this handler can assume correct state
     knowledge_point.reviewed_questions[i].answer = Answer(
@@ -1957,7 +1912,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
         < config.review_correct_count_threshold
         and len(knowledge_point.questions) > 0
     ):
-        new_question = create_review_question(review_id, knowledge_point)
+        new_question = create_review_question(g.cursor, review_id, knowledge_point)
         assert new_question is not None
 
     next_button_html = render_template(
@@ -1973,19 +1928,16 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
 
 @app.route("/course/<int:course_id>/review/<int:review_id>/next", methods=["POST"])
 def review_next_question(course_id: int, review_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
-    db = get_db()
-    cursor = db.cursor()
-
     # Get the knowledge_point_id for this review
-    cursor.execute(
+    g.cursor.execute(
         "SELECT knowledge_point_id FROM reviews WHERE id = ? AND user_id = ?",
         (review_id, g.user.id),
     )
-    review_row = cursor.fetchone()
+    review_row = g.cursor.fetchone()
     if not review_row:
         abort_review_not_found(review_id, course_id)
 
@@ -2026,7 +1978,7 @@ def review_next_question(course_id: int, review_id: int) -> str:
 
 
 def create_diagnostic_question(
-    db: sqlite3.Connection, cursor: sqlite3.Cursor, diagnostic_id: int, course: Course
+    cursor: sqlite3.Cursor, diagnostic_id: int, course: Course
 ) -> Optional[Question]:
     knowledge_points: list[KnowledgePoint] = sum(
         [lesson.knowledge_points for lesson in course.lessons], []
@@ -2081,29 +2033,26 @@ def create_diagnostic_question(
 
 @app.route("/course/<int:course_id>/diagnostic/<int:diagnostic_id>")
 def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
-    db = get_db()
-    cursor = db.cursor()
-
     # Verify diagnostic exists and belongs to course
-    cursor.execute(
+    g.cursor.execute(
         "SELECT id FROM diagnostics WHERE id = ? AND course_id = ? AND user_id = ?",
         (diagnostic_id, course_id, g.user.id),
     )
-    if not cursor.fetchone():
+    if not g.cursor.fetchone():
         abort_diagnostic_not_found(diagnostic_id, course_id)
 
     # Get diagnostic questions
-    cursor.execute(
+    g.cursor.execute(
         """SELECT question_id FROM diagnostic_questions
            WHERE diagnostic_id = ?
            ORDER BY id""",
         (diagnostic_id,),
     )
-    diagnostic_question_ids = [row[0] for row in cursor.fetchall()]
+    diagnostic_question_ids = [row[0] for row in g.cursor.fetchall()]
     id_to_diagnostic_questions: Dict[int, Question] = {}
     for lesson in course.lessons:
         for knowledge_point in lesson.knowledge_points:
@@ -2118,7 +2067,7 @@ def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
     if len(diagnostic_questions) > 0:
         first_question = diagnostic_questions[0]
     else:
-        first_question = create_diagnostic_question(db, cursor, diagnostic_id, course)
+        first_question = create_diagnostic_question(g.cursor, diagnostic_id, course)
     assert first_question is not None
 
     return render_template(
@@ -2136,19 +2085,16 @@ def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
     "/course/<int:course_id>/diagnostic/<int:diagnostic_id>/submit", methods=["POST"]
 )
 def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
-    db = get_db()
-    cursor = db.cursor()
-
     # Verify diagnostic exists
-    cursor.execute(
+    g.cursor.execute(
         "SELECT id FROM diagnostics WHERE id = ? AND course_id = ? AND user_id = ?",
         (diagnostic_id, course_id, g.user.id),
     )
-    if not cursor.fetchone():
+    if not g.cursor.fetchone():
         abort_diagnostic_not_found(diagnostic_id, course_id)
 
     i_str = request.form.get("i")
@@ -2160,13 +2106,13 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     choice_id = int(answer_str)
 
     # Get diagnostic questions
-    cursor.execute(
+    g.cursor.execute(
         """SELECT question_id FROM diagnostic_questions
            WHERE diagnostic_id = ?
            ORDER BY id""",
         (diagnostic_id,),
     )
-    diagnostic_question_ids = [row[0] for row in cursor.fetchall()]
+    diagnostic_question_ids = [row[0] for row in g.cursor.fetchall()]
 
     if i >= len(diagnostic_question_ids):
         abort(400, description=f"Invalid question index: {i}")
@@ -2202,11 +2148,11 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
         abort(400, description=f"Invalid choice ID: {choice_id}")
 
     # Save the user's answer to the database
-    cursor.execute(
+    g.cursor.execute(
         "INSERT INTO answers (user_id, question_id, choice_id) VALUES (?, ?, ?)",
         (g.user.id, question.id, user_choice.id),
     )
-    answer_id = cursor.lastrowid
+    answer_id = g.cursor.lastrowid
     assert answer_id is not None
     # Important that we populate this the rest of this handler can assume correct state
     course.lessons[question_lesson_idx].knowledge_points[
@@ -2230,7 +2176,7 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
 
     # Create new question if more questions are needed
     # For now, just create one new question
-    create_diagnostic_question(db, cursor, diagnostic_id, course)
+    create_diagnostic_question(g.cursor, diagnostic_id, course)
 
     next_button_html = render_template(
         "question_next_button.html",
@@ -2247,19 +2193,16 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     "/course/<int:course_id>/diagnostic/<int:diagnostic_id>/next", methods=["POST"]
 )
 def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
-    course = load_course_from_db(course_id, g.user.id)
+    course = load_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
-    db = get_db()
-    cursor = db.cursor()
-
     # Verify diagnostic exists
-    cursor.execute(
+    g.cursor.execute(
         "SELECT id FROM diagnostics WHERE id = ? AND course_id = ? AND user_id = ?",
         (diagnostic_id, course_id, g.user.id),
     )
-    if not cursor.fetchone():
+    if not g.cursor.fetchone():
         abort_diagnostic_not_found(diagnostic_id, course_id)
 
     i_str = request.form.get("i")
@@ -2268,13 +2211,13 @@ def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
     i = int(i_str)
 
     # Get diagnostic questions
-    cursor.execute(
+    g.cursor.execute(
         """SELECT question_id FROM diagnostic_questions
            WHERE diagnostic_id = ?
            ORDER BY id""",
         (diagnostic_id,),
     )
-    diagnostic_question_ids = [row[0] for row in cursor.fetchall()]
+    diagnostic_question_ids = [row[0] for row in g.cursor.fetchall()]
 
     if i >= len(diagnostic_question_ids):
         # No more questions left, we're done
