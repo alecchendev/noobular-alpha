@@ -27,6 +27,9 @@ Unlike Math Academy, I don't have a team or the expertise to create educational 
     - `source venv/bin/activate.fish`
     - (deactivate virtual environment) `deactivate`
 - Install system dependencies (graphviz for the knowledge graph script, sqlite3 CLI for convenience):
+    - Versions
+        - graphviz: 14.0.2
+        - sqlite3: 3.43.2
     - macOS:
         - `brew install graphviz`
         - `brew install sqlite`
