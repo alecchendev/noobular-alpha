@@ -1,14 +1,11 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ lesson.title }} - {{ course_title }}{% endblock %}
+{% block title %}{{ lesson_title }} - {{ course_title }}{% endblock %}
 
 {% block content %}
-<h1>{{ lesson.title }}</h1>
+<h1>{{ lesson_title }}</h1>
 <p><strong>Course:</strong> {{ course_title }}</p>
 
-{% set knowledge_point = lesson.knowledge_points[0] %}
-{% set knowledge_point_index = 0 %}
-{% set i = 0 %}
 {% include 'knowledge_point.html' %}
 
 <a class="back" href="/course/{{ course_id }}">← Back to {{ course_title }}</a>

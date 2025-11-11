@@ -1424,7 +1424,11 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
         "lesson.html",
         course_id=course.id,
         course_title=course.title,
-        lesson=lesson,
+        lesson_id=lesson.id,
+        lesson_title=lesson.title,
+        knowledge_point=lesson.knowledge_points[0],
+        knowledge_point_index=0,
+        i=0,
     )
 
 
@@ -1544,13 +1548,15 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
                 (next_question.id, g.user.id),
             )
             lesson.knowledge_points[kp_index].lesson_questions.append(next_question)
-        next_button_html = render_template(
-            "next_button.html",
-            course=course,
-            lesson=lesson,
-            knowledge_point_index=kp_index,
-            i=i,
-        )
+        if kp_index < len(lesson.knowledge_points):
+            next_button_html = render_template(
+                "next_button.html",
+                course_id=course.id,
+                lesson_id=lesson.id,
+                knowledge_point_index=kp_index,
+                knowledge_point=lesson.knowledge_points[kp_index],
+                i=i,
+            )
 
     return f"{feedback}{failure_message}{next_button_html}"
 
@@ -1576,9 +1582,10 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
     if not kp_index_str or not i_str:
         abort_missing_parameters("knowledge_point_index", "i")
     kp_index = int(kp_index_str)
-    assert kp_index < len(lesson.knowledge_points)
-    i = int(i_str)
+    if kp_index >= len(lesson.knowledge_points):
+        return ""
 
+    i = int(i_str)
     knowledge_point = lesson.knowledge_points[kp_index]
     completed_kp = (
         knowledge_point.last_consecutive_correct_answers()
@@ -1595,8 +1602,9 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
     return render_template(
         "knowledge_point.html",
         course_id=course.id,
-        lesson=lesson,
+        lesson_id=lesson.id,
         knowledge_point_index=kp_index,
+        knowledge_point=lesson.knowledge_points[kp_index],
         i=i,
     )
 
