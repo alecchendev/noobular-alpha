@@ -1441,17 +1441,10 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/submit", methods=["POST"])
 def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
-    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
-    if not course:
+    course_title = load_course_title_from_db(g.cursor, course_id)
+    if not course_title:
         abort_course_not_found(course_id)
-
-    # Find the lesson
-    lesson = None
-    for lesson_obj in course.lessons:
-        if lesson_obj.id == lesson_id:
-            lesson = lesson_obj
-            break
-
+    lesson = load_lesson_from_db(g.cursor, lesson_id, g.user.id)
     if not lesson:
         abort_lesson_not_found(lesson_id, course_id)
 
@@ -1558,7 +1551,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
         if kp_index < len(lesson.knowledge_points):
             next_button_html = render_template(
                 "next_button.html",
-                course_id=course.id,
+                course_id=course_id,
                 lesson_id=lesson.id,
                 knowledge_point_index=kp_index,
                 knowledge_point=lesson.knowledge_points[kp_index],
@@ -1570,17 +1563,10 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/next", methods=["POST"])
 def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
-    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
-    if not course:
+    course_title = load_course_title_from_db(g.cursor, course_id)
+    if not course_title:
         abort_course_not_found(course_id)
-
-    # Find the lesson
-    lesson = None
-    for lesson_obj in course.lessons:
-        if lesson_obj.id == lesson_id:
-            lesson = lesson_obj
-            break
-
+    lesson = load_lesson_from_db(g.cursor, lesson_id, g.user.id)
     if not lesson:
         abort_lesson_not_found(lesson_id, course_id)
 
@@ -1608,7 +1594,7 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
 
     return render_template(
         "knowledge_point.html",
-        course_id=course.id,
+        course_id=course_id,
         lesson_id=lesson.id,
         knowledge_point_index=kp_index,
         knowledge_point=lesson.knowledge_points[kp_index],
