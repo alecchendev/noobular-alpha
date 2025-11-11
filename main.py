@@ -582,7 +582,7 @@ def save_course(
     return course_id
 
 
-def load_courses_to_database() -> None:
+def load_courses_to_db() -> None:
     """Load courses from YAML files into database"""
     if not config.courses_directory.is_dir():
         print("No courses directory found, skipping course loading")
@@ -1120,7 +1120,7 @@ def course_page(course_id: int) -> str:
     completed_quizzes = []
 
     for (quiz_id,) in quiz_rows:
-        quiz = load_quiz(g.cursor, quiz_id, course_id)
+        quiz = load_quiz_from_db(g.cursor, quiz_id, course_id)
         if not quiz:
             continue
 
@@ -1616,7 +1616,9 @@ def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
     )
 
 
-def load_quiz(cursor: sqlite3.Cursor, quiz_id: int, course_id: int) -> Optional[Quiz]:
+def load_quiz_from_db(
+    cursor: sqlite3.Cursor, quiz_id: int, course_id: int
+) -> Optional[Quiz]:
     """Load a quiz with its questions, choices, and answers from the database"""
     # Verify quiz exists and belongs to course, and get started_at
     cursor.execute(
@@ -1680,12 +1682,12 @@ def load_quiz(cursor: sqlite3.Cursor, quiz_id: int, course_id: int) -> Optional[
 
 @app.route("/course/<int:course_id>/quiz/<int:quiz_id>")
 def quiz_page(course_id: int, quiz_id: int) -> str:
-    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
-    if not course:
+    course_title = load_course_title_from_db(g.cursor, course_id)
+    if not course_title:
         abort_course_not_found(course_id)
 
     # Load quiz using helper function
-    quiz = load_quiz(g.cursor, quiz_id, course_id)
+    quiz = load_quiz_from_db(g.cursor, quiz_id, course_id)
     if not quiz:
         abort_quiz_not_found(quiz_id, course_id)
 
@@ -1715,8 +1717,8 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
 
     return render_template(
         "quiz.html",
-        course_id=course.id,
-        course_title=course.title,
+        course_id=course_id,
+        course_title=course_title,
         quiz=quiz,
         quiz_time_limit_minutes=config.quiz_time_limit_minutes,
         is_submitted=is_submitted,
@@ -1726,7 +1728,7 @@ def quiz_page(course_id: int, quiz_id: int) -> str:
 
 @app.route("/course/<int:course_id>/quiz/<int:quiz_id>/submit", methods=["POST"])
 def quiz_submit(course_id: int, quiz_id: int) -> Any:
-    quiz = load_quiz(g.cursor, quiz_id, course_id)
+    quiz = load_quiz_from_db(g.cursor, quiz_id, course_id)
     if not quiz or quiz.started_at is None:
         abort_quiz_not_found(quiz_id, course_id)
 
@@ -2276,7 +2278,7 @@ def main() -> None:
     global config  # Initialize the module level config instead of declaring new var
     config = AppConfig.debug() if args.debug else AppConfig.prod()
     init_database()
-    load_courses_to_database()
+    load_courses_to_db()
     app.run(debug=args.debug, port=args.port)
 
 
