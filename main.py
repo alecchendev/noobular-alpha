@@ -307,7 +307,7 @@ def initialize_request() -> None:
     """Initialize database connection and load user before each request"""
     # Initialize database connection and cursor
     g.db = create_db_connection()
-    g.db.row_factory = sqlite3.Row  # Enable dict-like access
+    g.db.row_factory = sqlite3.Row
     g.cursor = g.db.cursor()
 
     # Load logged-in user
@@ -619,191 +619,205 @@ def load_courses_to_database() -> None:
     conn.close()
 
 
-def load_course_from_db(
-    cursor: sqlite3.Cursor, course_id: int, user_id: int
-) -> Optional[Course]:
-    """Load a course from the database by ID"""
-    # Get course
+def load_course_title_from_db(cursor: sqlite3.Cursor, course_id: int) -> Optional[str]:
+    """Returns id, title if it exists"""
     cursor.execute("SELECT title FROM courses WHERE id = ?", (course_id,))
     course_row = cursor.fetchone()
     if not course_row:
         return None
+    return str(course_row[0])
 
-    course_title = course_row[0]
+
+def load_lesson_from_db(
+    cursor: sqlite3.Cursor, lesson_id: int, user_id: int
+) -> Optional[Lesson]:
+    cursor.execute("SELECT title FROM lessons WHERE id = ?", (lesson_id,))
+    lesson_row = cursor.fetchone()
+    if not lesson_row:
+        return None
+    lesson_title = lesson_row[0]
+
+    cursor.execute(
+        "SELECT id, name, description FROM knowledge_points WHERE lesson_id = ?",
+        (lesson_id,),
+    )
+    kp_rows = cursor.fetchall()
+
+    knowledge_points = []
+    for kp_db_id, kp_name, kp_description in kp_rows:
+        # Get prerequisites for this knowledge point
+        cursor.execute(
+            "SELECT prerequisite_id FROM prerequisites WHERE knowledge_point_id = ?",
+            (kp_db_id,),
+        )
+        prerequisite_rows = cursor.fetchall()
+        prerequisites = [prereq_id for (prereq_id,) in prerequisite_rows]
+
+        # Get contents for this knowledge point
+        cursor.execute(
+            "SELECT id, text FROM contents WHERE knowledge_point_id = ?",
+            (kp_db_id,),
+        )
+        content_rows = cursor.fetchall()
+        contents = [Content(id=id, text=text) for id, text in content_rows]
+
+        # Get questions for this knowledge point
+        cursor.execute(
+            "SELECT id, prompt, explanation FROM questions WHERE knowledge_point_id = ?",
+            (kp_db_id,),
+        )
+        question_rows = cursor.fetchall()
+
+        cursor.execute(
+            """SELECT q.id
+               FROM quiz_questions qq
+               JOIN quizzes qu ON qq.quiz_id = qu.id
+               JOIN questions q ON qq.question_id = q.id
+               WHERE q.knowledge_point_id = ?
+               AND qu.user_id = ?""",
+            (kp_db_id, user_id),
+        )
+        quizzed_question_ids = set(row[0] for row in cursor.fetchall())
+
+        cursor.execute(
+            """SELECT q.id
+               FROM review_questions rq
+               JOIN reviews r ON rq.review_id = r.id
+               JOIN questions q ON rq.question_id = q.id
+               WHERE q.knowledge_point_id = ?
+               AND r.user_id = ?""",
+            (kp_db_id, user_id),
+        )
+        # We need to keep these in order so that when we answer later with
+        # the index, we can find the right question. Later we should
+        # probably just submit based on the question id.
+        reviewed_question_id_to_idx = {
+            row[0]: i for i, row in enumerate(cursor.fetchall())
+        }
+
+        cursor.execute(
+            """SELECT q.id
+               FROM diagnostic_questions dq
+               JOIN diagnostics d ON dq.diagnostic_id = d.id
+               JOIN questions q ON dq.question_id = q.id
+               WHERE q.knowledge_point_id = ?
+               AND d.user_id = ?""",
+            (kp_db_id, user_id),
+        )
+        # We need to keep these in order so that when we answer later with
+        # the index, we can find the right question. Later we should
+        # probably just submit based on the question id.
+        diagnostic_question_id_to_idx = {
+            row[0]: i for i, row in enumerate(cursor.fetchall())
+        }
+
+        cursor.execute(
+            """SELECT q.id
+               FROM lesson_questions lq
+               JOIN questions q ON lq.question_id = q.id
+               WHERE q.knowledge_point_id = ?
+               AND lq.user_id = ?""",
+            (kp_db_id, user_id),
+        )
+        lesson_question_id_to_idx = {
+            row[0]: i for i, row in enumerate(cursor.fetchall())
+        }
+
+        questions = []
+        lesson_questions: list[Question] = [Question(-1, "", [], None, -1, "")] * len(
+            lesson_question_id_to_idx
+        )
+        quizzed_questions = []
+        reviewed_questions: list[Question] = [Question(-1, "", [], None, -1, "")] * len(
+            reviewed_question_id_to_idx
+        )
+        diagnostic_questions: list[Question] = [
+            Question(-1, "", [], None, -1, "")
+        ] * len(diagnostic_question_id_to_idx)
+        for question_id, prompt, explanation in question_rows:
+            # Get choices for this question
+            cursor.execute(
+                "SELECT id, text, is_correct FROM choices WHERE question_id = ?",
+                (question_id,),
+            )
+            choice_rows = cursor.fetchall()
+            choices = [
+                Choice(id=id, text=text, correct=bool(is_correct))
+                for id, text, is_correct in choice_rows
+            ]
+            # Shuffle choices so they appear in random order
+            random.shuffle(choices)
+
+            cursor.execute(
+                """SELECT id, question_id, choice_id FROM answers
+                   WHERE question_id = ? AND user_id = ?""",
+                (question_id, user_id),
+            )
+            answer_row = cursor.fetchone()
+            answer = None
+            if answer_row:
+                id, question_id, choice_id = answer_row
+                answer = Answer(id=id, question_id=question_id, choice_id=choice_id)
+
+            question = Question(
+                id=question_id,
+                prompt=prompt,
+                choices=choices,
+                answer=answer,
+                knowledge_point_id=kp_db_id,
+                explanation=explanation,
+            )
+            if question.id in quizzed_question_ids:
+                quizzed_questions.append(question)
+            elif question.id in reviewed_question_id_to_idx.keys():
+                reviewed_questions[reviewed_question_id_to_idx[question.id]] = question
+            elif question.id in diagnostic_question_id_to_idx.keys():
+                diagnostic_questions[diagnostic_question_id_to_idx[question.id]] = (
+                    question
+                )
+            elif question.id in lesson_question_id_to_idx.keys():
+                lesson_questions[lesson_question_id_to_idx[question.id]] = question
+            else:
+                questions.append(question)
+        assert all(q.id != -1 for q in reviewed_questions)
+        assert all(q.id != -1 for q in diagnostic_questions)
+        assert all(q.id != -1 for q in lesson_questions)
+
+        knowledge_points.append(
+            KnowledgePoint(
+                id=kp_db_id,
+                name=kp_name,
+                description=kp_description,
+                prerequisites=prerequisites,
+                contents=contents,
+                questions=questions,
+                lesson_questions=lesson_questions,
+                quizzed_questions=quizzed_questions,
+                reviewed_questions=reviewed_questions,
+                diagnostic_questions=diagnostic_questions,
+            )
+        )
+
+    return Lesson(id=lesson_id, title=lesson_title, knowledge_points=knowledge_points)
+
+
+def load_full_course_from_db(
+    cursor: sqlite3.Cursor, course_id: int, user_id: int
+) -> Optional[Course]:
+    """Load a course from the database by ID"""
+    course_title = load_course_title_from_db(cursor, course_id)
+    if not course_title:
+        return None
 
     # Get lessons
-    cursor.execute("SELECT id, title FROM lessons WHERE course_id = ?", (course_id,))
-    lesson_rows = cursor.fetchall()
+    cursor.execute("SELECT id FROM lessons WHERE course_id = ?", (course_id,))
+    lesson_ids = [row[0] for row in cursor.fetchall()]
 
     lessons = []
-    for lesson_id, lesson_title in lesson_rows:
-        # Get knowledge points for this lesson
-        cursor.execute(
-            "SELECT id, name, description FROM knowledge_points WHERE lesson_id = ?",
-            (lesson_id,),
-        )
-        kp_rows = cursor.fetchall()
-
-        knowledge_points = []
-        for kp_db_id, kp_name, kp_description in kp_rows:
-            # Get prerequisites for this knowledge point
-            cursor.execute(
-                "SELECT prerequisite_id FROM prerequisites WHERE knowledge_point_id = ?",
-                (kp_db_id,),
-            )
-            prerequisite_rows = cursor.fetchall()
-            prerequisites = [prereq_id for (prereq_id,) in prerequisite_rows]
-
-            # Get contents for this knowledge point
-            cursor.execute(
-                "SELECT id, text FROM contents WHERE knowledge_point_id = ?",
-                (kp_db_id,),
-            )
-            content_rows = cursor.fetchall()
-            contents = [Content(id=id, text=text) for id, text in content_rows]
-
-            # Get questions for this knowledge point
-            cursor.execute(
-                "SELECT id, prompt, explanation FROM questions WHERE knowledge_point_id = ?",
-                (kp_db_id,),
-            )
-            question_rows = cursor.fetchall()
-
-            cursor.execute(
-                """SELECT q.id
-                   FROM quiz_questions qq
-                   JOIN quizzes qu ON qq.quiz_id = qu.id
-                   JOIN questions q ON qq.question_id = q.id
-                   WHERE q.knowledge_point_id = ?
-                   AND qu.user_id = ?""",
-                (kp_db_id, user_id),
-            )
-            quizzed_question_ids = set(row[0] for row in cursor.fetchall())
-
-            cursor.execute(
-                """SELECT q.id
-                   FROM review_questions rq
-                   JOIN reviews r ON rq.review_id = r.id
-                   JOIN questions q ON rq.question_id = q.id
-                   WHERE q.knowledge_point_id = ?
-                   AND r.user_id = ?""",
-                (kp_db_id, user_id),
-            )
-            # We need to keep these in order so that when we answer later with
-            # the index, we can find the right question. Later we should
-            # probably just submit based on the question id.
-            reviewed_question_id_to_idx = {
-                row[0]: i for i, row in enumerate(cursor.fetchall())
-            }
-
-            cursor.execute(
-                """SELECT q.id
-                   FROM diagnostic_questions dq
-                   JOIN diagnostics d ON dq.diagnostic_id = d.id
-                   JOIN questions q ON dq.question_id = q.id
-                   WHERE q.knowledge_point_id = ?
-                   AND d.user_id = ?""",
-                (kp_db_id, user_id),
-            )
-            # We need to keep these in order so that when we answer later with
-            # the index, we can find the right question. Later we should
-            # probably just submit based on the question id.
-            diagnostic_question_id_to_idx = {
-                row[0]: i for i, row in enumerate(cursor.fetchall())
-            }
-
-            cursor.execute(
-                """SELECT q.id
-                   FROM lesson_questions lq
-                   JOIN questions q ON lq.question_id = q.id
-                   WHERE q.knowledge_point_id = ?
-                   AND lq.user_id = ?""",
-                (kp_db_id, user_id),
-            )
-            lesson_question_id_to_idx = {
-                row[0]: i for i, row in enumerate(cursor.fetchall())
-            }
-
-            questions = []
-            lesson_questions: list[Question] = [
-                Question(-1, "", [], None, -1, "")
-            ] * len(lesson_question_id_to_idx)
-            quizzed_questions = []
-            reviewed_questions: list[Question] = [
-                Question(-1, "", [], None, -1, "")
-            ] * len(reviewed_question_id_to_idx)
-            diagnostic_questions: list[Question] = [
-                Question(-1, "", [], None, -1, "")
-            ] * len(diagnostic_question_id_to_idx)
-            for question_id, prompt, explanation in question_rows:
-                # Get choices for this question
-                cursor.execute(
-                    "SELECT id, text, is_correct FROM choices WHERE question_id = ?",
-                    (question_id,),
-                )
-                choice_rows = cursor.fetchall()
-                choices = [
-                    Choice(id=id, text=text, correct=bool(is_correct))
-                    for id, text, is_correct in choice_rows
-                ]
-                # Shuffle choices so they appear in random order
-                random.shuffle(choices)
-
-                cursor.execute(
-                    """SELECT id, question_id, choice_id FROM answers
-                       WHERE question_id = ? AND user_id = ?""",
-                    (question_id, user_id),
-                )
-                answer_row = cursor.fetchone()
-                answer = None
-                if answer_row:
-                    id, question_id, choice_id = answer_row
-                    answer = Answer(id=id, question_id=question_id, choice_id=choice_id)
-
-                question = Question(
-                    id=question_id,
-                    prompt=prompt,
-                    choices=choices,
-                    answer=answer,
-                    knowledge_point_id=kp_db_id,
-                    explanation=explanation,
-                )
-                if question.id in quizzed_question_ids:
-                    quizzed_questions.append(question)
-                elif question.id in reviewed_question_id_to_idx.keys():
-                    reviewed_questions[reviewed_question_id_to_idx[question.id]] = (
-                        question
-                    )
-                elif question.id in diagnostic_question_id_to_idx.keys():
-                    diagnostic_questions[diagnostic_question_id_to_idx[question.id]] = (
-                        question
-                    )
-                elif question.id in lesson_question_id_to_idx.keys():
-                    lesson_questions[lesson_question_id_to_idx[question.id]] = question
-                else:
-                    questions.append(question)
-            assert all(q.id != -1 for q in reviewed_questions)
-            assert all(q.id != -1 for q in diagnostic_questions)
-            assert all(q.id != -1 for q in lesson_questions)
-
-            knowledge_points.append(
-                KnowledgePoint(
-                    id=kp_db_id,
-                    name=kp_name,
-                    description=kp_description,
-                    prerequisites=prerequisites,
-                    contents=contents,
-                    questions=questions,
-                    lesson_questions=lesson_questions,
-                    quizzed_questions=quizzed_questions,
-                    reviewed_questions=reviewed_questions,
-                    diagnostic_questions=diagnostic_questions,
-                )
-            )
-
-        lessons.append(
-            Lesson(id=lesson_id, title=lesson_title, knowledge_points=knowledge_points)
-        )
+    for lesson_id in lesson_ids:
+        lesson = load_lesson_from_db(cursor, lesson_id, user_id)
+        if lesson:
+            lessons.append(lesson)
 
     return Course(id=course_id, title=course_title, lessons=lessons)
 
@@ -950,7 +964,7 @@ def knowledge_point_ids_completed_after_time(
 
 @app.route("/course/<int:course_id>")
 def course_page(course_id: int) -> str:
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
+    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -1380,7 +1394,7 @@ def extract_graph_data_from_course(
 @app.route("/course/<int:course_id>/graph")
 def course_graph(course_id: int) -> Any:
     """Generate and return the knowledge graph visualization for a course"""
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
+    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -1393,17 +1407,10 @@ def course_graph(course_id: int) -> Any:
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>")
 def lesson_page(course_id: int, lesson_id: int) -> str:
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
-    if not course:
+    course_title = load_course_title_from_db(g.cursor, course_id)
+    if not course_title:
         abort_course_not_found(course_id)
-
-    # Find the lesson with matching ID
-    lesson = None
-    for lesson_obj in course.lessons:
-        if lesson_obj.id == lesson_id:
-            lesson = lesson_obj
-            break
-
+    lesson = load_lesson_from_db(g.cursor, lesson_id, g.user.id)
     if not lesson:
         abort_lesson_not_found(lesson_id, course_id)
     assert len(lesson.knowledge_points) > 0
@@ -1422,9 +1429,9 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
 
     return render_template(
         "lesson.html",
-        course_id=course.id,
-        course_title=course.title,
-        lesson_id=lesson.id,
+        course_id=course_id,
+        course_title=course_title,
+        lesson_id=lesson_id,
         lesson_title=lesson.title,
         knowledge_point=lesson.knowledge_points[0],
         knowledge_point_index=0,
@@ -1434,7 +1441,7 @@ def lesson_page(course_id: int, lesson_id: int) -> str:
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/submit", methods=["POST"])
 def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
+    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -1563,7 +1570,7 @@ def lesson_submit_answer(course_id: int, lesson_id: int) -> str:
 
 @app.route("/course/<int:course_id>/lesson/<int:lesson_id>/next", methods=["POST"])
 def lesson_next_lesson_chunk(course_id: int, lesson_id: int) -> str:
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
+    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -1673,7 +1680,7 @@ def load_quiz(cursor: sqlite3.Cursor, quiz_id: int, course_id: int) -> Optional[
 
 @app.route("/course/<int:course_id>/quiz/<int:quiz_id>")
 def quiz_page(course_id: int, quiz_id: int) -> str:
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
+    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -1789,7 +1796,7 @@ def create_review_question(
 
 @app.route("/course/<int:course_id>/review/<int:review_id>")
 def review_page(course_id: int, review_id: int) -> str:
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
+    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -1840,7 +1847,7 @@ def review_page(course_id: int, review_id: int) -> str:
 
 @app.route("/course/<int:course_id>/review/<int:review_id>/submit", methods=["POST"])
 def review_submit_answer(course_id: int, review_id: int) -> str:
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
+    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -1940,7 +1947,7 @@ def review_submit_answer(course_id: int, review_id: int) -> str:
 
 @app.route("/course/<int:course_id>/review/<int:review_id>/next", methods=["POST"])
 def review_next_question(course_id: int, review_id: int) -> str:
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
+    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -2045,7 +2052,7 @@ def create_diagnostic_question(
 
 @app.route("/course/<int:course_id>/diagnostic/<int:diagnostic_id>")
 def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
+    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -2098,7 +2105,7 @@ def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
     "/course/<int:course_id>/diagnostic/<int:diagnostic_id>/submit", methods=["POST"]
 )
 def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
+    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
@@ -2206,7 +2213,7 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     "/course/<int:course_id>/diagnostic/<int:diagnostic_id>/next", methods=["POST"]
 )
 def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
-    course = load_course_from_db(g.cursor, course_id, g.user.id)
+    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
 
