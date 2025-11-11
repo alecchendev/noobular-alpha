@@ -633,6 +633,36 @@ def load_course_title_from_db(cursor: sqlite3.Cursor, course_id: int) -> Optiona
     return str(course_row[0])
 
 
+def load_choices_from_db(cursor: sqlite3.Cursor, question_id: int) -> List[Choice]:
+    cursor.execute(
+        "SELECT id, text, is_correct FROM choices WHERE question_id = ?",
+        (question_id,),
+    )
+    choice_rows = cursor.fetchall()
+    choices = [
+        Choice(id=id, text=text, correct=bool(is_correct))
+        for id, text, is_correct in choice_rows
+    ]
+    # Shuffle choices so they appear in random order
+    random.shuffle(choices)
+    return choices
+
+
+def load_answer_from_db(
+    cursor: sqlite3.Cursor, question_id: int, user_id: int
+) -> Optional[Answer]:
+    cursor.execute(
+        """SELECT id, question_id, choice_id FROM answers
+           WHERE question_id = ? AND user_id = ?""",
+        (question_id, user_id),
+    )
+    answer_row = cursor.fetchone()
+    if not answer_row:
+        return None
+    id, question_id, choice_id = answer_row
+    return Answer(id=id, question_id=question_id, choice_id=choice_id)
+
+
 def load_knowledge_point_from_db(
     cursor: sqlite3.Cursor, knowledge_point_id: int, user_id: int
 ) -> Optional[KnowledgePoint]:
@@ -729,29 +759,8 @@ def load_knowledge_point_from_db(
         diagnostic_question_id_to_idx
     )
     for question_id, prompt, explanation in question_rows:
-        # Get choices for this question
-        cursor.execute(
-            "SELECT id, text, is_correct FROM choices WHERE question_id = ?",
-            (question_id,),
-        )
-        choice_rows = cursor.fetchall()
-        choices = [
-            Choice(id=id, text=text, correct=bool(is_correct))
-            for id, text, is_correct in choice_rows
-        ]
-        # Shuffle choices so they appear in random order
-        random.shuffle(choices)
-
-        cursor.execute(
-            """SELECT id, question_id, choice_id FROM answers
-               WHERE question_id = ? AND user_id = ?""",
-            (question_id, user_id),
-        )
-        answer_row = cursor.fetchone()
-        answer = None
-        if answer_row:
-            id, question_id, choice_id = answer_row
-            answer = Answer(id=id, question_id=question_id, choice_id=choice_id)
+        choices = load_choices_from_db(cursor, question_id)
+        answer = load_answer_from_db(cursor, question_id, user_id)
 
         question = Question(
             id=question_id,
@@ -978,6 +987,7 @@ def knowledge_point_ids_completed_after_time(
 
 @app.route("/course/<int:course_id>")
 def course_page(course_id: int) -> str:
+    # TODO: simplify this page logic
     course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
@@ -1408,6 +1418,7 @@ def extract_graph_data_from_course(
 @app.route("/course/<int:course_id>/graph")
 def course_graph(course_id: int) -> Any:
     """Generate and return the knowledge graph visualization for a course"""
+    # TODO: only load what's needed, not entire course
     course = load_full_course_from_db(g.cursor, course_id, g.user.id)
     if not course:
         abort_course_not_found(course_id)
@@ -1967,47 +1978,84 @@ def review_next_question(course_id: int, review_id: int) -> str:
 
 
 def create_diagnostic_question(
-    cursor: sqlite3.Cursor, diagnostic_id: int, course: Course
+    cursor: sqlite3.Cursor, diagnostic_id: int, course_id: int, user_id: int
 ) -> Optional[Question]:
-    knowledge_points: list[KnowledgePoint] = sum(
-        [lesson.knowledge_points for lesson in course.lessons], []
+    # All knowledge points for this course
+    cursor.execute(
+        """SELECT kp.id
+           FROM courses c
+           JOIN lessons l ON l.course_id = c.id
+           JOIN knowledge_points kp ON kp.lesson_id = l.id
+           WHERE c.id = ?""",
+        (course_id,),
     )
+    kp_ids = [id for (id,) in cursor.fetchall()]
+
+    cursor.execute(
+        """SELECT q.id, q.knowledge_point_id, q.prompt, q.explanation
+           FROM questions q
+           JOIN diagnostic_questions dq ON dq.question_id = q.id
+           WHERE dq.diagnostic_id = ?
+           ORDER BY q.id""",
+        (diagnostic_id,),
+    )
+    question_rows = g.cursor.fetchall()
+    diagnostic_questions: list[Question] = []
+    for question_id, knowledge_point_id, prompt, explanation in question_rows:
+        choices = load_choices_from_db(g.cursor, question_id)
+        answer = load_answer_from_db(g.cursor, question_id, g.user.id)
+        diagnostic_questions.append(
+            Question(
+                id=question_id,
+                prompt=prompt,
+                choices=choices,
+                answer=answer,
+                knowledge_point_id=knowledge_point_id,
+                explanation=explanation,
+            )
+        )
 
     # Get all diagnostic completed knowledge points
-    diagnostic_answered_knowledge_point_ids = set()
     diagnostic_completed_knowledge_point_ids = set()
-    for kp in knowledge_points:
-        if len(kp.diagnostic_questions) == 0 or any(
-            q.answer is None for q in kp.diagnostic_questions
-        ):
-            continue
-        diagnostic_answered_knowledge_point_ids.add(kp.id)
-        if all(
-            q.answer is not None and q.answer.choice_id == q.correct_choice().id
-            for q in kp.diagnostic_questions
-        ):
-            diagnostic_completed_knowledge_point_ids.add(kp.id)
-
-    # Loop through knowledge points, add to questions if prereqs are completed
-    next_knowledge_point_ids = []
-    for kp in knowledge_points:
+    for question in diagnostic_questions:
+        # Assuming only 1 diagnostic question per knowledge point
         if (
-            all(
-                prereq in diagnostic_completed_knowledge_point_ids
-                for prereq in kp.prerequisites
-            )
-            and kp.id not in diagnostic_answered_knowledge_point_ids
+            question.answer is not None
+            and question.answer.choice_id == question.correct_choice().id
         ):
-            next_knowledge_point_ids.append(kp.id)
+            diagnostic_completed_knowledge_point_ids.add(question.knowledge_point_id)
 
-    if len(next_knowledge_point_ids) == 0:
+    used_knowledge_point_ids = set(
+        question.knowledge_point_id for question in diagnostic_questions
+    )
+    unused_knowledge_point_ids = set(kp_ids).difference(used_knowledge_point_ids)
+
+    placeholders = ",".join("?" * len(unused_knowledge_point_ids))
+    cursor.execute(
+        f"""SELECT knowledge_point_id, prerequisite_id
+           FROM prerequisites
+           WHERE knowledge_point_id IN ({placeholders})""",
+        (*unused_knowledge_point_ids,),
+    )
+    prereqs: dict[int, list[int]] = {id: [] for id in unused_knowledge_point_ids}
+    for knowledge_point_id, prereq_id in cursor.fetchall():
+        prereqs[knowledge_point_id].append(prereq_id)
+
+    next_knowledge_point_id = None
+    for knowledge_point_id in unused_knowledge_point_ids:
+        if all(
+            prereq in diagnostic_completed_knowledge_point_ids
+            for prereq in prereqs[knowledge_point_id]
+        ):
+            next_knowledge_point_id = knowledge_point_id
+
+    if next_knowledge_point_id is None:
         return None
 
-    id_to_knowledge_points: Dict[int, KnowledgePoint] = {
-        kp.id: kp for kp in knowledge_points
-    }
-    next_knowledge_point = id_to_knowledge_points[next_knowledge_point_ids[0]]
-
+    next_knowledge_point = load_knowledge_point_from_db(
+        cursor, next_knowledge_point_id, user_id
+    )
+    assert next_knowledge_point is not None
     assert len(next_knowledge_point.questions) > 0
     selected_question = random.choice(next_knowledge_point.questions)
 
@@ -2020,10 +2068,36 @@ def create_diagnostic_question(
     return selected_question
 
 
+def load_question_from_db(
+    cursor: sqlite3.Cursor, question_id: int, user_id: int
+) -> Optional[Question]:
+    cursor.execute(
+        """SELECT id, knowledge_point_id, prompt, explanation
+           FROM questions q
+           WHERE id = ?""",
+        (question_id,),
+    )
+    question_row = g.cursor.fetchone()
+    if question_row is None:
+        return None
+
+    question_id, knowledge_point_id, prompt, explanation = question_row
+    choices = load_choices_from_db(cursor, question_id)
+    answer = load_answer_from_db(cursor, question_id, user_id)
+    return Question(
+        id=question_id,
+        prompt=prompt,
+        choices=choices,
+        answer=answer,
+        knowledge_point_id=knowledge_point_id,
+        explanation=explanation,
+    )
+
+
 @app.route("/course/<int:course_id>/diagnostic/<int:diagnostic_id>")
 def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
-    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
-    if not course:
+    course_title = load_course_title_from_db(g.cursor, course_id)
+    if not course_title:
         abort_course_not_found(course_id)
 
     # Verify diagnostic exists and belongs to course
@@ -2034,36 +2108,31 @@ def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
     if not g.cursor.fetchone():
         abort_diagnostic_not_found(diagnostic_id, course_id)
 
-    # Get diagnostic questions
+    # Get or create first diagnostic question (i=0)
     g.cursor.execute(
-        """SELECT question_id FROM diagnostic_questions
-           WHERE diagnostic_id = ?
-           ORDER BY id""",
+        """SELECT q.id
+           FROM questions q
+           JOIN diagnostic_questions dq ON dq.question_id = q.id
+           WHERE dq.diagnostic_id = ?
+           ORDER BY q.id
+           LIMIT 1""",
         (diagnostic_id,),
     )
-    diagnostic_question_ids = [row[0] for row in g.cursor.fetchall()]
-    id_to_diagnostic_questions: Dict[int, Question] = {}
-    for lesson in course.lessons:
-        for knowledge_point in lesson.knowledge_points:
-            for question in knowledge_point.diagnostic_questions:
-                id_to_diagnostic_questions[question.id] = question
-    diagnostic_questions = [
-        id_to_diagnostic_questions[id] for id in diagnostic_question_ids
-    ]
-
-    # Get or create first diagnostic question (i=0)
-    first_question = None
-    if len(diagnostic_questions) > 0:
-        first_question = diagnostic_questions[0]
+    question_row = g.cursor.fetchone()
+    if question_row is not None:
+        question_id = question_row[0]
+        first_question = load_question_from_db(g.cursor, question_id, g.user.id)
     else:
-        first_question = create_diagnostic_question(g.cursor, diagnostic_id, course)
+        first_question = create_diagnostic_question(
+            g.cursor, diagnostic_id, course_id, g.user.id
+        )
     assert first_question is not None
 
     return render_template(
         "question_page.html",
         page_title="Diagnostic",
-        course_id=course.id,
-        course_title=course.title,
+        course_id=course_id,
+        course_title=course_title,
         entity_type="diagnostic",
         entity_id=diagnostic_id,
         question=first_question,
@@ -2075,8 +2144,8 @@ def diagnostic_page(course_id: int, diagnostic_id: int) -> str:
     "/course/<int:course_id>/diagnostic/<int:diagnostic_id>/submit", methods=["POST"]
 )
 def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
-    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
-    if not course:
+    course_title = load_course_title_from_db(g.cursor, course_id)
+    if not course_title:
         abort_course_not_found(course_id)
 
     # Verify diagnostic exists
@@ -2110,24 +2179,9 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     question_id = diagnostic_question_ids[i]
 
     # Find the question in the course
-    question_lesson_idx = None
-    question_kp_idx = None
-    question_idx = None
-    question = None
-    for lesson_idx, lesson in enumerate(course.lessons):
-        for kp_idx, kp in enumerate(lesson.knowledge_points):
-            for q_idx, q in enumerate(kp.diagnostic_questions):
-                if q.id == question_id:
-                    question = q
-                    question_lesson_idx = lesson_idx
-                    question_kp_idx = kp_idx
-                    question_idx = q_idx
-
+    question = load_question_from_db(g.cursor, question_id, g.user.id)
     if not question:
         abort(404, description=f"Question with ID {question_id} not found")
-    assert question_lesson_idx is not None
-    assert question_kp_idx is not None
-    assert question_idx is not None
 
     # Find the choice by ID
     user_choice = next((c for c in question.choices if c.id == choice_id), None)
@@ -2141,14 +2195,6 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     g.cursor.execute(
         "INSERT INTO answers (user_id, question_id, choice_id) VALUES (?, ?, ?)",
         (g.user.id, question.id, user_choice.id),
-    )
-    answer_id = g.cursor.lastrowid
-    assert answer_id is not None
-    # Important that we populate this the rest of this handler can assume correct state
-    course.lessons[question_lesson_idx].knowledge_points[
-        question_kp_idx
-    ].diagnostic_questions[question_idx].answer = Answer(
-        id=answer_id, question_id=question.id, choice_id=user_choice.id
     )
 
     is_correct = user_choice.correct
@@ -2166,11 +2212,11 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
 
     # Create new question if more questions are needed
     # For now, just create one new question
-    create_diagnostic_question(g.cursor, diagnostic_id, course)
+    create_diagnostic_question(g.cursor, diagnostic_id, course_id, g.user.id)
 
     next_button_html = render_template(
         "question_next_button.html",
-        course_id=course.id,
+        course_id=course_id,
         entity_type="diagnostic",
         entity_id=diagnostic_id,
         i=i,
@@ -2183,8 +2229,8 @@ def diagnostic_submit_answer(course_id: int, diagnostic_id: int) -> str:
     "/course/<int:course_id>/diagnostic/<int:diagnostic_id>/next", methods=["POST"]
 )
 def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
-    course = load_full_course_from_db(g.cursor, course_id, g.user.id)
-    if not course:
+    course_title = load_course_title_from_db(g.cursor, course_id)
+    if not course_title:
         abort_course_not_found(course_id)
 
     # Verify diagnostic exists
@@ -2216,18 +2262,16 @@ def diagnostic_next_question(course_id: int, diagnostic_id: int) -> str:
     question_id = diagnostic_question_ids[i]
 
     # Find the question in the course
-    question = None
-    for lesson in course.lessons:
-        for kp in lesson.knowledge_points:
-            for q in kp.diagnostic_questions:
-                if q.id == question_id:
-                    question = q
-
-    assert question is not None
+    question = load_question_from_db(g.cursor, question_id, g.user.id)
+    if question is None:
+        abort(
+            404,
+            description=f"Question id {question_id} not found for diagnostic {diagnostic_id}",
+        )
 
     return render_template(
         "question_form.html",
-        course_id=course.id,
+        course_id=course_id,
         entity_type="diagnostic",
         entity_id=diagnostic_id,
         question=question,
