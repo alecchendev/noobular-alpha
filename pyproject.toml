@@ -22,6 +22,7 @@ dev = [
   "pre-commit",
   "types-pyyaml",
   "types-Markdown",
+  "xai-sdk",
 ]
 
 [build-system]
@@ -32,6 +33,6 @@ build-backend = "setuptools.build_meta"
 py-modules = ["main", "validate", "visualize_course"]
 
 [tool.mypy]
-files = ["main.py", "visualize_course.py", "validate.py"]   # folders or files to always check
+files = ["main.py", "visualize_course.py", "validate.py", "create.py"]   # folders or files to always check
 python_version = "3.9"
 strict = true
