@@ -77,7 +77,7 @@ IMPORTANT:
 - Focus on creating a well-structured progression of lessons and knowledge points
 - Ensure prerequisite relationships accurately reflect dependencies between concepts"""
 
-KNOWLEDGE_POINT_CONTENT_PROMPT = """You are filling in content and questions for a knowledge point in a course about {course_title}.
+KNOWLEDGE_POINT_CONTENT_PROMPT = """You are creating educational content for a knowledge point in a course about {course_title}.
 
 KNOWLEDGE POINT DETAILS:
 - Name: {kp_name}
@@ -85,10 +85,10 @@ KNOWLEDGE POINT DETAILS:
 - Lesson: {lesson_title}
 - Prerequisites: {prerequisites}
 
-TASK: Generate educational content and questions for this knowledge point.
+TASK: Generate educational content that teaches this concept.
 
 CONTENT REQUIREMENTS:
-- Create 1-3 content blocks that teach this concept
+- Create 2-4 content blocks that teach this concept
 - Each content block should be focused and digestible
 - Use markdown formatting with headers (###), **bold**, *italic*, `code`
 - Include specific examples and applications
@@ -96,42 +96,68 @@ CONTENT REQUIREMENTS:
 - For lists, ensure a blank line precedes them
 - Build understanding progressively from basic to applied
 
-QUESTION REQUIREMENTS:
-- Create at least 10 multiple choice questions
-- Must strictly align with the skills and concepts from the content
-- All answer choices must be plausible - no obviously wrong answers
-- Exactly one choice must be marked as correct
-- Use markdown and math in prompts, choices, and explanations as needed
+OUTPUT FORMAT: Return ONLY valid YAML (no code fences, no commentary) as an array:
 
-OUTPUT FORMAT: Return ONLY valid YAML (no code fences, no commentary) in this structure:
+- |
+    ### Section Title
 
-contents:
-  - |
-      ### Section Title
+    Content with **markdown**, math $x^2$, etc.
 
-      Content with **markdown**, math $x^2$, etc.
+    - Bullet point 1
+    - Bullet point 2
 
-      - Bullet point 1
-      - Bullet point 2
+    Display math:
+    $$E = mc^2$$
+- |
+    ### Another Section
 
-      Display math:
-      $$E = mc^2$$
-  - 'Another content block'
-questions:
-  - prompt: 'Question text here with $math$ allowed'
-    choices:
-      - text: 'Choice A with $\phi$ symbols'
-      - text: 'Choice B'
-        correct: true
-      - text: 'Choice C'
-      - text: 'Choice D'
-    explanation: 'Explanation with **markdown** and $\lambda$ symbols'
+    More content here.
 
 CRITICAL YAML FORMATTING RULES:
-- Use SINGLE QUOTES for all text fields (prompt, text, explanation) - this prevents escape character issues with LaTeX symbols like \phi, \lambda, etc.
+- Use | (pipe) for multi-line content blocks with no quotes
 - If you need a single quote inside text, escape it by doubling it: 'It''s' becomes "It's"
-- For multi-line content blocks, use | (pipe) with no quotes
-- Return ONLY the contents and questions arrays as valid YAML
+- Return ONLY the array of content blocks as valid YAML
+- No code fences, no commentary
+"""
+
+KNOWLEDGE_POINT_QUESTIONS_PROMPT = """You are creating assessment questions for a knowledge point in a course about {course_title}.
+
+KNOWLEDGE POINT DETAILS:
+- Name: {kp_name}
+- Description: {kp_description}
+- Lesson: {lesson_title}
+
+CONTENT TAUGHT:
+{content_summary}
+
+TASK: Generate questions that test understanding of the content above.
+
+QUESTION REQUIREMENTS:
+- Create exactly 10 multiple choice questions
+- Questions must strictly align with the skills and concepts from the content
+- All 4 answer choices must be plausible - no obviously wrong answers
+- Exactly one choice must be marked as correct
+- Include scenario-based and application questions where possible
+- Explanations should clarify WHY the correct answer is right AND why others are wrong
+- Use markdown and math in prompts, choices, and explanations as needed
+
+OUTPUT FORMAT: Return ONLY valid YAML (no code fences, no commentary) as an array:
+
+- prompt: 'Question text here with $math$ allowed'
+  choices:
+    - text: 'Choice A with LaTeX like $x^2$'
+    - text: 'Choice B'
+      correct: true
+    - text: 'Choice C'
+    - text: 'Choice D'
+  explanation: 'Explanation with **markdown** and $\lambda$ symbols'
+
+CRITICAL YAML FORMATTING RULES:
+- Use SINGLE QUOTES for all text fields (prompt, text, explanation)
+- Single quotes prevent escape character issues with LaTeX symbols like \phi, \lambda, etc.
+- If you need a single quote inside text, escape it by doubling it: 'It''s' becomes "It's"
+- Return ONLY the array of questions as valid YAML
+- No code fences, no commentary
 """
 
 
@@ -185,16 +211,16 @@ def generate_course_outline(
     return str(response.content)
 
 
-def generate_knowledge_point_content(
+def generate_content(
     course_title: str,
     lesson_title: str,
     kp_name: str,
     kp_description: str,
     prerequisites: List[str],
     max_tokens: Optional[int] = None,
-) -> Dict[str, Any]:
+) -> List[str]:
     """
-    Generate content and questions for a single knowledge point.
+    Generate content for a single knowledge point.
 
     Args:
         course_title: The title of the course
@@ -205,7 +231,7 @@ def generate_knowledge_point_content(
         max_tokens: Maximum number of tokens in the response (None for unlimited)
 
     Returns:
-        Dictionary with 'contents' and 'questions' keys
+        List of content blocks
     """
     # Initialize the client
     client = Client(
@@ -222,7 +248,7 @@ def generate_knowledge_point_content(
     # Add system message
     chat.append(
         system(
-            "You are an expert educational content creator who creates clear, comprehensive learning materials with excellent examples and thoughtful questions."
+            "You are an expert educational content creator who creates clear, comprehensive learning materials with excellent examples."
         )
     )
 
@@ -239,20 +265,106 @@ def generate_knowledge_point_content(
     )
     chat.append(user(prompt))
 
-    print(f"  Generating content for: {kp_name}")
+    # Get response
+    response = chat.sample()
+    response_text = str(response.content)
+
+    # Print full response
+    print(f"\n{'=' * 80}")
+    print(f"CONTENT RESPONSE for {kp_name}:")
+    print(f"{'=' * 80}")
+    print(response_text)
+    print(f"{'=' * 80}\n")
+
+    # Sanitize response - fix common escaping issues
+    # Replace \' with '' (proper single quote escaping in YAML)
+    response_text = response_text.replace("\\'", "''")
+
+    # Parse YAML response
+    try:
+        contents: List[str] = yaml.safe_load(response_text)
+        return contents if isinstance(contents, list) else []
+    except yaml.YAMLError as e:
+        print(f"    Warning: Failed to parse content YAML for {kp_name}: {e}")
+        return []
+
+
+def generate_questions(
+    course_title: str,
+    lesson_title: str,
+    kp_name: str,
+    kp_description: str,
+    contents: List[str],
+    max_tokens: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Generate questions for a single knowledge point based on its content.
+
+    Args:
+        course_title: The title of the course
+        lesson_title: The title of the lesson this KP belongs to
+        kp_name: The name/ID of the knowledge point
+        kp_description: The description of the knowledge point
+        contents: The content blocks that were generated
+        max_tokens: Maximum number of tokens in the response (None for unlimited)
+
+    Returns:
+        List of question dictionaries
+    """
+    # Initialize the client
+    client = Client(
+        api_key=os.getenv("XAI_API_KEY"),
+        timeout=3600,
+    )
+
+    # Create a chat session
+    if max_tokens:
+        chat = client.chat.create(model=MODEL, max_tokens=max_tokens)
+    else:
+        chat = client.chat.create(model=MODEL)
+
+    # Add system message
+    chat.append(
+        system(
+            "You are an expert educational content creator who creates thoughtful, challenging questions that test deep understanding."
+        )
+    )
+
+    # Create content summary
+    content_summary = "\n\n".join(contents) if contents else "No content provided."
+
+    # Add user prompt
+    prompt = KNOWLEDGE_POINT_QUESTIONS_PROMPT.format(
+        course_title=course_title,
+        lesson_title=lesson_title,
+        kp_name=kp_name,
+        kp_description=kp_description,
+        content_summary=content_summary,
+    )
+    chat.append(user(prompt))
 
     # Get response
     response = chat.sample()
     response_text = str(response.content)
 
+    # Print full response
+    print(f"\n{'=' * 80}")
+    print(f"QUESTIONS RESPONSE for {kp_name}:")
+    print(f"{'=' * 80}")
+    print(response_text)
+    print(f"{'=' * 80}\n")
+
+    # Sanitize response - fix common escaping issues
+    # Replace \' with '' (proper single quote escaping in YAML)
+    response_text = response_text.replace("\\'", "''")
+
     # Parse YAML response
     try:
-        kp_data: Dict[str, Any] = yaml.safe_load(response_text)
-        return kp_data
+        questions: List[Dict[str, Any]] = yaml.safe_load(response_text)
+        return questions if isinstance(questions, list) else []
     except yaml.YAMLError as e:
-        print(f"    Warning: Failed to parse YAML for {kp_name}: {e}")
-        print(f"    Raw response: {response_text[:200]}...")
-        return {"contents": [], "questions": []}
+        print(f"    Warning: Failed to parse questions YAML for {kp_name}: {e}")
+        return []
 
 
 def fill_course_content(
@@ -294,10 +406,11 @@ def fill_course_content(
             kp_description = kp.get("description", "")
             prerequisites = kp.get("prerequisites", [])
 
-            print(f"  [{kp_idx}/{len(knowledge_points)}] {kp_name}...", end=" ")
+            print(f"  [{kp_idx}/{len(knowledge_points)}] {kp_name}...")
 
-            # Generate content for this knowledge point
-            kp_content = generate_knowledge_point_content(
+            # Generate content
+            print("    - Generating content...", end=" ")
+            contents = generate_content(
                 course_title=course_title,
                 lesson_title=lesson_title,
                 kp_name=kp_name,
@@ -305,14 +418,23 @@ def fill_course_content(
                 prerequisites=prerequisites,
                 max_tokens=max_tokens,
             )
+            print(f"✓ ({len(contents)} blocks)")
 
-            # Add the generated content to the knowledge point
-            kp["contents"] = kp_content.get("contents", [])
-            kp["questions"] = kp_content.get("questions", [])
-
-            print(
-                f"✓ ({len(kp['contents'])} contents, {len(kp['questions'])} questions)"
+            # Generate questions based on content
+            print("    - Generating questions...", end=" ")
+            questions = generate_questions(
+                course_title=course_title,
+                lesson_title=lesson_title,
+                kp_name=kp_name,
+                kp_description=kp_description,
+                contents=contents,
+                max_tokens=max_tokens,
             )
+            print(f"✓ ({len(questions)} questions)")
+
+            # Add to knowledge point
+            kp["contents"] = contents
+            kp["questions"] = questions
 
     print("\n" + "=" * 80)
     print("Course content generation complete!")
