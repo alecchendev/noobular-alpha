@@ -45,6 +45,15 @@ Unlike Math Academy, I don't have a team or the expertise to create educational 
 - Lint: `ruff check`
 - Format: `ruff format`
 - Type check: `mypy`
+- Scripts
+    - Course validation
+        - `python validate.py course.yaml`
+    - Knowledge graph visualization
+        - `python visualize_course.py course.yaml`
+    - Course creation (requires dev dependencies)
+        - `export XAI_API_KEY=<your_api_key_here>`
+        - `python create.py outline "thermodynamics" -o outline.yaml`
+        - `python create.py fill outline.yaml -o course.yaml`
 
 ### Database
 

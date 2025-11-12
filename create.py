@@ -270,13 +270,6 @@ def generate_content(
     response = chat.sample()
     response_text = str(response.content)
 
-    # Print full response
-    print(f"\n{'=' * 80}")
-    print(f"CONTENT RESPONSE for {kp_name}:")
-    print(f"{'=' * 80}")
-    print(response_text)
-    print(f"{'=' * 80}\n")
-
     # Sanitize response - fix common escaping issues
     # Replace \' with '' (proper single quote escaping in YAML)
     response_text = response_text.replace("\\'", "''")
@@ -286,6 +279,13 @@ def generate_content(
         contents: List[str] = yaml.safe_load(response_text)
         return contents if isinstance(contents, list) else []
     except yaml.YAMLError as e:
+        # Print full response
+        print(f"\n{'=' * 80}")
+        print(f"CONTENT RESPONSE for {kp_name}:")
+        print(f"{'=' * 80}")
+        print(response_text)
+        print(f"{'=' * 80}\n")
+
         print(f"    Warning: Failed to parse content YAML for {kp_name}: {e}")
         return []
 
@@ -352,15 +352,6 @@ def generate_questions(
         response = chat.sample()
         response_text = str(response.content)
 
-        # Print full response
-        print(f"\n{'=' * 80}")
-        print(
-            f"QUESTIONS RESPONSE for {kp_name} (attempt {attempt + 1}/{max_retries + 1}):"
-        )
-        print(f"{'=' * 80}")
-        print(response_text)
-        print(f"{'=' * 80}\n")
-
         # Sanitize response - fix common escaping issues
         # Replace \' with '' (proper single quote escaping in YAML)
         response_text = response_text.replace("\\'", "''")
@@ -388,6 +379,15 @@ def generate_questions(
                     validation_errors.append(f"Question {q_idx}: {str(e)}")
 
             if validation_errors:
+                # Print full response
+                print(f"\n{'=' * 80}")
+                print(
+                    f"QUESTIONS RESPONSE for {kp_name} (attempt {attempt + 1}/{max_retries + 1}):"
+                )
+                print(f"{'=' * 80}")
+                print(response_text)
+                print(f"{'=' * 80}\n")
+
                 print("    Validation errors found:")
                 for error in validation_errors:
                     print(f"      - {error}")
