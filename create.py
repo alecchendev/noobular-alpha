@@ -18,6 +18,7 @@ import yaml
 from typing import Optional, Any, Dict, List
 from xai_sdk import Client  # type: ignore
 from xai_sdk.chat import user, system  # type: ignore
+from validate import validate_question
 
 MODEL = "grok-4-fast"
 
@@ -296,6 +297,7 @@ def generate_questions(
     kp_description: str,
     contents: List[str],
     max_tokens: Optional[int] = None,
+    max_retries: int = 2,
 ) -> List[Dict[str, Any]]:
     """
     Generate questions for a single knowledge point based on its content.
@@ -307,64 +309,108 @@ def generate_questions(
         kp_description: The description of the knowledge point
         contents: The content blocks that were generated
         max_tokens: Maximum number of tokens in the response (None for unlimited)
+        max_retries: Maximum number of retry attempts if validation fails
 
     Returns:
         List of question dictionaries
     """
-    # Initialize the client
-    client = Client(
-        api_key=os.getenv("XAI_API_KEY"),
-        timeout=3600,
-    )
-
-    # Create a chat session
-    if max_tokens:
-        chat = client.chat.create(model=MODEL, max_tokens=max_tokens)
-    else:
-        chat = client.chat.create(model=MODEL)
-
-    # Add system message
-    chat.append(
-        system(
-            "You are an expert educational content creator who creates thoughtful, challenging questions that test deep understanding."
-        )
-    )
-
     # Create content summary
-    content_summary = "\n\n".join(contents) if contents else "No content provided."
+    assert contents
+    content_summary = "\n\n".join(contents)
 
-    # Add user prompt
-    prompt = KNOWLEDGE_POINT_QUESTIONS_PROMPT.format(
-        course_title=course_title,
-        lesson_title=lesson_title,
-        kp_name=kp_name,
-        kp_description=kp_description,
-        content_summary=content_summary,
-    )
-    chat.append(user(prompt))
+    for attempt in range(max_retries + 1):
+        # Initialize the client
+        client = Client(
+            api_key=os.getenv("XAI_API_KEY"),
+            timeout=3600,
+        )
 
-    # Get response
-    response = chat.sample()
-    response_text = str(response.content)
+        # Create a chat session
+        if max_tokens:
+            chat = client.chat.create(model=MODEL, max_tokens=max_tokens)
+        else:
+            chat = client.chat.create(model=MODEL)
 
-    # Print full response
-    print(f"\n{'=' * 80}")
-    print(f"QUESTIONS RESPONSE for {kp_name}:")
-    print(f"{'=' * 80}")
-    print(response_text)
-    print(f"{'=' * 80}\n")
+        # Add system message
+        chat.append(
+            system(
+                "You are an expert educational content creator who creates thoughtful, challenging questions that test deep understanding."
+            )
+        )
 
-    # Sanitize response - fix common escaping issues
-    # Replace \' with '' (proper single quote escaping in YAML)
-    response_text = response_text.replace("\\'", "''")
+        # Add user prompt
+        prompt = KNOWLEDGE_POINT_QUESTIONS_PROMPT.format(
+            course_title=course_title,
+            lesson_title=lesson_title,
+            kp_name=kp_name,
+            kp_description=kp_description,
+            content_summary=content_summary,
+        )
+        chat.append(user(prompt))
 
-    # Parse YAML response
-    try:
-        questions: List[Dict[str, Any]] = yaml.safe_load(response_text)
-        return questions if isinstance(questions, list) else []
-    except yaml.YAMLError as e:
-        print(f"    Warning: Failed to parse questions YAML for {kp_name}: {e}")
-        return []
+        # Get response
+        response = chat.sample()
+        response_text = str(response.content)
+
+        # Print full response
+        print(f"\n{'=' * 80}")
+        print(
+            f"QUESTIONS RESPONSE for {kp_name} (attempt {attempt + 1}/{max_retries + 1}):"
+        )
+        print(f"{'=' * 80}")
+        print(response_text)
+        print(f"{'=' * 80}\n")
+
+        # Sanitize response - fix common escaping issues
+        # Replace \' with '' (proper single quote escaping in YAML)
+        response_text = response_text.replace("\\'", "''")
+
+        # Parse YAML response
+        try:
+            questions: List[Dict[str, Any]] = yaml.safe_load(response_text)
+            if not isinstance(questions, list):
+                print("    Warning: Response is not a list, retrying...")
+                continue
+
+            # Validate each question
+            validation_errors = []
+            for q_idx, question_data in enumerate(questions):
+                try:
+                    validate_question(
+                        question_data,
+                        lesson_idx=0,  # Dummy values for validation
+                        lesson_title=lesson_title,
+                        kp_idx=0,
+                        kp_name=kp_name,
+                        q_idx=q_idx,
+                    )
+                except ValueError as e:
+                    validation_errors.append(f"Question {q_idx}: {str(e)}")
+
+            if validation_errors:
+                print("    Validation errors found:")
+                for error in validation_errors:
+                    print(f"      - {error}")
+                if attempt < max_retries:
+                    print(f"    Retrying... ({attempt + 1}/{max_retries})")
+                    continue
+                else:
+                    print("    Max retries reached. Returning invalid questions.")
+                    return questions
+
+            # All questions valid!
+            print("    ✓ All questions validated successfully")
+            return questions
+
+        except yaml.YAMLError as e:
+            print(f"    Warning: Failed to parse questions YAML for {kp_name}: {e}")
+            if attempt < max_retries:
+                print(f"    Retrying... ({attempt + 1}/{max_retries})")
+                continue
+            else:
+                return []
+
+    return []
 
 
 def fill_course_content(
