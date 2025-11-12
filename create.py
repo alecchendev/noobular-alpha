@@ -1,16 +1,3 @@
-#!/usr/bin/env python3
-"""
-Course outline generator using Grok API.
-
-Setup:
-    pip install xai-sdk
-    export XAI_API_KEY=your_api_key_here
-
-Usage:
-    python grok_api_test.py "Topic Name"
-    python grok_api_test.py --debug "Topic Name"  # Limit output to 100 tokens for testing
-"""
-
 import os
 import sys
 import argparse
@@ -20,7 +7,9 @@ from xai_sdk import Client  # type: ignore
 from xai_sdk.chat import user, system  # type: ignore
 from validate import validate_question
 
-MODEL = "grok-4-fast"
+# Not the absolute cheapest ($1.50/mtok vs. $0.50/mtok), but seems to completely
+# fix syntax/structure errors.
+MODEL = "grok-code-fast"
 
 
 COURSE_OUTLINE_PROMPT = """Create a comprehensive course outline about {topic}.
@@ -357,60 +346,78 @@ def generate_questions(
         response_text = response_text.replace("\\'", "''")
 
         # Parse YAML response
+        questions: List[Dict[str, Any]] = []
         try:
-            questions: List[Dict[str, Any]] = yaml.safe_load(response_text)
+            questions = yaml.safe_load(response_text)
             if not isinstance(questions, list):
                 print("    Warning: Response is not a list, retrying...")
                 continue
-
-            # Validate each question
-            validation_errors = []
-            for q_idx, question_data in enumerate(questions):
-                try:
-                    validate_question(
-                        question_data,
-                        lesson_idx=0,  # Dummy values for validation
-                        lesson_title=lesson_title,
-                        kp_idx=0,
-                        kp_name=kp_name,
-                        q_idx=q_idx,
-                    )
-                except ValueError as e:
-                    validation_errors.append(f"Question {q_idx}: {str(e)}")
-
-            if validation_errors:
-                # Print full response
-                print(f"\n{'=' * 80}")
-                print(
-                    f"QUESTIONS RESPONSE for {kp_name} (attempt {attempt + 1}/{max_retries + 1}):"
-                )
-                print(f"{'=' * 80}")
-                print(response_text)
-                print(f"{'=' * 80}\n")
-
-                print("    Validation errors found:")
-                for error in validation_errors:
-                    print(f"      - {error}")
-                if attempt < max_retries:
-                    print(f"    Retrying... ({attempt + 1}/{max_retries})")
-                    continue
-                else:
-                    print("    Max retries reached. Returning invalid questions.")
-                    return questions
-
-            # All questions valid!
-            print("    ✓ All questions validated successfully")
-            return questions
-
         except yaml.YAMLError as e:
+            # Print full response
+            print(f"\n{'=' * 80}")
+            print(
+                f"QUESTIONS RESPONSE for {kp_name} (attempt {attempt + 1}/{max_retries + 1}):"
+            )
+            print(f"{'=' * 80}")
+            print(response_text)
+            print(f"{'=' * 80}\n")
+
             print(f"    Warning: Failed to parse questions YAML for {kp_name}: {e}")
             if attempt < max_retries:
                 print(f"    Retrying... ({attempt + 1}/{max_retries})")
                 continue
             else:
-                return []
+                print("\n" + "=" * 80)
+                print("ERROR: Max retries reached. Failed to parse YAML response.")
+                print("=" * 80)
+                raise ValueError(
+                    f"Failed to parse YAML for {kp_name} after {max_retries + 1} attempts: {e}"
+                )
 
-    return []
+        # Validate each question
+        validation_errors = []
+        for q_idx, question_data in enumerate(questions):
+            try:
+                validate_question(
+                    question_data,
+                    lesson_idx=0,  # Dummy values for validation
+                    lesson_title=lesson_title,
+                    kp_idx=0,
+                    kp_name=kp_name,
+                    q_idx=q_idx,
+                )
+            except ValueError as e:
+                validation_errors.append(f"Question {q_idx}: {str(e)}")
+
+        if validation_errors:
+            # Print full response
+            print(f"\n{'=' * 80}")
+            print(
+                f"QUESTIONS RESPONSE for {kp_name} (attempt {attempt + 1}/{max_retries + 1}):"
+            )
+            print(f"{'=' * 80}")
+            print(response_text)
+            print(f"{'=' * 80}\n")
+
+            print("    Validation errors found:")
+            for error in validation_errors:
+                print(f"      - {error}")
+            if attempt < max_retries:
+                print(f"    Retrying... ({attempt + 1}/{max_retries})")
+                continue
+            else:
+                print("\n" + "=" * 80)
+                print("ERROR: Max retries reached. Failed to generate valid questions.")
+                print("=" * 80)
+                raise ValueError(
+                    f"Failed to generate valid questions for {kp_name} after {max_retries + 1} attempts"
+                )
+
+        # All questions valid!
+        print("    ✓ All questions validated successfully")
+        return questions
+
+    raise ValueError(f"Failed to generate questions for {kp_name} - unexpected error")
 
 
 def fill_course_content(
