@@ -20,6 +20,81 @@ class ValidationConfig:
     min_question_count: int
 
 
+def validate_question(
+    question_data: Any,
+    lesson_idx: int,
+    lesson_title: str,
+    kp_idx: int,
+    kp_name: str,
+    q_idx: int,
+) -> None:
+    """
+    Validate a single question.
+
+    Args:
+        question_data: The question data to validate
+        lesson_idx: Index of the lesson (for error messages)
+        lesson_title: Title of the lesson (for error messages)
+        kp_idx: Index of the knowledge point (for error messages)
+        kp_name: Name of the knowledge point (for error messages)
+        q_idx: Index of the question (for error messages)
+
+    Raises:
+        ValueError: If validation fails
+    """
+    if not isinstance(question_data, dict):
+        raise ValueError(
+            f"Lesson {lesson_idx} ('{lesson_title}'), knowledge_point {kp_idx} (name: '{kp_name}'), question {q_idx} must be an object"
+        )
+
+    if "prompt" not in question_data:
+        raise ValueError(
+            f"Lesson {lesson_idx} ('{lesson_title}'), knowledge_point {kp_idx} (name: '{kp_name}'), question {q_idx} missing required field: 'prompt'"
+        )
+
+    if "explanation" not in question_data:
+        raise ValueError(
+            f"Lesson {lesson_idx} ('{lesson_title}'), knowledge_point {kp_idx} (name: '{kp_name}'), question {q_idx} (prompt: '{question_data.get('prompt', 'unknown')}') missing required field: 'explanation'"
+        )
+
+    if "choices" not in question_data:
+        raise ValueError(
+            f"Lesson {lesson_idx} ('{lesson_title}'), knowledge_point {kp_idx} (name: '{kp_name}'), question {q_idx} (prompt: '{question_data.get('prompt', 'unknown')}') missing required field: 'choices'"
+        )
+
+    if not isinstance(question_data["choices"], list):
+        raise ValueError(
+            f"Lesson {lesson_idx} ('{lesson_title}'), knowledge_point {kp_idx} (name: '{kp_name}'), question {q_idx} (prompt: '{question_data['prompt']}') field 'choices' must be a list"
+        )
+
+    if len(question_data["choices"]) < 2:
+        raise ValueError(
+            f"Lesson {lesson_idx} ('{lesson_title}'), knowledge_point {kp_idx} (name: '{kp_name}'), question {q_idx} (prompt: '{question_data['prompt']}') must have at least 2 choices"
+        )
+
+    # Validate choices and count correct answers
+    correct_count = 0
+    for c_idx, choice_data in enumerate(question_data["choices"]):
+        if not isinstance(choice_data, dict):
+            raise ValueError(
+                f"Lesson {lesson_idx} ('{lesson_title}'), knowledge_point {kp_idx} (name: '{kp_name}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} must be an object"
+            )
+
+        if "text" not in choice_data:
+            raise ValueError(
+                f"Lesson {lesson_idx} ('{lesson_title}'), knowledge_point {kp_idx} (name: '{kp_name}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} missing required field: 'text'"
+            )
+
+        if choice_data.get("correct", False):
+            correct_count += 1
+
+    # Validate exactly one correct answer
+    if correct_count != 1:
+        raise ValueError(
+            f"Lesson {lesson_idx} ('{lesson_title}'), knowledge_point {kp_idx} (name: '{kp_name}'), question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
+        )
+
+
 def validate_course(course_data: dict[str, Any]) -> None:
     """Validate course data and return a Course object. Raises ValueError on validation failure."""
     # Config is just constant
@@ -132,57 +207,14 @@ def validate_course(course_data: dict[str, Any]) -> None:
 
             # Validate questions
             for q_idx, question_data in enumerate(kp_data["questions"]):
-                if not isinstance(question_data, dict):
-                    raise ValueError(
-                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} must be an object"
-                    )
-
-                if "prompt" not in question_data:
-                    raise ValueError(
-                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} missing required field: 'prompt'"
-                    )
-
-                if "explanation" not in question_data:
-                    raise ValueError(
-                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data.get('prompt', 'unknown')}') missing required field: 'explanation'"
-                    )
-
-                if "choices" not in question_data:
-                    raise ValueError(
-                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data.get('prompt', 'unknown')}') missing required field: 'choices'"
-                    )
-
-                if not isinstance(question_data["choices"], list):
-                    raise ValueError(
-                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}') field 'choices' must be a list"
-                    )
-
-                if len(question_data["choices"]) < 2:
-                    raise ValueError(
-                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}') must have at least 2 choices"
-                    )
-
-                # Validate choices and count correct answers
-                correct_count = 0
-                for c_idx, choice_data in enumerate(question_data["choices"]):
-                    if not isinstance(choice_data, dict):
-                        raise ValueError(
-                            f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} must be an object"
-                        )
-
-                    if "text" not in choice_data:
-                        raise ValueError(
-                            f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question {q_idx} (prompt: '{question_data['prompt']}'), choice {c_idx} missing required field: 'text'"
-                        )
-
-                    if choice_data.get("correct", False):
-                        correct_count += 1
-
-                # Validate exactly one correct answer
-                if correct_count != 1:
-                    raise ValueError(
-                        f"Lesson {lesson_idx} ('{lesson_data['title']}'), knowledge_point {kp_idx} (name: '{kp_data['name']}'), question '{question_data['prompt']}' has {correct_count} correct answers, expected exactly 1"
-                    )
+                validate_question(
+                    question_data,
+                    lesson_idx=lesson_idx,
+                    lesson_title=lesson_data["title"],
+                    kp_idx=kp_idx,
+                    kp_name=kp_data["name"],
+                    q_idx=q_idx,
+                )
 
     knowledge_point_count = sum(
         len(lesson_data.get("knowledge_points", []))
