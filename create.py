@@ -4,12 +4,17 @@ import argparse
 import yaml
 from typing import Optional, Any, Dict, List
 from xai_sdk import Client  # type: ignore
-from xai_sdk.chat import user, system  # type: ignore
+from xai_sdk.chat import user, system, file  # type: ignore
 from validate import validate_question
+from enum import Enum
 
-# Not the absolute cheapest ($1.50/mtok vs. $0.50/mtok), but seems to completely
-# fix syntax/structure errors.
-MODEL = "grok-code-fast"
+
+class Model(str, Enum):
+    # Not the absolute cheapest ($1.50/mtok vs. $0.50/mtok), but seems to completely
+    # fix syntax/structure errors.
+    GROK_CODE_FAST = "grok-code-fast"
+    GROK_4_FAST = "grok-4-fast"
+    GROK_4 = "grok-4"
 
 
 COURSE_OUTLINE_PROMPT = """Create a comprehensive course outline about {topic}.
@@ -152,7 +157,7 @@ CRITICAL YAML FORMATTING RULES:
 
 
 def generate_course_outline(
-    topic: str, lesson_count: int, max_tokens: Optional[int]
+    topic: str, lesson_count: int, max_tokens: Optional[int], model: str
 ) -> str:
     """
     Generate a course outline for the given topic using Grok API.
@@ -161,6 +166,7 @@ def generate_course_outline(
         topic: The topic to create a course about
         lesson_count: Target number of lessons (default: 5)
         max_tokens: Maximum number of tokens in the response (None for unlimited)
+        model: Model to use for generation
 
     Returns:
         The course outline as a string
@@ -173,9 +179,9 @@ def generate_course_outline(
 
     # Create a chat session with optional max_tokens
     if max_tokens:
-        chat = client.chat.create(model=MODEL, max_tokens=max_tokens)
+        chat = client.chat.create(model=model, max_tokens=max_tokens)
     else:
-        chat = client.chat.create(model=MODEL)
+        chat = client.chat.create(model=model)
 
     # Add system message
     chat.append(
@@ -207,6 +213,7 @@ def generate_content(
     kp_name: str,
     kp_description: str,
     prerequisites: List[str],
+    model: str,
     max_tokens: Optional[int] = None,
 ) -> List[str]:
     """
@@ -219,6 +226,7 @@ def generate_content(
         kp_description: The description of the knowledge point
         prerequisites: List of prerequisite knowledge point IDs
         max_tokens: Maximum number of tokens in the response (None for unlimited)
+        model: Model to use for generation
 
     Returns:
         List of content blocks
@@ -231,9 +239,9 @@ def generate_content(
 
     # Create a chat session
     if max_tokens:
-        chat = client.chat.create(model=MODEL, max_tokens=max_tokens)
+        chat = client.chat.create(model=model, max_tokens=max_tokens)
     else:
-        chat = client.chat.create(model=MODEL)
+        chat = client.chat.create(model=model)
 
     # Add system message
     chat.append(
@@ -285,6 +293,7 @@ def generate_questions(
     kp_name: str,
     kp_description: str,
     contents: List[str],
+    model: str,
     max_tokens: Optional[int] = None,
     max_retries: int = 2,
 ) -> List[Dict[str, Any]]:
@@ -316,9 +325,9 @@ def generate_questions(
 
         # Create a chat session
         if max_tokens:
-            chat = client.chat.create(model=MODEL, max_tokens=max_tokens)
+            chat = client.chat.create(model=model, max_tokens=max_tokens)
         else:
-            chat = client.chat.create(model=MODEL)
+            chat = client.chat.create(model=model)
 
         # Add system message
         chat.append(
@@ -421,13 +430,14 @@ def generate_questions(
 
 
 def fill_course_content(
-    outline_yaml: str, max_tokens: Optional[int] = None
+    outline_yaml: str, model: str, max_tokens: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     Takes a course outline YAML and fills in content and questions for each knowledge point.
 
     Args:
         outline_yaml: The course outline as a YAML string
+        model: Model to use for generation
         max_tokens: Maximum number of tokens per knowledge point generation
 
     Returns:
@@ -469,6 +479,7 @@ def fill_course_content(
                 kp_name=kp_name,
                 kp_description=kp_description,
                 prerequisites=prerequisites,
+                model=model,
                 max_tokens=max_tokens,
             )
             print(f"✓ ({len(contents)} blocks)")
@@ -481,6 +492,7 @@ def fill_course_content(
                 kp_name=kp_name,
                 kp_description=kp_description,
                 contents=contents,
+                model=model,
                 max_tokens=max_tokens,
             )
             print(f"✓ ({len(questions)} questions)")
@@ -495,11 +507,179 @@ def fill_course_content(
     return course
 
 
+def extract_textbook_content(
+    textbook_file_id: str,
+    section_name: str,
+    model: str,
+    max_tokens: Optional[int] = None,
+) -> str:
+    """
+    Extract content from a textbook section using vision model.
+
+    Args:
+        textbook_file: Path to the textbook PDF file
+        section_name: Name of the section to extract
+        max_tokens: Maximum number of tokens in the response (None for unlimited)
+
+    Returns:
+        Extracted content as a string
+    """
+    # Initialize the client
+    client = Client(
+        api_key=os.getenv("XAI_API_KEY"),
+        timeout=3600,
+    )
+
+    # Create a chat session with vision model
+    if max_tokens:
+        chat = client.chat.create(model=model, max_tokens=max_tokens)
+    else:
+        chat = client.chat.create(model=model)
+
+    # Add system message
+    chat.append(
+        system(
+            "You are an expert at extracting educational content from textbooks. Be comprehensive and accurate."
+        )
+    )
+
+    # Create prompt for content extraction
+    prompt = f"""Extract all the content from section {section_name}. Be comprehensive and make sure you get everything relevant. Review the material to make sure you have not made any mistakes. Output nicely formatted plaintext that can be written to a txt file."""
+
+    # Add user message with file attachment
+    chat.append(user(prompt, file(textbook_file_id)))
+
+    print(f"Extracting content from section '{section_name}'...")
+
+    # Get response
+    response = chat.sample()
+    return str(response.content)
+
+
+def extract_textbook_problems(
+    textbook_file_id: str,
+    section_name: str,
+    model: str,
+    max_tokens: Optional[int] = None,
+) -> str:
+    """
+    Extract practice problems from a textbook section using vision model.
+
+    Args:
+        textbook_file: Path to the textbook PDF file
+        section_name: Name of the section to extract problems for
+        max_tokens: Maximum number of tokens in the response (None for unlimited)
+
+    Returns:
+        Extracted problems as a string
+    """
+    # Initialize the client
+    client = Client(
+        api_key=os.getenv("XAI_API_KEY"),
+        timeout=3600,
+    )
+
+    # Create a chat session with vision model
+    if max_tokens:
+        chat = client.chat.create(model=model, max_tokens=max_tokens)
+    else:
+        chat = client.chat.create(model=model)
+
+    # Add system message
+    chat.append(
+        system(
+            "You are an expert at extracting practice problems from textbooks. Be comprehensive and accurate."
+        )
+    )
+
+    # Create prompt for problems extraction
+    prompt = f"""Extract all the practice problems for section {section_name} from the section. This should include example problems from the section, as well as the probelms from the end of the chapter, from sections such as guided practice, exercises, challenge problems, and mcat-style problems. Be comprehensive and make sure you get everything relevant. DO NOT make up any new material, strictly transcribe. DO NOT include any text from images/figures. Output nicely formatted plaintext that can be written to a text file."""
+
+    # Add user message with file attachment
+    chat.append(user(prompt, file(textbook_file_id)))
+
+    print(f"Extracting problems from section '{section_name}'...")
+
+    # Get response
+    response = chat.sample()
+    return str(response.content)
+
+
+def extract_section(
+    textbook_file: str,
+    section_name: str,
+    content_output: str,
+    problems_output: str,
+    model: str,
+    max_tokens: Optional[int] = None,
+) -> None:
+    """
+    Extract content and problems from a textbook section.
+
+    Args:
+        textbook_file: Path to the textbook PDF file
+        section_name: Name of the section to extract
+        content_output: Path to write extracted content
+        problems_output: Path to write extracted problems
+        model: Model to use for generation
+        max_tokens: Maximum number of tokens in the response (None for unlimited)
+    """
+    print(f"Extracting from: {textbook_file}")
+    print(f"Section: {section_name}")
+    print("=" * 80)
+
+    # Upload the file if it hasn't been uploaded already
+    client = Client(
+        api_key=os.getenv("XAI_API_KEY"),
+        timeout=3600,
+    )
+    files_response = client.files.list()
+    textbook_chapter_file = None
+    for uploaded_file in files_response.data:
+        if uploaded_file.filename == os.path.basename(textbook_file):
+            textbook_chapter_file = uploaded_file
+            break
+    if textbook_chapter_file is None:
+        print(f"Uploading file: {textbook_file}...")
+        textbook_chapter_file = client.files.upload(textbook_file)
+    else:
+        print("Skipping file upload, already exists.")
+    textbook_file_id = textbook_chapter_file.id
+    print(f"File ID: {textbook_file_id}")
+
+    # Extract content
+    content = extract_textbook_content(
+        textbook_file_id, section_name, model, max_tokens
+    )
+    with open(content_output, "w") as f:
+        f.write(content)
+    print(f"✓ Content written to: {content_output}")
+
+    # Extract problems
+    problems = extract_textbook_problems(
+        textbook_file_id, section_name, model, max_tokens
+    )
+    with open(problems_output, "w") as f:
+        f.write(problems)
+    print(f"✓ Problems written to: {problems_output}")
+
+    print("=" * 80)
+    print("Extraction complete!")
+
+
 def main() -> None:
     # Main parser
     parser = argparse.ArgumentParser(
         description="Course generator using Grok API",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    # Add global model argument
+    parser.add_argument(
+        "--model",
+        "-m",
+        default=Model.GROK_4_FAST,
+        help=f"Grok model to use (default: {Model.GROK_4_FAST})",
     )
 
     # Add subparsers for outline and fill commands
@@ -555,7 +735,40 @@ def main() -> None:
         help="Limit output to 500 tokens for testing",
     )
 
+    # Extract subcommand
+    extract_parser = subparsers.add_parser(
+        "extract",
+        help="Extract content and problems from a textbook section",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    extract_parser.add_argument(
+        "textbook_file",
+        help="Path to the textbook PDF file",
+    )
+    extract_parser.add_argument(
+        "section_name",
+        help="Name of the section to extract (e.g., 'Section 5.1')",
+    )
+    extract_parser.add_argument(
+        "--content-output",
+        "-c",
+        required=True,
+        help="Output file for extracted content",
+    )
+    extract_parser.add_argument(
+        "--problems-output",
+        "-p",
+        required=True,
+        help="Output file for extracted problems",
+    )
+    extract_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Limit output to 500 tokens for testing",
+    )
+
     args = parser.parse_args()
+    assert args.model in list(Model)
 
     # Check if command was provided
     if not args.command:
@@ -577,7 +790,10 @@ def main() -> None:
             topic = " ".join(args.topic)
 
             outline = generate_course_outline(
-                topic, lesson_count=args.lessons, max_tokens=max_tokens
+                topic,
+                lesson_count=args.lessons,
+                max_tokens=max_tokens,
+                model=args.model,
             )
 
             # Save or print
@@ -611,7 +827,9 @@ def main() -> None:
                 outline_yaml = f.read()
 
             # Fill in the content
-            complete_course = fill_course_content(outline_yaml, max_tokens=max_tokens)
+            complete_course = fill_course_content(
+                outline_yaml, max_tokens=max_tokens, model=args.model
+            )
 
             # Convert to YAML
             output_yaml = yaml.dump(
@@ -631,6 +849,25 @@ def main() -> None:
                 print("COMPLETE COURSE:")
                 print("=" * 80)
                 print(output_yaml)
+
+        elif args.command == "extract":
+            # Extract from textbook
+            textbook_file = args.textbook_file
+            section_name = args.section_name
+
+            if not os.path.exists(textbook_file):
+                print(f"Error: Textbook file not found: {textbook_file}")
+                sys.exit(1)
+
+            # Extract section
+            extract_section(
+                textbook_file=textbook_file,
+                section_name=section_name,
+                content_output=args.content_output,
+                problems_output=args.problems_output,
+                model=args.model,
+                max_tokens=max_tokens,
+            )
 
     except Exception as e:
         print(f"Error: {e}")
