@@ -138,43 +138,211 @@ QUESTION REQUIREMENTS:
 
 OUTPUT FORMAT: Return ONLY valid YAML (no code fences, no commentary) as an array:
 
-- prompt: 'Question text here with $math$ allowed'
+- prompt: |
+    Question text here with $math$ allowed
   choices:
-    - text: 'Choice A with LaTeX like $x^2$'
-    - text: 'Choice B'
+    - text: |
+        Choice A with LaTeX like $x^2$
+    - text: |
+        Choice B
       correct: true
-    - text: 'Choice C'
-    - text: 'Choice D'
-  explanation: 'Explanation with **markdown** and $\lambda$ symbols'
+    - text: |
+        Choice C
+    - text: |
+        Choice D
+  explanation: |
+    Explanation with **markdown** and $\lambda$ symbols
 
 CRITICAL YAML FORMATTING RULES:
-- Use SINGLE QUOTES for all text fields (prompt, text, explanation)
-- Single quotes prevent escape character issues with LaTeX symbols like \phi, \lambda, etc.
-- If you need a single quote inside text, escape it by doubling it: 'It''s' becomes "It's"
+- Use | (pipe) for ALL text fields (prompt, text, explanation) - this avoids all quote escaping issues
+- Do NOT use quotes around text - the pipe notation handles everything including apostrophes, quotes, and LaTeX
 - Return ONLY the array of questions as valid YAML
 - No code fences, no commentary
 """
 
+TEXTBOOK_OUTLINE_PROMPT = """
+The provided content and problems are transcribed sections from a textbook. Your goal is to transform the transcribed sections into a structured course outline that will most effectively teach a curious learner.
+
+# Numbers
+Create 1-4 lessons based on the provided content and problems.
+Create 2-5 knowledge points per lesson.
+Each knowledge point will later have at least 10 questions.
+
+# Structure
+Lessons should be scaffolded such that students are not exposed to too much information at once. Lessons should build up to students being able to solve the most challenging problems from the transcribed sections.
+Each knowledge point should be atomic, and represent a discrete concept/skill that a student will master.
+There should be a realistic structure formed through the prerequisites field on each knowledge point.
+
+# Syntax and formatting
+Use spaces not tabs. There should not be any blank lines in the YAML structure.
+Use kebab-case for knowledge point names (e.g., 'force-equilibrium').
+Use single quotes for all text fields to avoid escape character issues.
+
+# Output format
+Return ONLY valid YAML in this exact format (no code fences, no commentary):
+
+title: 'Course Title Based on Section'
+lessons:
+  - title: 'Lesson 1 Title'
+    knowledge_points:
+      - name: 'kebab-case-id'
+        description: 'Brief description of what this knowledge point covers'
+        prerequisites: []
+      - name: 'another-kp-id'
+        description: 'Brief description'
+        prerequisites: ['kebab-case-id']
+  - title: 'Lesson 2 Title'
+    knowledge_points:
+      - name: 'advanced-topic'
+        description: 'Brief description'
+        prerequisites: ['another-kp-id']
+
+IMPORTANT:
+- Return ONLY raw YAML - do NOT wrap in ```yaml code fences
+- Use SINGLE QUOTES for all text fields
+- Do NOT include contents or questions fields - they will be added later
+- Ensure prerequisite relationships accurately reflect dependencies between concepts
+
+# Content from textbook:
+{content}
+
+# Problems from textbook:
+{problems}"""
+
+TEXTBOOK_CONTENT_PROMPT = """
+You are creating educational content for a knowledge point based on transcribed textbook sections.
+
+# Knowledge point details
+- Course: {course_title}
+- Lesson: {lesson_title}
+- Knowledge point: {kp_name}
+- Description: {kp_description}
+- Prerequisites: {prerequisites}
+
+# Task
+Generate 2-4 content blocks that teach this specific concept/skill.
+Content should include key concepts as well as an example practice problem being worked out in detail.
+Each content block should be focused and digestible.
+Use markdown formatting with headers (###), **bold**, *italic*, `code`.
+Use inline math with $...$ and display math with $$...$$ where appropriate.
+For lists, ensure a blank line precedes them.
+
+# Output format
+Return ONLY valid YAML (no code fences, no commentary) as an array:
+
+- |
+    ### Section Title
+
+    Content with **markdown**, math $x^2$, etc.
+
+    - Bullet point 1
+    - Bullet point 2
+
+    Display math:
+    $$E = mc^2$$
+- |
+    ### Another Section
+
+    More content here.
+
+CRITICAL YAML FORMATTING RULES:
+- Use | (pipe) for multi-line content blocks with no quotes
+- If you need a single quote inside text, escape it by doubling it: 'It''s' becomes "It's"
+- Return ONLY the array of content blocks as valid YAML
+- No code fences, no commentary
+
+# Content from textbook:
+{content}
+
+# Problems from textbook:
+{problems}"""
+
+TEXTBOOK_QUESTIONS_PROMPT = """
+You are creating assessment questions for a knowledge point based on transcribed textbook sections.
+
+# Knowledge point details
+- Course: {course_title}
+- Lesson: {lesson_title}
+- Knowledge point: {kp_name}
+- Description: {kp_description}
+
+# Content taught in this knowledge point:
+{content_summary}
+
+# Task
+Generate exactly 10 multiple choice questions that test this specific concept/skill.
+Questions should strictly align with the skills used in the example problem from the content.
+Questions will be served in a random order, so questions must not reference each other.
+Answers should be difficult to guess. No choice should be obviously wrong. All 4 answer choices must be plausible.
+Exactly one choice must be marked as correct.
+Use markdown and math in prompts, choices, and explanations as needed.
+
+# Output format
+Return ONLY valid YAML (no code fences, no commentary) as an array:
+
+- prompt: |
+    Question text here with $math$ allowed
+  choices:
+    - text: |
+        Choice A with LaTeX like $x^2$
+    - text: |
+        Choice B
+      correct: true
+    - text: |
+        Choice C
+    - text: |
+        Choice D
+  explanation: |
+    Explanation with **markdown** and $\lambda$ symbols
+
+CRITICAL YAML FORMATTING RULES:
+- Use | (pipe) for ALL text fields (prompt, text, explanation) - this avoids all quote escaping issues
+- Do NOT use quotes around text - the pipe notation handles everything including apostrophes, quotes, and LaTeX
+- Return ONLY the array of questions as valid YAML
+- No code fences, no commentary
+
+# Content from textbook:
+{content}
+
+# Problems from textbook:
+{problems}"""
+
 
 def generate_course_outline(
-    topic: str, lesson_count: int, max_tokens: Optional[int], model: str
+    topic: str,
+    lesson_count: int,
+    max_tokens: Optional[int],
+    model: str,
+    content_file: Optional[str] = None,
+    problems_file: Optional[str] = None,
 ) -> str:
     """
     Generate a course outline for the given topic using Grok API.
 
     Args:
-        topic: The topic to create a course about
-        lesson_count: Target number of lessons (default: 5)
+        topic: The topic to create a course about (ignored if using textbook files)
+        lesson_count: Target number of lessons (ignored if using textbook files)
         max_tokens: Maximum number of tokens in the response (None for unlimited)
         model: Model to use for generation
+        content_file: Optional path to textbook content file
+        problems_file: Optional path to textbook problems file
 
     Returns:
         The course outline as a string
     """
+    # Read textbook files if provided
+    content = None
+    problems = None
+    if content_file and problems_file:
+        with open(content_file, "r") as f:
+            content = f.read()
+        with open(problems_file, "r") as f:
+            problems = f.read()
+
     # Initialize the client
     client = Client(
         api_key=os.getenv("XAI_API_KEY"),
-        timeout=3600,  # Override default timeout with longer timeout for reasoning models
+        timeout=3600,
     )
 
     # Create a chat session with optional max_tokens
@@ -183,19 +351,27 @@ def generate_course_outline(
     else:
         chat = client.chat.create(model=model)
 
-    # Add system message
     chat.append(
         system(
             "You are an expert educational content creator who specializes in creating comprehensive, well-structured courses with clear learning progressions."
         )
     )
 
-    # Add user prompt with the topic and lesson count
-    prompt = COURSE_OUTLINE_PROMPT.format(topic=topic, lesson_count=lesson_count)
+    # Add prompt based on mode (no separate system message needed)
+    if content and problems:
+        # Textbook mode
+        prompt = TEXTBOOK_OUTLINE_PROMPT.format(content=content, problems=problems)
+        print("Generating course outline from textbook files")
+        print(f"Content file: {content_file}")
+        print(f"Problems file: {problems_file}")
+    else:
+        # Topic mode
+        prompt = COURSE_OUTLINE_PROMPT.format(topic=topic, lesson_count=lesson_count)
+        print(f"Generating course outline for: {topic}")
+        print(f"Target lesson count: {lesson_count}")
+
     chat.append(user(prompt))
 
-    print(f"Generating course outline for: {topic}")
-    print(f"Target lesson count: {lesson_count}")
     if max_tokens:
         print(f"(Limited to {max_tokens} tokens for testing)")
     print("=" * 80)
@@ -215,6 +391,8 @@ def generate_content(
     prerequisites: List[str],
     model: str,
     max_tokens: Optional[int] = None,
+    content: Optional[str] = None,
+    problems: Optional[str] = None,
 ) -> List[str]:
     """
     Generate content for a single knowledge point.
@@ -225,8 +403,10 @@ def generate_content(
         kp_name: The name/ID of the knowledge point
         kp_description: The description of the knowledge point
         prerequisites: List of prerequisite knowledge point IDs
-        max_tokens: Maximum number of tokens in the response (None for unlimited)
         model: Model to use for generation
+        max_tokens: Maximum number of tokens in the response (None for unlimited)
+        content: Optional textbook content text
+        problems: Optional textbook problems text
 
     Returns:
         List of content blocks
@@ -243,7 +423,6 @@ def generate_content(
     else:
         chat = client.chat.create(model=model)
 
-    # Add system message
     chat.append(
         system(
             "You are an expert educational content creator who creates clear, comprehensive learning materials with excellent examples."
@@ -253,23 +432,33 @@ def generate_content(
     # Format prerequisites
     prereq_str = ", ".join(prerequisites) if prerequisites else "None"
 
-    # Add user prompt
-    prompt = KNOWLEDGE_POINT_CONTENT_PROMPT.format(
-        course_title=course_title,
-        lesson_title=lesson_title,
-        kp_name=kp_name,
-        kp_description=kp_description,
-        prerequisites=prereq_str,
-    )
+    # Add prompt based on mode (no separate system message needed for textbook mode)
+    if content and problems:
+        # Textbook mode
+        prompt = TEXTBOOK_CONTENT_PROMPT.format(
+            course_title=course_title,
+            lesson_title=lesson_title,
+            kp_name=kp_name,
+            kp_description=kp_description,
+            prerequisites=prereq_str,
+            content=content,
+            problems=problems,
+        )
+    else:
+        # Topic mode
+        prompt = KNOWLEDGE_POINT_CONTENT_PROMPT.format(
+            course_title=course_title,
+            lesson_title=lesson_title,
+            kp_name=kp_name,
+            kp_description=kp_description,
+            prerequisites=prereq_str,
+        )
+
     chat.append(user(prompt))
 
     # Get response
     response = chat.sample()
     response_text = str(response.content)
-
-    # Sanitize response - fix common escaping issues
-    # Replace \' with '' (proper single quote escaping in YAML)
-    response_text = response_text.replace("\\'", "''")
 
     # Parse YAML response
     try:
@@ -296,6 +485,8 @@ def generate_questions(
     model: str,
     max_tokens: Optional[int] = None,
     max_retries: int = 2,
+    content: Optional[str] = None,
+    problems: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Generate questions for a single knowledge point based on its content.
@@ -306,8 +497,11 @@ def generate_questions(
         kp_name: The name/ID of the knowledge point
         kp_description: The description of the knowledge point
         contents: The content blocks that were generated
+        model: Model to use for generation
         max_tokens: Maximum number of tokens in the response (None for unlimited)
         max_retries: Maximum number of retry attempts if validation fails
+        content: Optional textbook content text
+        problems: Optional textbook problems text
 
     Returns:
         List of question dictionaries
@@ -329,30 +523,39 @@ def generate_questions(
         else:
             chat = client.chat.create(model=model)
 
-        # Add system message
         chat.append(
             system(
                 "You are an expert educational content creator who creates thoughtful, challenging questions that test deep understanding."
             )
         )
 
-        # Add user prompt
-        prompt = KNOWLEDGE_POINT_QUESTIONS_PROMPT.format(
-            course_title=course_title,
-            lesson_title=lesson_title,
-            kp_name=kp_name,
-            kp_description=kp_description,
-            content_summary=content_summary,
-        )
+        # Add prompt based on mode (no separate system message needed for textbook mode)
+        if content and problems:
+            # Textbook mode
+            prompt = TEXTBOOK_QUESTIONS_PROMPT.format(
+                course_title=course_title,
+                lesson_title=lesson_title,
+                kp_name=kp_name,
+                kp_description=kp_description,
+                content_summary=content_summary,
+                content=content,
+                problems=problems,
+            )
+        else:
+            # Topic mode
+            prompt = KNOWLEDGE_POINT_QUESTIONS_PROMPT.format(
+                course_title=course_title,
+                lesson_title=lesson_title,
+                kp_name=kp_name,
+                kp_description=kp_description,
+                content_summary=content_summary,
+            )
+
         chat.append(user(prompt))
 
         # Get response
         response = chat.sample()
         response_text = str(response.content)
-
-        # Sanitize response - fix common escaping issues
-        # Replace \' with '' (proper single quote escaping in YAML)
-        response_text = response_text.replace("\\'", "''")
 
         # Parse YAML response
         questions: List[Dict[str, Any]] = []
@@ -430,7 +633,11 @@ def generate_questions(
 
 
 def fill_course_content(
-    outline_yaml: str, model: str, max_tokens: Optional[int] = None
+    outline_yaml: str,
+    model: str,
+    max_tokens: Optional[int] = None,
+    content_file: Optional[str] = None,
+    problems_file: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Takes a course outline YAML and fills in content and questions for each knowledge point.
@@ -439,10 +646,21 @@ def fill_course_content(
         outline_yaml: The course outline as a YAML string
         model: Model to use for generation
         max_tokens: Maximum number of tokens per knowledge point generation
+        content_file: Optional path to textbook content file
+        problems_file: Optional path to textbook problems file
 
     Returns:
         Complete course dictionary with all content and questions filled in
     """
+    # Read textbook files if provided
+    content = None
+    problems = None
+    if content_file and problems_file:
+        with open(content_file, "r") as f:
+            content = f.read()
+        with open(problems_file, "r") as f:
+            problems = f.read()
+
     # Parse the outline
     try:
         course: Dict[str, Any] = yaml.safe_load(outline_yaml)
@@ -454,6 +672,8 @@ def fill_course_content(
 
     print(f"\nFilling content for course: {course_title}")
     print(f"Total lessons: {len(lessons)}")
+    if content_file and problems_file:
+        print(f"Using textbook files: {content_file}, {problems_file}")
     print("=" * 80)
 
     # Loop through each lesson and knowledge point
@@ -481,6 +701,8 @@ def fill_course_content(
                 prerequisites=prerequisites,
                 model=model,
                 max_tokens=max_tokens,
+                content=content,
+                problems=problems,
             )
             print(f"✓ ({len(contents)} blocks)")
 
@@ -494,6 +716,8 @@ def fill_course_content(
                 contents=contents,
                 model=model,
                 max_tokens=max_tokens,
+                content=content,
+                problems=problems,
             )
             print(f"✓ ({len(questions)} questions)")
 
@@ -693,15 +917,25 @@ def main() -> None:
     )
     outline_parser.add_argument(
         "topic",
-        nargs="+",
-        help="The course topic to generate an outline for",
+        nargs="*",
+        help="The course topic to generate an outline for (not used if --content and --problems provided)",
     )
     outline_parser.add_argument(
         "--lessons",
         "-l",
         type=int,
         default=8,
-        help="Target number of lessons (default: 8)",
+        help="Target number of lessons (default: 8, ignored if using textbook files)",
+    )
+    outline_parser.add_argument(
+        "--content",
+        "-c",
+        help="Path to textbook content file (use with --problems)",
+    )
+    outline_parser.add_argument(
+        "--problems",
+        "-p",
+        help="Path to textbook problems file (use with --content)",
     )
     outline_parser.add_argument(
         "--output",
@@ -723,6 +957,16 @@ def main() -> None:
     fill_parser.add_argument(
         "outline_file",
         help="Path to the outline YAML file",
+    )
+    fill_parser.add_argument(
+        "--content",
+        "-c",
+        help="Path to textbook content file (use with --problems for textbook-based generation)",
+    )
+    fill_parser.add_argument(
+        "--problems",
+        "-p",
+        help="Path to textbook problems file (use with --content for textbook-based generation)",
     )
     fill_parser.add_argument(
         "--output",
@@ -786,14 +1030,29 @@ def main() -> None:
 
     try:
         if args.command == "outline":
+            # Validate textbook file arguments
+            if args.content and not args.problems:
+                print("Error: --content requires --problems")
+                sys.exit(1)
+            if args.problems and not args.content:
+                print("Error: --problems requires --content")
+                sys.exit(1)
+
+            # Validate topic argument
+            if not args.content and not args.topic:
+                print("Error: Either provide a topic or use --content and --problems")
+                sys.exit(1)
+
             # Generate outline
-            topic = " ".join(args.topic)
+            topic = " ".join(args.topic) if args.topic else ""
 
             outline = generate_course_outline(
                 topic,
                 lesson_count=args.lessons,
                 max_tokens=max_tokens,
                 model=args.model,
+                content_file=args.content,
+                problems_file=args.problems,
             )
 
             # Save or print
@@ -802,7 +1061,14 @@ def main() -> None:
                     f.write(outline)
                 print(f"\n✓ Course outline saved to: {args.output}")
                 print("\nNext step - fill in content:")
-                print(f"  python create.py fill {args.output} -o complete_course.yaml")
+                if args.content and args.problems:
+                    print(
+                        f"  python create.py fill {args.output} -c {args.content} -p {args.problems} -o complete_course.yaml"
+                    )
+                else:
+                    print(
+                        f"  python create.py fill {args.output} -o complete_course.yaml"
+                    )
             else:
                 print("COURSE OUTLINE:")
                 print("=" * 80)
@@ -816,6 +1082,14 @@ def main() -> None:
                 print("To run full generation, remove --debug flag")
 
         elif args.command == "fill":
+            # Validate textbook file arguments
+            if args.content and not args.problems:
+                print("Error: --content requires --problems")
+                sys.exit(1)
+            if args.problems and not args.content:
+                print("Error: --problems requires --content")
+                sys.exit(1)
+
             # Fill in content
             outline_path = args.outline_file
 
@@ -828,7 +1102,11 @@ def main() -> None:
 
             # Fill in the content
             complete_course = fill_course_content(
-                outline_yaml, max_tokens=max_tokens, model=args.model
+                outline_yaml,
+                model=args.model,
+                max_tokens=max_tokens,
+                content_file=args.content,
+                problems_file=args.problems,
             )
 
             # Convert to YAML
