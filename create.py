@@ -128,7 +128,7 @@ CONTENT TAUGHT:
 TASK: Generate questions that test understanding of the content above.
 
 QUESTION REQUIREMENTS:
-- Create exactly 10 multiple choice questions
+- Create exactly {question_count} multiple choice questions
 - Questions must strictly align with the skills and concepts from the content
 - All 4 answer choices must be plausible - no obviously wrong answers
 - Exactly one choice must be marked as correct
@@ -270,7 +270,7 @@ You are creating assessment questions for a knowledge point based on transcribed
 {content_summary}
 
 # Task
-Generate exactly 10 multiple choice questions that test this specific concept/skill.
+Generate exactly {question_count} multiple choice questions that test this specific concept/skill.
 Questions should strictly align with the skills used in the example problem from the content.
 Questions will be served in a random order, so questions must not reference each other.
 Answers should be difficult to guess. No choice should be obviously wrong. All 4 answer choices must be plausible.
@@ -306,6 +306,98 @@ CRITICAL YAML FORMATTING RULES:
 
 # Problems from textbook:
 {problems}"""
+
+TEXTBOOK_NUMERICAL_QUESTION_PROMPTS_PROMPT = """You are creating numerical problem prompts for a knowledge point based on transcribed textbook sections.
+
+# Knowledge point details
+- Course: {course_title}
+- Lesson: {lesson_title}
+- Knowledge point: {kp_name}
+- Description: {kp_description}
+
+# Content taught in this knowledge point:
+{content_summary}
+
+# Task
+Generate exactly {question_count} numerical problem prompts that test this specific concept/skill.
+These should be problems that require numerical calculation to solve.
+Questions should strictly align with the skills used in the example problem from the content.
+Questions will be served in a random order, so questions must not reference each other.
+Use markdown and math in prompts as needed.
+
+Do NOT generate answer choices or explanations yet - just the problem prompts.
+Each prompt will later be solved using code execution to find the correct answer.
+
+# Output format
+Return ONLY valid YAML (no code fences, no commentary) as an array of strings:
+
+- |
+    A 2.5 kg block slides down a frictionless incline at 30°. What is the acceleration of the block?
+- |
+    What is the work done by gravity when a 10 kg object falls 5 meters?
+- |
+    Calculate the velocity of a 500 g ball after falling from rest for 3 seconds.
+
+CRITICAL YAML FORMATTING RULES:
+- Use | (pipe) for ALL prompts - this avoids all quote escaping issues
+- Do NOT use quotes around text - the pipe notation handles everything
+- Return ONLY the array of prompt strings as valid YAML
+- No code fences, no commentary
+
+# Content from textbook:
+{content}
+
+# Problems from textbook:
+{problems}"""
+
+TEXTBOOK_NUMERICAL_SOLVE_PROMPT = """Solve the following physics problem numerically. Show your work step by step and provide the final numerical answer with appropriate units.
+
+Problem:
+{prompt}
+
+Relevant context from the course:
+{content_summary}
+
+Use code execution if needed to perform calculations."""
+
+TEXTBOOK_NUMERICAL_CHOICES_PROMPT = """Generate multiple choice options for a solved physics problem.
+
+# Problem:
+{prompt}
+
+# Solution:
+{solution}
+
+# Task
+Generate 4 multiple choice options where:
+- One option is the correct answer from the solution above
+- Three options are plausible but incorrect distractors
+- Distractors should represent common mistakes or misconceptions
+- All choices should have the same units and precision
+- Make it challenging - avoid obviously wrong answers
+
+Also provide an explanation that shows the step-by-step solution.
+
+# Output format
+Return ONLY valid YAML (no code fences, no commentary):
+
+choices:
+  - text: |
+      15.2 m/s²
+  - text: |
+      9.8 m/s²
+  - text: |
+      4.9 m/s²
+    correct: true
+  - text: |
+      19.6 m/s²
+explanation: |
+  The acceleration down the incline is given by $a = g \\sin\\theta$...
+
+CRITICAL YAML FORMATTING RULES:
+- Use | (pipe) for ALL text fields
+- Return ONLY the YAML structure shown above
+- No code fences, no commentary"""
 
 
 def generate_course_outline(
@@ -487,6 +579,7 @@ def generate_questions(
     max_retries: int = 2,
     content: Optional[str] = None,
     problems: Optional[str] = None,
+    question_count: int = 10,
 ) -> List[Dict[str, Any]]:
     """
     Generate questions for a single knowledge point based on its content.
@@ -502,6 +595,7 @@ def generate_questions(
         max_retries: Maximum number of retry attempts if validation fails
         content: Optional textbook content text
         problems: Optional textbook problems text
+        question_count: Number of questions to generate (default: 10)
 
     Returns:
         List of question dictionaries
@@ -540,6 +634,7 @@ def generate_questions(
                 content_summary=content_summary,
                 content=content,
                 problems=problems,
+                question_count=question_count,
             )
         else:
             # Topic mode
@@ -549,6 +644,7 @@ def generate_questions(
                 kp_name=kp_name,
                 kp_description=kp_description,
                 content_summary=content_summary,
+                question_count=question_count,
             )
 
         chat.append(user(prompt))
@@ -632,12 +728,203 @@ def generate_questions(
     raise ValueError(f"Failed to generate questions for {kp_name} - unexpected error")
 
 
+def generate_textbook_numerical_questions(
+    course_title: str,
+    lesson_title: str,
+    kp_name: str,
+    kp_description: str,
+    contents: List[str],
+    content: str,
+    problems: str,
+    model: str,
+    max_tokens: Optional[int] = None,
+    max_retries: int = 2,
+    question_count: int = 10,
+) -> List[Dict[str, Any]]:
+    """
+    Generate numerical questions for a textbook knowledge point using 3-step process:
+    1. Generate question prompts
+    2. Solve each problem using code execution
+    3. Generate choices and explanation based on solution
+
+    Args:
+        course_title: The title of the course
+        lesson_title: The title of the lesson this KP belongs to
+        kp_name: The name/ID of the knowledge point
+        kp_description: The description of the knowledge point
+        contents: The content blocks that were generated
+        content: Textbook content text
+        problems: Textbook problems text
+        model: Model to use for generation
+        max_tokens: Maximum number of tokens in the response (None for unlimited)
+        max_retries: Maximum number of retry attempts if validation fails
+        question_count: Number of questions to generate (default: 10)
+
+    Returns:
+        List of question dictionaries
+    """
+    from xai_sdk.tools import code_execution  # type: ignore
+
+    # Create content summary
+    assert contents
+    content_summary = "\n\n".join(contents)
+
+    for attempt in range(max_retries + 1):
+        print("      Step 1: Generating question prompts...")
+
+        # Step 1: Generate question prompts
+        client = Client(
+            api_key=os.getenv("XAI_API_KEY"),
+            timeout=3600,
+        )
+
+        if max_tokens:
+            chat = client.chat.create(model=model, max_tokens=max_tokens)
+        else:
+            chat = client.chat.create(model=model)
+
+        prompt = TEXTBOOK_NUMERICAL_QUESTION_PROMPTS_PROMPT.format(
+            course_title=course_title,
+            lesson_title=lesson_title,
+            kp_name=kp_name,
+            kp_description=kp_description,
+            content_summary=content_summary,
+            content=content,
+            problems=problems,
+            question_count=question_count,
+        )
+        chat.append(user(prompt))
+
+        response = chat.sample()
+        response_text = str(response.content)
+
+        # Parse prompts
+        try:
+            prompts: List[str] = yaml.safe_load(response_text)
+            if not isinstance(prompts, list) or len(prompts) == 0:
+                print("      Warning: Invalid prompts response, retrying...")
+                if attempt < max_retries:
+                    continue
+                else:
+                    raise ValueError(f"Failed to generate prompts for {kp_name}")
+        except yaml.YAMLError as e:
+            print(f"      Warning: Failed to parse prompts YAML: {e}")
+            if attempt < max_retries:
+                print(f"      Retrying... ({attempt + 1}/{max_retries})")
+                continue
+            else:
+                raise ValueError(f"Failed to parse prompts for {kp_name}: {e}")
+
+        print(f"      ✓ Generated {len(prompts)} question prompts")
+
+        # Step 2 & 3: For each prompt, solve it and generate choices
+        questions = []
+        for prompt_idx, question_prompt in enumerate(prompts):
+            print(f"      Step 2: Solving question {prompt_idx + 1}/{len(prompts)}...")
+
+            # Step 2: Solve the problem with code execution
+            solve_client = Client(
+                api_key=os.getenv("XAI_API_KEY"),
+                timeout=3600,
+            )
+
+            solve_chat = solve_client.chat.create(model=model, tools=[code_execution()])
+
+            solve_prompt_text = TEXTBOOK_NUMERICAL_SOLVE_PROMPT.format(
+                prompt=question_prompt, content_summary=content_summary
+            )
+            solve_chat.append(user(solve_prompt_text))
+
+            solve_response = solve_chat.sample()
+            solution = str(solve_response.content)
+
+            print(f"      Step 3: Generating choices for question {prompt_idx + 1}...")
+
+            # Step 3: Generate choices and explanation based on solution
+            choices_client = Client(
+                api_key=os.getenv("XAI_API_KEY"),
+                timeout=3600,
+            )
+
+            if max_tokens:
+                choices_chat = choices_client.chat.create(
+                    model=model, max_tokens=max_tokens
+                )
+            else:
+                choices_chat = choices_client.chat.create(model=model)
+
+            choices_prompt_text = TEXTBOOK_NUMERICAL_CHOICES_PROMPT.format(
+                prompt=question_prompt, solution=solution
+            )
+            choices_chat.append(user(choices_prompt_text))
+
+            choices_response = choices_chat.sample()
+            choices_text = str(choices_response.content)
+
+            # Parse choices and explanation
+            try:
+                choices_data: Dict[str, Any] = yaml.safe_load(choices_text)
+                if not isinstance(choices_data, dict) or "choices" not in choices_data:
+                    print(
+                        f"      Warning: Invalid choices response for question {prompt_idx + 1}"
+                    )
+                    continue
+
+                # Build question object
+                question = {
+                    "prompt": question_prompt,
+                    "choices": choices_data["choices"],
+                    "explanation": choices_data.get("explanation", ""),
+                }
+
+                # Validate
+                try:
+                    validate_question(
+                        question,
+                        lesson_idx=0,
+                        lesson_title=lesson_title,
+                        kp_idx=0,
+                        kp_name=kp_name,
+                        q_idx=prompt_idx,
+                    )
+                    questions.append(question)
+                    print(f"      ✓ Question {prompt_idx + 1} validated")
+                except ValueError as e:
+                    print(
+                        f"      Warning: Validation failed for question {prompt_idx + 1}: {e}"
+                    )
+                    continue
+
+            except yaml.YAMLError as e:
+                print(f"      Warning: Failed to parse choices YAML: {e}")
+                continue
+
+        # Check if we got enough valid questions (allow 20% flexibility)
+        min_questions = max(1, int(question_count * 0.8))
+        if len(questions) >= min_questions:
+            print(f"    ✓ Generated {len(questions)} validated questions")
+            return questions
+        elif attempt < max_retries:
+            print(
+                f"    Only got {len(questions)} valid questions, retrying... ({attempt + 1}/{max_retries})"
+            )
+            continue
+        else:
+            raise ValueError(
+                f"Failed to generate enough valid questions for {kp_name} after {max_retries + 1} attempts (got {len(questions)}/{question_count})"
+            )
+
+    raise ValueError(f"Failed to generate questions for {kp_name} - unexpected error")
+
+
 def fill_course_content(
     outline_yaml: str,
     model: str,
     max_tokens: Optional[int] = None,
     content_file: Optional[str] = None,
     problems_file: Optional[str] = None,
+    numerical: bool = False,
+    question_count: int = 10,
 ) -> Dict[str, Any]:
     """
     Takes a course outline YAML and fills in content and questions for each knowledge point.
@@ -648,6 +935,8 @@ def fill_course_content(
         max_tokens: Maximum number of tokens per knowledge point generation
         content_file: Optional path to textbook content file
         problems_file: Optional path to textbook problems file
+        numerical: Use numerical question generation (3-step with code execution)
+        question_count: Number of questions to generate per knowledge point (default: 10)
 
     Returns:
         Complete course dictionary with all content and questions filled in
@@ -707,19 +996,37 @@ def fill_course_content(
             print(f"✓ ({len(contents)} blocks)")
 
             # Generate questions based on content
-            print("    - Generating questions...", end=" ")
-            questions = generate_questions(
-                course_title=course_title,
-                lesson_title=lesson_title,
-                kp_name=kp_name,
-                kp_description=kp_description,
-                contents=contents,
-                model=model,
-                max_tokens=max_tokens,
-                content=content,
-                problems=problems,
-            )
-            print(f"✓ ({len(questions)} questions)")
+            if numerical and content and problems:
+                # Use numerical 3-step process for textbook questions
+                print("    - Generating numerical questions (3-step process)...")
+                questions = generate_textbook_numerical_questions(
+                    course_title=course_title,
+                    lesson_title=lesson_title,
+                    kp_name=kp_name,
+                    kp_description=kp_description,
+                    contents=contents,
+                    content=content,
+                    problems=problems,
+                    model=model,
+                    max_tokens=max_tokens,
+                    question_count=question_count,
+                )
+            else:
+                # Use standard question generation
+                print("    - Generating questions...", end=" ")
+                questions = generate_questions(
+                    course_title=course_title,
+                    lesson_title=lesson_title,
+                    kp_name=kp_name,
+                    kp_description=kp_description,
+                    contents=contents,
+                    model=model,
+                    max_tokens=max_tokens,
+                    content=content,
+                    problems=problems,
+                    question_count=question_count,
+                )
+                print(f"✓ ({len(questions)} questions)")
 
             # Add to knowledge point
             kp["contents"] = contents
@@ -974,6 +1281,18 @@ def main() -> None:
         help="Output file path for the complete course YAML",
     )
     fill_parser.add_argument(
+        "--numerical",
+        action="store_true",
+        help="Use numerical question generation (3-step process with code execution for physics problems)",
+    )
+    fill_parser.add_argument(
+        "--questions",
+        "-q",
+        type=int,
+        default=10,
+        help="Number of questions to generate per knowledge point (default: 10)",
+    )
+    fill_parser.add_argument(
         "--debug",
         action="store_true",
         help="Limit output to 500 tokens for testing",
@@ -1100,6 +1419,11 @@ def main() -> None:
             with open(outline_path, "r") as f:
                 outline_yaml = f.read()
 
+            # Validate numerical flag
+            if args.numerical and not (args.content and args.problems):
+                print("Error: --numerical requires --content and --problems")
+                sys.exit(1)
+
             # Fill in the content
             complete_course = fill_course_content(
                 outline_yaml,
@@ -1107,6 +1431,8 @@ def main() -> None:
                 max_tokens=max_tokens,
                 content_file=args.content,
                 problems_file=args.problems,
+                numerical=args.numerical,
+                question_count=args.questions,
             )
 
             # Convert to YAML
