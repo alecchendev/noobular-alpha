@@ -88,7 +88,7 @@ CONTENT REQUIREMENTS:
 - Use markdown formatting with headers (###), **bold**, *italic*, `code`
 - Include specific examples and applications
 - Use inline math with $...$ and display math with $$...$$ where appropriate
-- For lists, ensure a blank line precedes them
+- For unordered lists, make sure there is a blank line before the first item
 - Build understanding progressively from basic to applied
 
 OUTPUT FORMAT: Return ONLY valid YAML (no code fences, no commentary) as an array:
@@ -358,7 +358,19 @@ Problem:
 Relevant context from the course:
 {content_summary}
 
-Use code execution if needed to perform calculations."""
+Use code execution if needed to perform calculations.
+
+After solving, check if the problem is physically valid:
+- Does the problem setup make physical sense?
+- Are the given values and constraints consistent?
+- Does your solution reveal any physical impossibilities (e.g., negative kinetic energy, going backwards in time, violating conservation laws)?
+- Can the question actually be answered with the given information?
+
+End your response with EXACTLY ONE of these lines:
+VALID: true
+OR
+VALID: false
+"""
 
 TEXTBOOK_NUMERICAL_CHOICES_PROMPT = """Generate multiple choice options for a solved physics problem.
 
@@ -376,7 +388,7 @@ Generate 4 multiple choice options where:
 - All choices should have the same units and precision
 - Make it challenging - avoid obviously wrong answers
 
-Also provide an explanation that shows the step-by-step solution.
+Provide a concise explanation that shows the step-by-step solution.
 
 # Output format
 Return ONLY valid YAML (no code fences, no commentary):
@@ -838,6 +850,30 @@ def generate_textbook_numerical_questions(
             solve_response = solve_chat.sample()
             solution = str(solve_response.content)
 
+            # Parse validity from solution (should end with "VALID: true" or "VALID: false - reason")
+            is_valid = True
+
+            # Check last few lines for validity marker
+            solution_lines = solution.strip().split("\n")
+            for line in reversed(solution_lines[-5:]):  # Check last 5 lines
+                if line.startswith("VALID:"):
+                    validity_part = line[6:].strip()  # Remove "VALID:" prefix
+                    if validity_part.lower().startswith("false"):
+                        is_valid = False
+                    break
+
+            if not is_valid:
+                print(f"      ✗ Question {prompt_idx + 1} is physically invalid")
+                print(f"\n{'=' * 80}")
+                print(f"INVALID QUESTION {prompt_idx + 1}:")
+                print(f"{'=' * 80}")
+                print(f"Question: {question_prompt}")
+                print(f"\nSolution: {solution}")
+                print(f"{'=' * 80}\n")
+                print("      Skipping this question...")
+                continue
+
+            print(f"      ✓ Question {prompt_idx + 1} is physically valid")
             print(f"      Step 3: Generating choices for question {prompt_idx + 1}...")
 
             # Step 3: Generate choices and explanation based on solution
@@ -998,7 +1034,7 @@ def fill_course_content(
             # Generate questions based on content
             if numerical and content and problems:
                 # Use numerical 3-step process for textbook questions
-                print("    - Generating numerical questions (3-step process)...")
+                print("    - Generating numerical questions (4-step process)...")
                 questions = generate_textbook_numerical_questions(
                     course_title=course_title,
                     lesson_title=lesson_title,
