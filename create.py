@@ -165,12 +165,17 @@ The provided content and problems are transcribed sections from a textbook. Your
 
 # Numbers
 Create 1-4 lessons based on the provided content and problems.
-Create 2-5 knowledge points per lesson.
-Each knowledge point will later have at least 10 questions.
+Create 2-4 knowledge points per lesson.
 
-# Structure
-Lessons should be scaffolded such that students are not exposed to too much information at once. Lessons should build up to students being able to solve the most challenging problems from the transcribed sections.
-Each knowledge point should be atomic, and represent a discrete concept/skill that a student will master.
+# Structure and Efficiency
+Lessons should build up to students being able to solve the most challenging problems from the transcribed sections.
+
+Each knowledge point should be atomic, and descriptions should describe a discrete concept/skill that a student will master.
+
+Focus on the most important and generalizable skills - prioritize concepts that unlock problem-solving ability over isolated facts or derivations. Skip overly verbose explanations or redundant variations of the same skill.
+
+Create an efficient learning path with appropriate scaffolding that allows students to climb the skill ladder steadily but rapidly. Each knowledge point should add meaningful new capability, not just minor variations.
+
 There should be a realistic structure formed through the prerequisites field on each knowledge point.
 
 # Syntax and formatting
@@ -249,6 +254,52 @@ CRITICAL YAML FORMATTING RULES:
 - Use | (pipe) for multi-line content blocks with no quotes
 - If you need a single quote inside text, escape it by doubling it: 'It''s' becomes "It's"
 - Return ONLY the array of content blocks as valid YAML
+- No code fences, no commentary
+
+# Content from textbook:
+{content}
+
+# Problems from textbook:
+{problems}"""
+
+# TODO: move example problem to be a separate step in line with question generation
+TEXTBOOK_CONTENT_BATCH_PROMPT = """
+You are creating educational content for all knowledge points in a course based on transcribed textbook sections.
+
+# Course outline:
+{course_outline}
+
+# Task
+Generate 1-3 content blocks for EACH knowledge point in the course outline above.
+Each content block should be focused and digestible.
+Use markdown formatting with headers (###), **bold**, *italic*, `code`.
+Use inline math with $...$ and display math with $$...$$ where appropriate.
+For lists, ensure a blank line precedes them.
+
+IMPORTANT: Avoid duplicating information across knowledge points - each should teach its specific concept without repeating material from other knowledge points.
+
+# Output format
+Return ONLY valid YAML as a dictionary mapping knowledge point names to content arrays:
+
+knowledge-point-1:
+  - |
+      ### Section Title
+
+      Content with **markdown**, math $x^2$, etc.
+  - |
+      ### Another Section
+
+      More content here.
+knowledge-point-2:
+  - |
+      ### Section Title
+
+      Content here.
+
+CRITICAL YAML FORMATTING RULES:
+- Use | (pipe) for multi-line content blocks with no quotes
+- If you need a single quote inside text, escape it by doubling it: 'It''s' becomes "It's"
+- Return ONLY the dictionary mapping KP names to content arrays as valid YAML
 - No code fences, no commentary
 
 # Content from textbook:
@@ -578,6 +629,98 @@ def generate_content(
 
         print(f"    Warning: Failed to parse content YAML for {kp_name}: {e}")
         return []
+
+
+def generate_textbook_content_batch(
+    course: Dict[str, Any],
+    content: str,
+    problems: str,
+    model: str,
+    max_tokens: Optional[int] = None,
+) -> Dict[str, List[str]]:
+    """
+    Generate content for all knowledge points in the course at once (textbook mode only).
+
+    Args:
+        course: The course dictionary with lessons and knowledge points
+        content: Textbook content text
+        problems: Textbook problems text
+        model: Model to use for generation
+        max_tokens: Maximum number of tokens in the response (None for unlimited)
+
+    Returns:
+        Dictionary mapping knowledge point names to their content blocks
+    """
+    # Initialize the client
+    client = Client(
+        api_key=os.getenv("XAI_API_KEY"),
+        timeout=3600,
+    )
+
+    # Create a chat session
+    if max_tokens:
+        chat = client.chat.create(model=model, max_tokens=max_tokens)
+    else:
+        chat = client.chat.create(model=model)
+
+    chat.append(
+        system(
+            "You are an expert educational content creator who creates clear, comprehensive learning materials with excellent examples."
+        )
+    )
+
+    # Convert course to YAML string for the outline
+    course_outline = yaml.dump(course, default_flow_style=False, sort_keys=False)
+
+    # Format prompt
+    prompt = TEXTBOOK_CONTENT_BATCH_PROMPT.format(
+        course_outline=course_outline,
+        content=content,
+        problems=problems,
+    )
+
+    chat.append(user(prompt))
+
+    # Get response
+    print("  Generating content for all knowledge points...")
+    response = chat.sample()
+    response_text = str(response.content)
+
+    # Strip code fences if present
+    if response_text.strip().startswith("```"):
+        lines = response_text.strip().split("\n")
+        # Remove first line if it's ```yaml or ```
+        if lines[0].startswith("```"):
+            lines = lines[1:]
+        # Remove last line if it's ```
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        response_text = "\n".join(lines)
+
+    # Parse YAML response
+    try:
+        content_dict: Dict[str, List[str]] = yaml.safe_load(response_text)
+        if not isinstance(content_dict, dict):
+            # Print full response
+            print(f"\n{'=' * 80}")
+            print("BATCH CONTENT RESPONSE:")
+            print(f"{'=' * 80}")
+            print(response_text)
+            print(f"{'=' * 80}\n")
+            raise ValueError(
+                f"Expected dictionary from batch content generation, got {type(content_dict)}"
+            )
+        print(f"  ✓ Generated content for {len(content_dict)} knowledge points")
+        return content_dict
+    except yaml.YAMLError as e:
+        # Print full response
+        print(f"\n{'=' * 80}")
+        print("BATCH CONTENT RESPONSE:")
+        print(f"{'=' * 80}")
+        print(response_text)
+        print(f"{'=' * 80}\n")
+
+        raise ValueError(f"Failed to parse batch content YAML: {e}")
 
 
 def generate_questions(
@@ -1001,6 +1144,31 @@ def fill_course_content(
         print(f"Using textbook files: {content_file}, {problems_file}")
     print("=" * 80)
 
+    # Generate all content at once if in textbook mode
+    content_batch = {}
+    if content and problems:
+        content_batch = generate_textbook_content_batch(
+            course=course,
+            content=content,
+            problems=problems,
+            model=model,
+            max_tokens=max_tokens,
+        )
+
+        # Verify all knowledge points got content
+        all_kp_names = []
+        for lesson in lessons:
+            for kp in lesson.get("knowledge_points", []):
+                all_kp_names.append(kp.get("name", ""))
+
+        missing_kps = [
+            name for name in all_kp_names if name and name not in content_batch
+        ]
+        if missing_kps:
+            raise ValueError(
+                f"Batch content generation missing knowledge points: {', '.join(missing_kps)}"
+            )
+
     # Loop through each lesson and knowledge point
     for lesson_idx, lesson in enumerate(lessons, 1):
         lesson_title = lesson.get("title", f"Lesson {lesson_idx}")
@@ -1016,23 +1184,30 @@ def fill_course_content(
 
             print(f"  [{kp_idx}/{len(knowledge_points)}] {kp_name}...")
 
-            # Generate content
-            print("    - Generating content...", end=" ")
-            contents = generate_content(
-                course_title=course_title,
-                lesson_title=lesson_title,
-                kp_name=kp_name,
-                kp_description=kp_description,
-                prerequisites=prerequisites,
-                model=model,
-                max_tokens=max_tokens,
-                content=content,
-                problems=problems,
-            )
-            print(f"✓ ({len(contents)} blocks)")
+            # Get content from batch or generate individually
+            if content_batch:
+                contents = content_batch[kp_name]
+                print(f"    - Using batch-generated content ({len(contents)} blocks)")
+            else:
+                # Generate content individually (for non-textbook mode or fallback)
+                print("    - Generating content...", end=" ")
+                contents = generate_content(
+                    course_title=course_title,
+                    lesson_title=lesson_title,
+                    kp_name=kp_name,
+                    kp_description=kp_description,
+                    prerequisites=prerequisites,
+                    model=model,
+                    max_tokens=max_tokens,
+                    content=content,
+                    problems=problems,
+                )
+                print(f"✓ ({len(contents)} blocks)")
 
             # Generate questions based on content
-            if numerical and content and problems:
+            if question_count == 0:
+                questions = []
+            elif numerical and content and problems:
                 # Use numerical 3-step process for textbook questions
                 print("    - Generating numerical questions (4-step process)...")
                 questions = generate_textbook_numerical_questions(
