@@ -23,7 +23,7 @@ from validate import validate_course
 import argparse
 from werkzeug.exceptions import RequestEntityTooLarge
 import markdown
-from tasks import create_course_task, JobStatus
+from tasks import create_course_task, JobStatus, check_course_exists, save_course
 
 # Init app
 app = Flask(__name__)
@@ -509,101 +509,6 @@ def abort_diagnostic_not_found(diagnostic_id: int, course_id: int) -> NoReturn:
 def abort_missing_parameters(*param_names: str) -> NoReturn:
     """Abort with a 400 error for missing parameters"""
     abort(400, description=f"Missing required parameters: {', '.join(param_names)}")
-
-
-def check_course_exists(cursor: sqlite3.Cursor, file_hash: bytes) -> bool:
-    cursor.execute("SELECT id FROM courses WHERE file_hash = ?", (file_hash,))
-    if cursor.fetchone():
-        return True
-    return False
-
-
-def save_course(
-    cursor: sqlite3.Cursor, course_data: dict[str, Any], file_hash: bytes
-) -> int:
-    # Insert course with hash
-    cursor.execute(
-        "INSERT INTO courses (title, file_hash) VALUES (?, ?)",
-        (course_data["title"], file_hash),
-    )
-    course_id = cursor.lastrowid
-    assert course_id is not None
-
-    # Map knowledge point names to database IDs for prerequisite resolution
-    kp_name_to_db_id: dict[str, int] = {}
-
-    # Insert lessons
-    for lesson_data in course_data.get("lessons", []):
-        cursor.execute(
-            "INSERT INTO lessons (course_id, title) VALUES (?, ?)",
-            (course_id, lesson_data["title"]),
-        )
-        lesson_id = cursor.lastrowid
-
-        # Insert knowledge points, contents, and questions
-        for kp_data in lesson_data.get("knowledge_points", []):
-            cursor.execute(
-                """INSERT INTO knowledge_points
-                             (lesson_id, name, description)
-                             VALUES (?, ?, ?)""",
-                (lesson_id, kp_data["name"], kp_data["description"]),
-            )
-            knowledge_point_db_id = cursor.lastrowid
-            assert knowledge_point_db_id is not None
-            kp_name_to_db_id[kp_data["name"]] = knowledge_point_db_id
-
-            # Insert contents
-            for content in kp_data["contents"]:
-                cursor.execute(
-                    """INSERT INTO contents
-                                 (knowledge_point_id, text)
-                                 VALUES (?, ?)""",
-                    (knowledge_point_db_id, content),
-                )
-
-            # Insert questions and choices
-            for question_data in kp_data["questions"]:
-                cursor.execute(
-                    """INSERT INTO questions
-                                 (knowledge_point_id, prompt, explanation)
-                                 VALUES (?, ?, ?)""",
-                    (
-                        knowledge_point_db_id,
-                        question_data["prompt"],
-                        question_data["explanation"],
-                    ),
-                )
-                question_id = cursor.lastrowid
-
-                # Insert choices
-                for choice_data in question_data["choices"]:
-                    cursor.execute(
-                        """INSERT INTO choices
-                                     (question_id, text, is_correct)
-                                     VALUES (?, ?, ?)""",
-                        (
-                            question_id,
-                            choice_data["text"],
-                            choice_data.get("correct", False),
-                        ),
-                    )
-
-    # Insert prerequisites (after all knowledge points are created)
-    for lesson_data in course_data.get("lessons", []):
-        for kp_data in lesson_data.get("knowledge_points", []):
-            kp_db_id = kp_name_to_db_id[kp_data["name"]]
-
-            for prerequisite_name in kp_data.get("prerequisites", []):
-                prerequisite_db_id = kp_name_to_db_id.get(prerequisite_name)
-                if prerequisite_db_id:
-                    cursor.execute(
-                        """INSERT INTO prerequisites
-                                     (knowledge_point_id, prerequisite_id)
-                                     VALUES (?, ?)""",
-                        (kp_db_id, prerequisite_db_id),
-                    )
-
-    return course_id
 
 
 def load_courses_to_db() -> None:
