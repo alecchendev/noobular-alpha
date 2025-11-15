@@ -929,8 +929,29 @@ def generate_textbook_numerical_questions(
     assert contents
     content_summary = "\n\n".join(contents)
 
+    # Filter problems to only those relevant to this knowledge point
+    problems_dict = parse_problems(problems)
+    print(f"      Filtering from {len(problems_dict)} total problems...")
+    relevant_problems_dict = filter_relevant_problems(
+        kp_name=kp_name,
+        kp_description=kp_description,
+        content_summary=content_summary,
+        problems_dict=problems_dict,
+        model=model,
+    )
+    print(f"      ✓ Found {len(relevant_problems_dict)} relevant problems")
+
+    # Format filtered problems back to text for the prompt
+    filtered_problems_text = "\n\n".join(
+        [f"{id}: {text}" for id, text in relevant_problems_dict.items()]
+    )
+
     for attempt in range(max_retries + 1):
         print("      Step 1: Generating question prompts...")
+
+        # Generate extra prompts to account for invalid/unsolvable problems
+        # Request 25% more than needed
+        prompts_to_generate = int((question_count * 1.25 + 1) // 1)
 
         # Step 1: Generate question prompts
         client = Client(
@@ -950,8 +971,8 @@ def generate_textbook_numerical_questions(
             kp_description=kp_description,
             content_summary=content_summary,
             content=content,
-            problems=problems,
-            question_count=question_count,
+            problems=filtered_problems_text,
+            question_count=prompts_to_generate,
         )
         chat.append(user(prompt))
 
@@ -979,8 +1000,16 @@ def generate_textbook_numerical_questions(
         print(f"      ✓ Generated {len(prompts)} question prompts")
 
         # Step 2 & 3: For each prompt, solve it and generate choices
-        questions = []
+        # Stop once we have enough valid questions
+        questions: list[dict[str, Any]] = []
         for prompt_idx, question_prompt in enumerate(prompts):
+            # Check if we already have enough valid questions
+            if len(questions) >= question_count:
+                print(
+                    f"      ✓ Already have {len(questions)} valid questions, stopping early"
+                )
+                break
+
             print(f"      Step 2: Solving question {prompt_idx + 1}/{len(prompts)}...")
 
             # Step 2: Solve the problem with code execution
@@ -1342,6 +1371,132 @@ def extract_textbook_content(
     return str(response.content)
 
 
+def filter_relevant_problems(
+    kp_name: str,
+    kp_description: str,
+    content_summary: str,
+    problems_dict: Dict[str, str],
+    model: str,
+) -> Dict[str, str]:
+    """
+    Filter problems to only those relevant to a specific knowledge point.
+
+    Args:
+        kp_name: Name of the knowledge point
+        kp_description: Description of the knowledge point
+        content_summary: Summary of content taught in this knowledge point
+        problems_dict: Dictionary of all available problems
+        model: Model to use for filtering
+
+    Returns:
+        Dictionary of filtered problems (subset of problems_dict)
+    """
+    # Initialize the client
+    client = Client(
+        api_key=os.getenv("XAI_API_KEY"),
+        timeout=3600,
+    )
+
+    # Create chat
+    chat = client.chat.create(model=model)
+
+    chat.append(
+        system(
+            "You are an expert at analyzing educational content and identifying which practice problems are most relevant for specific learning objectives."
+        )
+    )
+
+    # Format all problems as a string
+    problems_list = "\n".join(
+        [f"{id}: {text[:100]}..." for id, text in problems_dict.items()]
+    )
+
+    # Create filtering prompt
+    prompt = f"""You are filtering textbook problems to find only those that are directly relevant to a specific knowledge point.
+
+# Knowledge Point:
+{kp_name}: {kp_description}
+
+# Content taught in this knowledge point:
+{content_summary}
+
+# All available problems:
+{problems_list}
+
+# Task
+Identify ONLY the problems from the list above that directly exercise the specific skills taught in this knowledge point's content.
+
+A problem is relevant if:
+- It requires applying the concepts/techniques from this knowledge point's content
+- It can be solved using the skills explicitly taught in the content
+- It would be good practice for a student who just learned this content
+
+A problem is NOT relevant if:
+- It requires concepts not covered in this knowledge point
+- It's too advanced or requires additional knowledge
+- It only tangentially relates to the topic
+
+# Output format
+Return ONLY a newline-separated list of the relevant problem identifiers, one per line.
+Match the exact identifier format from the problems (e.g., "6.1", "6.3", "6.10"):
+
+6.1
+6.3
+6.10
+
+Do not include any other text, explanations, or formatting.
+"""
+
+    chat.append(user(prompt))
+
+    # Get response
+    response = chat.sample()
+    response_text = str(response.content).strip()
+
+    # Parse the response to get list of identifiers
+    relevant_ids = set()
+    for line in response_text.split("\n"):
+        identifier = line.strip()
+        if identifier and identifier in problems_dict:
+            relevant_ids.add(identifier)
+
+    # Return filtered dictionary
+    return {id: problems_dict[id] for id in relevant_ids}
+
+
+def parse_problems(problems_text: str) -> Dict[str, str]:
+    """
+    Parse extracted problems YAML into a dictionary mapping identifiers to problem text.
+
+    Args:
+        problems_text: The extracted problems as YAML text
+
+    Returns:
+        Dictionary mapping problem identifiers (e.g., "6.1") to problem text
+    """
+    # Strip code fences if present
+    text = problems_text.strip()
+    if text.startswith("```"):
+        lines = text.split("\n")
+        # Remove first line if it's ```yaml or ```
+        if lines[0].startswith("```"):
+            lines = lines[1:]
+        # Remove last line if it's ```
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines)
+
+    # Parse YAML
+    try:
+        problems_dict: Dict[str, str] = yaml.safe_load(text)
+        if not isinstance(problems_dict, dict):
+            raise ValueError(f"Expected dictionary, got {type(problems_dict)}")
+        return problems_dict
+    except yaml.YAMLError as e:
+        print(f"Response: {text}")
+        raise ValueError(f"Failed to parse problems YAML: {e}")
+
+
 def extract_textbook_problems(
     textbook_file_id: str,
     section_name: str,
@@ -1379,7 +1534,23 @@ def extract_textbook_problems(
     )
 
     # Create prompt for problems extraction
-    prompt = f"""Extract all the practice problems for section {section_name} from the section. This should include example problems from the section, as well as the probelms from the end of the chapter, from sections such as guided practice, exercises, challenge problems, and mcat-style problems. Be comprehensive and make sure you get everything relevant. DO NOT make up any new material, strictly transcribe. DO NOT include any text from images/figures. Output nicely formatted plaintext that can be written to a text file."""
+    prompt = f"""Extract all the practice problems for section {section_name} from the section. This should include example problems from the section, as well as the problems from the end of the chapter, from sections such as guided practice, exercises, challenge problems, and mcat-style problems. Be comprehensive and make sure you get everything relevant.
+
+OUTPUT FORMAT: Return ONLY valid YAML (no code fences, no commentary) as a dictionary mapping problem identifiers to problem text.
+
+Example:
+'6.1': |
+  Using a cable with a tension of 1350 N, a tow truck pulls a car 5.00 km along a horizontal roadway. How much work does the cable do on the car if it pulls horizontally?
+'6.2': |
+  You push your physics book 1.50 m along a horizontal tabletop with a horizontal push of 2.40 N while the opposing force of friction is 0.600 N. How much work does each of the following forces do on the book:
+  (a) your 2.40 N push
+  (b) the friction force
+
+CRITICAL:
+- Use the EXACT identifier from the textbook (e.g., '6.1', '6.10', '6.23')
+- ALWAYS use '..': | format with indented text on next line
+- DO NOT make up any new material, strictly transcribe
+- DO NOT include any text from images/figures"""
 
     # Add user message with file attachment
     chat.append(user(prompt, file(textbook_file_id)))
@@ -1388,7 +1559,17 @@ def extract_textbook_problems(
 
     # Get response
     response = chat.sample()
-    return str(response.content)
+    problems_text = str(response.content)
+
+    # Validate that it parses correctly before returning
+    try:
+        problems_dict = parse_problems(problems_text)
+        print(f"  ✓ Successfully parsed {len(problems_dict)} problems")
+    except ValueError as e:
+        print(f"  ✗ Failed to parse problems: {e}")
+        raise
+
+    return problems_text
 
 
 def extract_section(
