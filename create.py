@@ -5,6 +5,7 @@ import yaml
 from typing import Optional, Any, Dict, List
 from xai_sdk import Client  # type: ignore
 from xai_sdk.chat import user, system, file  # type: ignore
+from xai_sdk.tools import code_execution  # type: ignore
 from validate import validate_question
 from enum import Enum
 
@@ -561,6 +562,7 @@ def generate_textbook_outline(
 
 
 def generate_content(
+    client: Client,
     course_title: str,
     lesson_title: str,
     kp_name: str,
@@ -586,12 +588,6 @@ def generate_content(
     Returns:
         List of content blocks
     """
-    # Initialize the client
-    client = Client(
-        api_key=os.getenv("XAI_API_KEY"),
-        timeout=3600,
-    )
-
     # Create a chat session
     chat = client.chat.create(model=model)
 
@@ -891,6 +887,7 @@ def generate_questions(
 
 
 def generate_textbook_numerical_questions(
+    client: Client,
     course_title: str,
     lesson_title: str,
     kp_name: str,
@@ -923,8 +920,6 @@ def generate_textbook_numerical_questions(
     Returns:
         List of question dictionaries
     """
-    from xai_sdk.tools import code_execution  # type: ignore
-
     # Create content summary
     assert contents
     content_summary = "\n\n".join(contents)
@@ -1010,12 +1005,7 @@ def generate_textbook_numerical_questions(
             print(f"      Step 2: Solving question {prompt_idx + 1}/{len(prompts)}...")
 
             # Step 2: Solve the problem with code execution
-            solve_client = Client(
-                api_key=os.getenv("XAI_API_KEY"),
-                timeout=3600,
-            )
-
-            solve_chat = solve_client.chat.create(model=model, tools=[code_execution()])
+            solve_chat = client.chat.create(model=model, tools=[code_execution()])
 
             solve_prompt_text = TEXTBOOK_NUMERICAL_SOLVE_PROMPT.format(
                 prompt=question_prompt, content_summary=content_summary
@@ -1174,6 +1164,7 @@ def generate_textbook_numerical_questions(
 
 
 def fill_course_content(
+    client: Client,
     outline_yaml: str,
     model: str,
     content_file: Optional[str] = None,
@@ -1266,6 +1257,7 @@ def fill_course_content(
                 # Generate content individually (for non-textbook mode or fallback)
                 print("    - Generating content...", end=" ")
                 contents = generate_content(
+                    client=client,
                     course_title=course_title,
                     lesson_title=lesson_title,
                     kp_name=kp_name,
@@ -1284,6 +1276,7 @@ def fill_course_content(
                 # Use numerical 3-step process for textbook questions
                 print("    - Generating numerical questions (4-step process)...")
                 questions = generate_textbook_numerical_questions(
+                    client=client,
                     course_title=course_title,
                     lesson_title=lesson_title,
                     kp_name=kp_name,
@@ -1564,6 +1557,7 @@ CRITICAL:
 
 
 def extract_section(
+    client: Client,
     textbook_file: str,
     section_name: str,
     content_output: str,
@@ -1585,10 +1579,6 @@ def extract_section(
     print("=" * 80)
 
     # Upload the file if it hasn't been uploaded already
-    client = Client(
-        api_key=os.getenv("XAI_API_KEY"),
-        timeout=3600,
-    )
     files_response = client.files.list()
     textbook_chapter_file = None
     for uploaded_file in files_response.data:
@@ -1836,7 +1826,8 @@ def main() -> None:
 
             # Fill in the content
             complete_course = fill_course_content(
-                outline_yaml,
+                client=client,
+                outline_yaml=outline_yaml,
                 model=args.model,
                 content_file=args.content,
                 problems_file=args.problems,
@@ -1874,6 +1865,7 @@ def main() -> None:
 
             # Extract section
             extract_section(
+                client=client,
                 textbook_file=textbook_file,
                 section_name=section_name,
                 content_output=args.content_output,
