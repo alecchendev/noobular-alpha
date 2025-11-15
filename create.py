@@ -1163,38 +1163,24 @@ def generate_textbook_numerical_questions(
     raise ValueError(f"Failed to generate questions for {kp_name} - unexpected error")
 
 
-def fill_course_content(
+def fill_topic_course_content(
     client: Client,
     outline_yaml: str,
     model: str,
-    content_file: Optional[str] = None,
-    problems_file: Optional[str] = None,
-    numerical: bool = False,
     question_count: int = 10,
 ) -> Dict[str, Any]:
     """
-    Takes a course outline YAML and fills in content and questions for each knowledge point.
+    Fill in content and questions for a topic-based course outline.
 
     Args:
+        client: The XAI API client
         outline_yaml: The course outline as a YAML string
         model: Model to use for generation
-        content_file: Optional path to textbook content file
-        problems_file: Optional path to textbook problems file
-        numerical: Use numerical question generation (3-step with code execution)
         question_count: Number of questions to generate per knowledge point (default: 10)
 
     Returns:
         Complete course dictionary with all content and questions filled in
     """
-    # Read textbook files if provided
-    content = None
-    problems = None
-    if content_file and problems_file:
-        with open(content_file, "r") as f:
-            content = f.read()
-        with open(problems_file, "r") as f:
-            problems = f.read()
-
     # Parse the outline
     try:
         course: Dict[str, Any] = yaml.safe_load(outline_yaml)
@@ -1206,33 +1192,7 @@ def fill_course_content(
 
     print(f"\nFilling content for course: {course_title}")
     print(f"Total lessons: {len(lessons)}")
-    if content_file and problems_file:
-        print(f"Using textbook files: {content_file}, {problems_file}")
     print("=" * 80)
-
-    # Generate all content at once if in textbook mode
-    content_batch = {}
-    if content and problems:
-        content_batch = generate_textbook_content_batch(
-            course=course,
-            content=content,
-            problems=problems,
-            model=model,
-        )
-
-        # Verify all knowledge points got content
-        all_kp_names = []
-        for lesson in lessons:
-            for kp in lesson.get("knowledge_points", []):
-                all_kp_names.append(kp.get("name", ""))
-
-        missing_kps = [
-            name for name in all_kp_names if name and name not in content_batch
-        ]
-        if missing_kps:
-            raise ValueError(
-                f"Batch content generation missing knowledge points: {', '.join(missing_kps)}"
-            )
 
     # Loop through each lesson and knowledge point
     for lesson_idx, lesson in enumerate(lessons, 1):
@@ -1249,30 +1209,131 @@ def fill_course_content(
 
             print(f"  [{kp_idx}/{len(knowledge_points)}] {kp_name}...")
 
-            # Get content from batch or generate individually
-            if content_batch:
-                contents = content_batch[kp_name]
-                print(f"    - Using batch-generated content ({len(contents)} blocks)")
+            # Generate content
+            print("    - Generating content...", end=" ")
+            contents = generate_content(
+                client=client,
+                course_title=course_title,
+                lesson_title=lesson_title,
+                kp_name=kp_name,
+                kp_description=kp_description,
+                prerequisites=prerequisites,
+                model=model,
+            )
+            print(f"✓ ({len(contents)} blocks)")
+
+            # Generate questions
+            if question_count == 0:
+                questions = []
             else:
-                # Generate content individually (for non-textbook mode or fallback)
-                print("    - Generating content...", end=" ")
-                contents = generate_content(
-                    client=client,
+                print("    - Generating questions...", end=" ")
+                questions = generate_questions(
                     course_title=course_title,
                     lesson_title=lesson_title,
                     kp_name=kp_name,
                     kp_description=kp_description,
-                    prerequisites=prerequisites,
+                    contents=contents,
                     model=model,
-                    content=content,
-                    problems=problems,
+                    question_count=question_count,
                 )
-                print(f"✓ ({len(contents)} blocks)")
+                print(f"✓ ({len(questions)} questions)")
 
-            # Generate questions based on content
+            # Add to knowledge point
+            kp["contents"] = contents
+            kp["questions"] = questions
+
+    print("\n" + "=" * 80)
+    print("Course content generation complete!")
+
+    return course
+
+
+def fill_textbook_course_content(
+    client: Client,
+    outline_yaml: str,
+    content_file: str,
+    problems_file: str,
+    model: str,
+    numerical: bool = False,
+    question_count: int = 10,
+) -> Dict[str, Any]:
+    """
+    Fill in content and questions for a textbook-based course outline.
+
+    Args:
+        client: The XAI API client
+        outline_yaml: The course outline as a YAML string
+        content_file: Path to textbook content file
+        problems_file: Path to textbook problems file
+        model: Model to use for generation
+        numerical: Use numerical question generation (3-step with code execution)
+        question_count: Number of questions to generate per knowledge point (default: 10)
+
+    Returns:
+        Complete course dictionary with all content and questions filled in
+    """
+    # Read textbook files
+    with open(content_file, "r") as f:
+        content = f.read()
+    with open(problems_file, "r") as f:
+        problems = f.read()
+
+    # Parse the outline
+    try:
+        course: Dict[str, Any] = yaml.safe_load(outline_yaml)
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid YAML outline: {e}")
+
+    course_title = course.get("title", "Unknown Course")
+    lessons = course.get("lessons", [])
+
+    print(f"\nFilling content for course: {course_title}")
+    print(f"Total lessons: {len(lessons)}")
+    print(f"Using textbook files: {content_file}, {problems_file}")
+    print("=" * 80)
+
+    # Generate all content at once in batch
+    content_batch = generate_textbook_content_batch(
+        course=course,
+        content=content,
+        problems=problems,
+        model=model,
+    )
+
+    # Verify all knowledge points got content
+    all_kp_names = []
+    for lesson in lessons:
+        for kp in lesson.get("knowledge_points", []):
+            all_kp_names.append(kp.get("name", ""))
+
+    missing_kps = [name for name in all_kp_names if name and name not in content_batch]
+    if missing_kps:
+        raise ValueError(
+            f"Batch content generation missing knowledge points: {', '.join(missing_kps)}"
+        )
+
+    # Loop through each lesson and knowledge point
+    for lesson_idx, lesson in enumerate(lessons, 1):
+        lesson_title = lesson.get("title", f"Lesson {lesson_idx}")
+        knowledge_points = lesson.get("knowledge_points", [])
+
+        print(f"\nLesson {lesson_idx}/{len(lessons)}: {lesson_title}")
+        print(f"  Knowledge points: {len(knowledge_points)}")
+
+        for kp_idx, kp in enumerate(knowledge_points, 1):
+            kp_name = kp.get("name", f"kp-{kp_idx}")
+            kp_description = kp.get("description", "")
+
+            print(f"  [{kp_idx}/{len(knowledge_points)}] {kp_name}...")
+
+            # Get content from batch
+            contents = content_batch[kp_name]
+            print(f"    - Using batch-generated content ({len(contents)} blocks)")
+
+            # Generate questions
             if question_count == 0:
                 questions = []
-            elif numerical and content and problems:
+            elif numerical:
                 # Use numerical 3-step process for textbook questions
                 print("    - Generating numerical questions (4-step process)...")
                 questions = generate_textbook_numerical_questions(
@@ -1288,7 +1349,7 @@ def fill_course_content(
                     question_count=question_count,
                 )
             else:
-                # Use standard question generation
+                # Use standard textbook question generation
                 print("    - Generating questions...", end=" ")
                 questions = generate_questions(
                     course_title=course_title,
@@ -1825,15 +1886,25 @@ def main() -> None:
                 sys.exit(1)
 
             # Fill in the content
-            complete_course = fill_course_content(
-                client=client,
-                outline_yaml=outline_yaml,
-                model=args.model,
-                content_file=args.content,
-                problems_file=args.problems,
-                numerical=args.numerical,
-                question_count=args.questions,
-            )
+            if args.content and args.problems:
+                # Textbook mode
+                complete_course = fill_textbook_course_content(
+                    client=client,
+                    outline_yaml=outline_yaml,
+                    content_file=args.content,
+                    problems_file=args.problems,
+                    model=args.model,
+                    numerical=args.numerical,
+                    question_count=args.questions,
+                )
+            else:
+                # Topic mode
+                complete_course = fill_topic_course_content(
+                    client=client,
+                    outline_yaml=outline_yaml,
+                    model=args.model,
+                    question_count=args.questions,
+                )
 
             # Convert to YAML
             output_yaml = yaml.dump(
