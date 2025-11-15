@@ -1261,6 +1261,7 @@ def course_page(course_id: int) -> str:
         lesson_question_ids = []
         for kp in lesson.knowledge_points:
             lesson_question_ids += [q.id for q in kp.lesson_questions]
+            lesson_question_ids += [q.id for q in kp.diagnostic_questions]
         placeholders = ",".join("?" * len(lesson_question_ids))
         g.cursor.execute(
             f"""SELECT MAX(a.created_at)
