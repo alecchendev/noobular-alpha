@@ -12,7 +12,8 @@ dependencies = [
   "flask>=3.1.0",
   "pyyaml>=6.0.0",
   "graphviz>=0.21",
-  "markdown>=3.10"
+  "markdown>=3.10",
+  "huey>=2.5.4"
 ]
 
 [project.optional-dependencies]
@@ -30,9 +31,13 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main", "validate", "visualize_course", "create"]
+py-modules = ["main", "validate", "visualize_course", "create", "tasks"]
 
 [tool.mypy]
-files = ["main.py", "visualize_course.py", "validate.py", "create.py"]   # folders or files to always check
+files = ["main.py", "visualize_course.py", "validate.py", "create.py", "tasks.py"]   # folders or files to always check
 python_version = "3.9"
 strict = true
+
+[[tool.mypy.overrides]]
+module = "tasks"
+disallow_untyped_decorators = false

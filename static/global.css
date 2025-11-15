@@ -91,3 +91,54 @@ label div p:last-child {
     display: none;
     color: green;
 }
+
+/* Collapsible sections */
+details summary {
+    cursor: pointer;
+    list-style: none; /* Drop default marker */
+    display: flex;
+    align-items: center;
+}
+
+/* Drop default marker, webkit */
+details summary::-webkit-details-marker {
+    display: none;
+}
+
+details summary * {
+    display: inline;
+}
+
+details summary::before {
+    content: '▶';
+    margin-right: 8px;
+    transition: transform 0.2s;
+}
+
+details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+/* Table styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+th {
+    text-align: left;
+    padding: 10px;
+}
+
+td {
+    padding: 10px;
+}
+
+.align-left {
+    text-align: left;
+}
+
+.align-right {
+    text-align: right;
+}

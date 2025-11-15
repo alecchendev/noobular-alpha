@@ -5,56 +5,95 @@
 {% block content %}
 <h1>Create New Course</h1>
 
-<div class="instructions">
-    <h3>How to create a course:</h3>
-    <p>Either create a course by hand, or:</p>
-    <ol>
-        <li>Go to your favorite AI/LLM (e.g.
-            <a href="https://chatgpt.com" target="_blank">ChatGPT</a>,
-            <a href="https://claude.ai" target="_blank">Claude</a>,
-            <a href="https://grok.com" target="_blank">Grok</a>,
-            <a href="https://chat.deepseek.com" target="_blank">DeepSeek</a>) - I anecdotally find Claude to work best for this</li>
-        <li>Copy the prompt below and paste it there (feel free to modify the prompt however you see fit!)</li>
-        <li>Replace <code>[TOPIC]</code> with your desired subject</li>
-        <li>Copy the generated YAML and paste it in the textbox below and click the button</li>
-        <li>Paste errors back into chat until all are fixed</li>
-    </ol>
-    <button onclick="copyPrompt()">Copy Sample Prompt</button>
-    <p id="copy-feedback">✓ Copied to clipboard!</p>
-</div>
-
-<form hx-post="/create" hx-target="#message-container" hx-swap="innerHTML" hx-encoding="multipart/form-data">
-    <label for="yaml-content">
-        <strong>Paste YAML course content below:</strong>
-    </label>
-    <textarea name="yaml_content" id="yaml-content" rows="20" cols="80">{{ sample_content }}</textarea>
-    <div class="file-upload">
-        <label for="yaml-file">
-            <strong>Or upload a YAML file (max 1 MB):</strong>
-        </label>
-        <input type="file" name="yaml_file" id="yaml-file" accept=".yaml,.yml">
+<details open>
+    <summary><h3>Course Creation</h3></summary>
+    <div>
+        <form hx-post="/create" hx-target="#message-container" hx-swap="innerHTML">
+            <label for="course-topic">
+            </label>
+            <input type="text" name="course_topic" id="course-topic" placeholder="e.g., Newton's Laws of Motion">
+            <button type="submit">Generate Course</button>
+        </form>
     </div>
-    <button type="submit">Create Course</button>
-</form>
+</details>
+
+<details>
+    <summary><h3>Manual Course Creation</h3></summary>
+    <div>
+        <div class="instructions">
+            <p>To create a course, you can either type it by hand, or:</p>
+            <ol>
+                <li>Go to your favorite AI/LLM (e.g.
+                    <a href="https://chatgpt.com" target="_blank">ChatGPT</a>,
+                    <a href="https://claude.ai" target="_blank">Claude</a>,
+                    <a href="https://grok.com" target="_blank">Grok</a>,
+                    <a href="https://chat.deepseek.com" target="_blank">DeepSeek</a>) - I anecdotally find Claude to work best for this</li>
+                <li>Copy the prompt below and paste it there (feel free to modify the prompt however you see fit!)</li>
+                <li>Replace <code>[TOPIC]</code> with your desired subject</li>
+                <li>Copy the generated YAML and paste it in the textbox below and click the button</li>
+                <li>Paste errors back into chat until all are fixed</li>
+            </ol>
+            <button onclick="copyPrompt()">Copy Sample Prompt</button>
+            <p id="copy-feedback">✓ Copied to clipboard!</p>
+        </div>
+
+        <form hx-post="/create-manual" hx-target="#message-container" hx-swap="innerHTML" hx-encoding="multipart/form-data">
+            <label for="yaml-content">
+                <strong>Paste YAML course content below:</strong>
+            </label>
+            <textarea name="yaml_content" id="yaml-content" rows="20" cols="80">{{ sample_content }}</textarea>
+            <div class="file-upload">
+                <label for="yaml-file">
+                    <strong>Or upload a YAML file (max 1 MB):</strong>
+                </label>
+                <input type="file" name="yaml_file" id="yaml-file" accept=".yaml,.yml">
+            </div>
+            <button type="submit">Create Course</button>
+        </form>
+
+        <!-- Easier to just plop here instead of sanitizing multiline string in js -->
+        <p id="sample-prompt" hidden>{{ prompt_text }}</p>
+
+        <script>
+            const promptText = document.getElementById('sample-prompt').innerHTML;
+
+            function copyPrompt() {
+                navigator.clipboard.writeText(promptText).then(() => {
+                    const feedback = document.getElementById('copy-feedback');
+                    feedback.style.display = 'inline';
+                    setTimeout(() => {
+                        feedback.style.display = 'none';
+                    }, 2000);
+                });
+            }
+        </script>
+    </div>
+</details>
 
 <div id="message-container"></div>
 
+<h3>Course Creation Queue</h3>
+{% if jobs %}
+<table>
+    <thead>
+        <tr>
+            <th class="align-left">Topic</th>
+            <th class="align-right">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job in jobs %}
+        <tr>
+            <td class="align-left">{{ job.topic }}</td>
+            <td class="align-right">{{ job.status }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No recent jobs.</p>
+{% endif %}
+
 <a class="back" href="/">&larr; Back to Course Catalog</a>
 
-<!-- Easier to just plop here instead of sanitizing multiline string in js -->
-<p id="sample-prompt" hidden>{{ prompt_text }}</p>
-
-<script>
-    const promptText = document.getElementById('sample-prompt').innerHTML;
-
-    function copyPrompt() {
-        navigator.clipboard.writeText(promptText).then(() => {
-            const feedback = document.getElementById('copy-feedback');
-            feedback.style.display = 'inline';
-            setTimeout(() => {
-                feedback.style.display = 'none';
-            }, 2000);
-        });
-    }
-</script>
 {% endblock %}

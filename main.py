@@ -23,6 +23,7 @@ from validate import validate_course
 import argparse
 from werkzeug.exceptions import RequestEntityTooLarge
 import markdown
+from tasks import create_course_task
 
 # Init app
 app = Flask(__name__)
@@ -254,6 +255,18 @@ def init_database() -> None:
         FOREIGN KEY (user_id) REFERENCES users (id)
     )""")
 
+    # Create jobs table (tracks background jobs)
+    cursor.execute("""CREATE TABLE IF NOT EXISTS jobs (
+        id INTEGER PRIMARY KEY,
+        task_id TEXT NOT NULL UNIQUE,
+        user_id INTEGER NOT NULL,
+        topic TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+    )""")
+
     # Create default global user if it doesn't exist
     cursor.execute(
         "INSERT OR IGNORE INTO users (username) VALUES (?)", (config.global_username,)
@@ -300,6 +313,17 @@ def close_db_connection(error: Any) -> None:
 class User:
     id: int
     username: str
+
+
+@dataclass
+class Job:
+    id: int
+    task_id: str
+    user_id: int
+    topic: str
+    status: str
+    created_at: str
+    updated_at: str
 
 
 @app.before_request
@@ -908,13 +932,61 @@ def create_course_page() -> str:
         with open(prompt_path, "r") as f:
             prompt_text = f.read()
 
+    # Load latest 5 jobs for current user
+    g.cursor.execute(
+        """SELECT id, task_id, user_id, topic, status, created_at, updated_at
+           FROM jobs
+           WHERE user_id = ?
+           ORDER BY created_at DESC
+           LIMIT 5""",
+        (g.user.id,),
+    )
+    jobs = [
+        Job(
+            id=row[0],
+            task_id=row[1],
+            user_id=row[2],
+            topic=row[3],
+            status=row[4],
+            created_at=row[5],
+            updated_at=row[6],
+        )
+        for row in g.cursor.fetchall()
+    ]
+
     return render_template(
-        "create.html", sample_content=sample_content, prompt_text=prompt_text
+        "create.html", sample_content=sample_content, prompt_text=prompt_text, jobs=jobs
     )
 
 
 @app.route("/create", methods=["POST"])
 def create_course() -> str:
+    """Start a Huey task to generate a course from a topic"""
+    course_topic = request.form.get("course_topic", "")
+
+    if not course_topic or not course_topic.strip():
+        return "<p>Error: No course topic provided</p>"
+
+    # Queue the task - need to create result first to get task_id
+    # Use schedule to delay getting result.id
+    import uuid
+
+    task_id = str(uuid.uuid4())
+
+    # Save job to database first
+    g.cursor.execute(
+        "INSERT INTO jobs (task_id, user_id, topic, status) VALUES (?, ?, ?, ?)",
+        (task_id, g.user.id, course_topic.strip(), "pending"),
+    )
+
+    # Queue the task with the pre-generated task_id
+    create_course_task(course_topic.strip(), task_id)
+
+    return f"<p>Course generation started for topic: {escape(course_topic)}</p>"
+
+
+@app.route("/create-manual", methods=["POST"])
+def create_course_manual() -> str:
     # Read input
     yaml_content = ""
 
