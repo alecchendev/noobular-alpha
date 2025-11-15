@@ -273,7 +273,7 @@ You are creating educational content for all knowledge points in a course based 
 Generate 1-3 content blocks for EACH knowledge point in the course outline above.
 Each content block should be focused and digestible.
 Use markdown formatting with headers (###), **bold**, *italic*, `code`.
-Use inline math with $...$ and display math with $$...$$ where appropriate.
+Always use inline math with $...$ and display math with $$...$$ anytime you are dealing with mathematical symbols/latex.
 For lists, ensure a blank line precedes them.
 
 IMPORTANT: Avoid duplicating information across knowledge points - each should teach its specific concept without repeating material from other knowledge points.
@@ -448,6 +448,7 @@ Generate 4 plausible but incorrect distractor choices:
 - Do not include the correct answer as one of the choices, it will be automatically added later.
 
 Provide a concise explanation that shows the step-by-step solution for the correct answer.
+Use inline math with $...$ and display math with $$...$$ where appropriate.
 
 # Output format
 Return ONLY valid YAML (no code fences, no commentary):
@@ -1089,6 +1090,18 @@ def generate_textbook_numerical_questions(
             choices_response = choices_chat.sample()
             choices_text = str(choices_response.content)
 
+            # Strip code fences if present
+            choices_text = choices_text.strip()
+            if choices_text.startswith("```"):
+                lines = choices_text.split("\n")
+                # Remove first line if it's ```yaml or ```
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                # Remove last line if it's ```
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                choices_text = "\n".join(lines)
+
             # Parse choices and explanation
             try:
                 choices_data: Dict[str, Any] = yaml.safe_load(choices_text)
@@ -1412,6 +1425,9 @@ def filter_relevant_problems(
     )
 
     # Create filtering prompt
+    # TODO: would probably make it a better filter if we included explanations
+    # of how to solve the problem so it's easier to tell what concepts are actuall
+    # required.
     prompt = f"""You are filtering textbook problems to find only those that are directly relevant to a specific knowledge point.
 
 # Knowledge Point:
