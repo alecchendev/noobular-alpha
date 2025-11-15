@@ -469,42 +469,79 @@ CRITICAL YAML FORMATTING RULES:
 - No code fences, no commentary"""
 
 
-def generate_course_outline(
+def generate_topic_outline(
+    client: Client,
     topic: str,
     lesson_count: int,
     max_tokens: Optional[int],
     model: str,
-    content_file: Optional[str] = None,
-    problems_file: Optional[str] = None,
 ) -> str:
     """
-    Generate a course outline for the given topic using Grok API.
+    Generate a course outline for a given topic using Grok API.
 
     Args:
-        topic: The topic to create a course about (ignored if using textbook files)
-        lesson_count: Target number of lessons (ignored if using textbook files)
+        topic: The topic to create a course about
+        lesson_count: Target number of lessons
         max_tokens: Maximum number of tokens in the response (None for unlimited)
         model: Model to use for generation
-        content_file: Optional path to textbook content file
-        problems_file: Optional path to textbook problems file
 
     Returns:
         The course outline as a string
     """
-    # Read textbook files if provided
-    content = None
-    problems = None
-    if content_file and problems_file:
-        with open(content_file, "r") as f:
-            content = f.read()
-        with open(problems_file, "r") as f:
-            problems = f.read()
+    # Create a chat session with optional max_tokens
+    if max_tokens:
+        chat = client.chat.create(model=model, max_tokens=max_tokens)
+    else:
+        chat = client.chat.create(model=model)
 
-    # Initialize the client
-    client = Client(
-        api_key=os.getenv("XAI_API_KEY"),
-        timeout=3600,
+    chat.append(
+        system(
+            "You are an expert educational content creator who specializes in creating comprehensive, well-structured courses with clear learning progressions."
+        )
     )
+
+    # Topic mode
+    prompt = COURSE_OUTLINE_PROMPT.format(topic=topic, lesson_count=lesson_count)
+    print(f"Generating course outline for: {topic}")
+    print(f"Target lesson count: {lesson_count}")
+
+    chat.append(user(prompt))
+
+    if max_tokens:
+        print(f"(Limited to {max_tokens} tokens for testing)")
+    print("=" * 80)
+    print("Waiting for Grok response...\n")
+
+    # Get response
+    response = chat.sample()
+
+    return str(response.content)
+
+
+def generate_textbook_outline(
+    client: Client,
+    content_file: str,
+    problems_file: str,
+    max_tokens: Optional[int],
+    model: str,
+) -> str:
+    """
+    Generate a course outline from textbook content and problems using Grok API.
+
+    Args:
+        content_file: Path to textbook content file
+        problems_file: Path to textbook problems file
+        max_tokens: Maximum number of tokens in the response (None for unlimited)
+        model: Model to use for generation
+
+    Returns:
+        The course outline as a string
+    """
+    # Read textbook files
+    with open(content_file, "r") as f:
+        content = f.read()
+    with open(problems_file, "r") as f:
+        problems = f.read()
 
     # Create a chat session with optional max_tokens
     if max_tokens:
@@ -518,18 +555,11 @@ def generate_course_outline(
         )
     )
 
-    # Add prompt based on mode (no separate system message needed)
-    if content and problems:
-        # Textbook mode
-        prompt = TEXTBOOK_OUTLINE_PROMPT.format(content=content, problems=problems)
-        print("Generating course outline from textbook files")
-        print(f"Content file: {content_file}")
-        print(f"Problems file: {problems_file}")
-    else:
-        # Topic mode
-        prompt = COURSE_OUTLINE_PROMPT.format(topic=topic, lesson_count=lesson_count)
-        print(f"Generating course outline for: {topic}")
-        print(f"Target lesson count: {lesson_count}")
+    # Textbook mode
+    prompt = TEXTBOOK_OUTLINE_PROMPT.format(content=content, problems=problems)
+    print("Generating course outline from textbook files")
+    print(f"Content file: {content_file}")
+    print(f"Problems file: {problems_file}")
 
     chat.append(user(prompt))
 
@@ -1796,6 +1826,12 @@ def main() -> None:
         print("Please run: export XAI_API_KEY=your_api_key_here")
         sys.exit(1)
 
+    # Initialize the client
+    client = Client(
+        api_key=os.getenv("XAI_API_KEY"),
+        timeout=3600,
+    )
+
     # Set max_tokens based on debug flag
     max_tokens = 500 if args.debug else None
 
@@ -1815,16 +1851,25 @@ def main() -> None:
                 sys.exit(1)
 
             # Generate outline
-            topic = " ".join(args.topic) if args.topic else ""
-
-            outline = generate_course_outline(
-                topic,
-                lesson_count=args.lessons,
-                max_tokens=max_tokens,
-                model=args.model,
-                content_file=args.content,
-                problems_file=args.problems,
-            )
+            if args.content and args.problems:
+                # Textbook mode
+                outline = generate_textbook_outline(
+                    client=client,
+                    content_file=args.content,
+                    problems_file=args.problems,
+                    max_tokens=max_tokens,
+                    model=args.model,
+                )
+            else:
+                # Topic mode
+                topic = " ".join(args.topic)
+                outline = generate_topic_outline(
+                    client=client,
+                    topic=topic,
+                    lesson_count=args.lessons,
+                    max_tokens=max_tokens,
+                    model=args.model,
+                )
 
             # Save or print
             if args.output:
