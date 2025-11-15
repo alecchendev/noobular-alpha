@@ -30,7 +30,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main", "validate", "visualize_course"]
+py-modules = ["main", "validate", "visualize_course", "create"]
 
 [tool.mypy]
 files = ["main.py", "visualize_course.py", "validate.py", "create.py"]   # folders or files to always check
