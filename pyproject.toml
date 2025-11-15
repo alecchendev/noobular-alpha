@@ -6,7 +6,7 @@ authors = [
   { name = "Alec Chen" }
 ]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 
 dependencies = [
   "flask>=3.1.0",
@@ -35,8 +35,12 @@ py-modules = ["main", "validate", "visualize_course", "create", "tasks"]
 
 [tool.mypy]
 files = ["main.py", "visualize_course.py", "validate.py", "create.py", "tasks.py"]   # folders or files to always check
-python_version = "3.9"
+python_version = "3.11"
 strict = true
+
+[[tool.mypy.overrides]]
+module = "huey.*"
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "tasks"

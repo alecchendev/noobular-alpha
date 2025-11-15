@@ -123,16 +123,10 @@ details[open] summary::before {
 table {
     width: 100%;
     border-collapse: collapse;
-    margin: 10px 0;
 }
 
-th {
-    text-align: left;
-    padding: 10px;
-}
-
-td {
-    padding: 10px;
+th, td {
+    padding: 5px 0;
 }
 
 .align-left {

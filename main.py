@@ -23,7 +23,7 @@ from validate import validate_course
 import argparse
 from werkzeug.exceptions import RequestEntityTooLarge
 import markdown
-from tasks import create_course_task
+from tasks import create_course_task, JobStatus
 
 # Init app
 app = Flask(__name__)
@@ -321,7 +321,7 @@ class Job:
     task_id: str
     user_id: int
     topic: str
-    status: str
+    status: JobStatus
     created_at: str
     updated_at: str
 
@@ -947,7 +947,7 @@ def create_course_page() -> str:
             task_id=row[1],
             user_id=row[2],
             topic=row[3],
-            status=row[4],
+            status=JobStatus(row[4]),
             created_at=row[5],
             updated_at=row[6],
         )
@@ -967,6 +967,16 @@ def create_course() -> str:
     if not course_topic or not course_topic.strip():
         return "<p>Error: No course topic provided</p>"
 
+    # Check if user already has 5 pending jobs
+    g.cursor.execute(
+        "SELECT COUNT(*) FROM jobs WHERE user_id = ? AND status = ?",
+        (g.user.id, JobStatus.PENDING),
+    )
+    pending_count = g.cursor.fetchone()[0]
+
+    if pending_count >= 5:
+        return "<p>Error: You already have 5 pending jobs. Please wait for some to complete.</p>"
+
     # Queue the task - need to create result first to get task_id
     # Use schedule to delay getting result.id
     import uuid
@@ -976,7 +986,7 @@ def create_course() -> str:
     # Save job to database first
     g.cursor.execute(
         "INSERT INTO jobs (task_id, user_id, topic, status) VALUES (?, ?, ?, ?)",
-        (task_id, g.user.id, course_topic.strip(), "pending"),
+        (task_id, g.user.id, course_topic.strip(), JobStatus.PENDING),
     )
 
     # Queue the task with the pre-generated task_id
