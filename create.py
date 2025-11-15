@@ -417,10 +417,16 @@ After solving, check if the problem is physically valid:
 - Does your solution reveal any physical impossibilities (e.g., negative kinetic energy, going backwards in time, violating conservation laws)?
 - Can the question actually be answered with the given information?
 
-End your response with EXACTLY ONE of these lines:
+End your response with EXACTLY these lines:
+ANSWER: [your final numerical answer with units, formatted as it would appear in a multiple choice option]
 VALID: true
-OR
+
+OR (if invalid):
 VALID: false
+
+Example valid ending:
+ANSWER: 4.9 m/s²
+VALID: true
 """
 
 TEXTBOOK_NUMERICAL_CHOICES_PROMPT = """Generate multiple choice options for a solved physics problem.
@@ -428,18 +434,20 @@ TEXTBOOK_NUMERICAL_CHOICES_PROMPT = """Generate multiple choice options for a so
 # Problem:
 {prompt}
 
+# Correct answer:
+{correct_answer}
+
 # Solution:
 {solution}
 
 # Task
-Generate 4 multiple choice options where:
-- One option is the correct answer from the solution above
-- Three options are plausible but incorrect distractors
+Generate 4 plausible but incorrect distractor choices:
 - Distractors should represent common mistakes or misconceptions
-- All choices should have the same units and precision
+- All choices should have the format, units, and precision as the correct answer
 - Make it challenging - avoid obviously wrong answers
+- Do not include the correct answer as one of the choices, it will be automatically added later.
 
-Provide a concise explanation that shows the step-by-step solution.
+Provide a concise explanation that shows the step-by-step solution for the correct answer.
 
 # Output format
 Return ONLY valid YAML (no code fences, no commentary):
@@ -450,16 +458,13 @@ choices:
   - text: |
       9.8 m/s²
   - text: |
-      4.9 m/s²
-    correct: true
-  - text: |
       19.6 m/s²
 explanation: |
   The acceleration down the incline is given by $a = g \\sin\\theta$...
 
 CRITICAL YAML FORMATTING RULES:
 - Use | (pipe) for ALL text fields
-- Return ONLY the YAML structure shown above
+- Return ONLY the YAML structure shown above (3 distractor choices + explanation)
 - No code fences, no commentary"""
 
 
@@ -962,6 +967,7 @@ def generate_textbook_numerical_questions(
                     continue
                 else:
                     raise ValueError(f"Failed to generate prompts for {kp_name}")
+            prompts = [prompt.strip() for prompt in prompts]
         except yaml.YAMLError as e:
             print(f"      Warning: Failed to parse prompts YAML: {e}")
             if attempt < max_retries:
@@ -993,17 +999,23 @@ def generate_textbook_numerical_questions(
             solve_response = solve_chat.sample()
             solution = str(solve_response.content)
 
-            # Parse validity from solution (should end with "VALID: true" or "VALID: false - reason")
+            # Parse validity and answer from solution (check last 4 lines)
+            # We purposely get the correct answer here instead of relying
+            # on the AI to transcribe it into the choices, so we can enforce
+            # that it shows up in the choices, and is the only one marked
+            # correct (we'd seen issues in the past where the AI would mark
+            # the wrong choice as correct).
             is_valid = True
+            correct_answer = ""
 
-            # Check last few lines for validity marker
             solution_lines = solution.strip().split("\n")
-            for line in reversed(solution_lines[-5:]):  # Check last 5 lines
+            for line in reversed(solution_lines[-4:]):
                 if line.startswith("VALID:"):
                     validity_part = line[6:].strip()  # Remove "VALID:" prefix
                     if validity_part.lower().startswith("false"):
                         is_valid = False
-                    break
+                elif line.startswith("ANSWER:"):
+                    correct_answer = line[7:].strip()  # Remove "ANSWER:" prefix
 
             if not is_valid:
                 print(f"      ✗ Question {prompt_idx + 1} is physically invalid")
@@ -1014,6 +1026,12 @@ def generate_textbook_numerical_questions(
                 print(f"\nSolution: {solution}")
                 print(f"{'=' * 80}\n")
                 print("      Skipping this question...")
+                continue
+
+            if not correct_answer:
+                print(
+                    f"      Warning: No answer found in solution for question {prompt_idx + 1}, skipping..."
+                )
                 continue
 
             print(f"      ✓ Question {prompt_idx + 1} is physically valid")
@@ -1033,7 +1051,9 @@ def generate_textbook_numerical_questions(
                 choices_chat = choices_client.chat.create(model=model)
 
             choices_prompt_text = TEXTBOOK_NUMERICAL_CHOICES_PROMPT.format(
-                prompt=question_prompt, solution=solution
+                prompt=question_prompt,
+                correct_answer=correct_answer,
+                solution=solution,
             )
             choices_chat.append(user(choices_prompt_text))
 
@@ -1049,11 +1069,35 @@ def generate_textbook_numerical_questions(
                     )
                     continue
 
+                # We generate 4 choices, but we only care to get 3.
+                # We overgenerate in case we need to throw one out.
+
+                # Get distractor choices and add correct answer
+                distractor_choices = choices_data["choices"]
+                cleaned_choices = []
+                for choice in distractor_choices:
+                    choice_text = choice["text"]
+                    if choice_text.strip().lower() == correct_answer.strip().lower():
+                        print("     Throwing out duplicate correct answer")
+                        continue
+                    # Reform dict to make sure we don't mark any answers as correct
+                    cleaned_choices.append({"text": choice["text"].strip()})
+                    if len(cleaned_choices) == 3:
+                        break
+
+                if len(cleaned_choices) != 3:
+                    print("     Not enough choices, throwing out question")
+                    continue
+
+                # Add correct answer
+                correct_choice = {"text": correct_answer, "correct": True}
+                choices = cleaned_choices + [correct_choice]
+
                 # Build question object
                 question = {
                     "prompt": question_prompt,
-                    "choices": choices_data["choices"],
-                    "explanation": choices_data.get("explanation", ""),
+                    "choices": choices,
+                    "explanation": choices_data.get("explanation", "").strip(),
                 }
 
                 # Validate
