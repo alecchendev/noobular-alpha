@@ -473,7 +473,6 @@ def generate_topic_outline(
     client: Client,
     topic: str,
     lesson_count: int,
-    max_tokens: Optional[int],
     model: str,
 ) -> str:
     """
@@ -482,17 +481,13 @@ def generate_topic_outline(
     Args:
         topic: The topic to create a course about
         lesson_count: Target number of lessons
-        max_tokens: Maximum number of tokens in the response (None for unlimited)
         model: Model to use for generation
 
     Returns:
         The course outline as a string
     """
-    # Create a chat session with optional max_tokens
-    if max_tokens:
-        chat = client.chat.create(model=model, max_tokens=max_tokens)
-    else:
-        chat = client.chat.create(model=model)
+    # Create a chat session
+    chat = client.chat.create(model=model)
 
     chat.append(
         system(
@@ -507,8 +502,6 @@ def generate_topic_outline(
 
     chat.append(user(prompt))
 
-    if max_tokens:
-        print(f"(Limited to {max_tokens} tokens for testing)")
     print("=" * 80)
     print("Waiting for Grok response...\n")
 
@@ -522,7 +515,6 @@ def generate_textbook_outline(
     client: Client,
     content_file: str,
     problems_file: str,
-    max_tokens: Optional[int],
     model: str,
 ) -> str:
     """
@@ -531,7 +523,6 @@ def generate_textbook_outline(
     Args:
         content_file: Path to textbook content file
         problems_file: Path to textbook problems file
-        max_tokens: Maximum number of tokens in the response (None for unlimited)
         model: Model to use for generation
 
     Returns:
@@ -543,11 +534,8 @@ def generate_textbook_outline(
     with open(problems_file, "r") as f:
         problems = f.read()
 
-    # Create a chat session with optional max_tokens
-    if max_tokens:
-        chat = client.chat.create(model=model, max_tokens=max_tokens)
-    else:
-        chat = client.chat.create(model=model)
+    # Create a chat session
+    chat = client.chat.create(model=model)
 
     chat.append(
         system(
@@ -563,8 +551,6 @@ def generate_textbook_outline(
 
     chat.append(user(prompt))
 
-    if max_tokens:
-        print(f"(Limited to {max_tokens} tokens for testing)")
     print("=" * 80)
     print("Waiting for Grok response...\n")
 
@@ -581,7 +567,6 @@ def generate_content(
     kp_description: str,
     prerequisites: List[str],
     model: str,
-    max_tokens: Optional[int] = None,
     content: Optional[str] = None,
     problems: Optional[str] = None,
 ) -> List[str]:
@@ -595,7 +580,6 @@ def generate_content(
         kp_description: The description of the knowledge point
         prerequisites: List of prerequisite knowledge point IDs
         model: Model to use for generation
-        max_tokens: Maximum number of tokens in the response (None for unlimited)
         content: Optional textbook content text
         problems: Optional textbook problems text
 
@@ -609,10 +593,7 @@ def generate_content(
     )
 
     # Create a chat session
-    if max_tokens:
-        chat = client.chat.create(model=model, max_tokens=max_tokens)
-    else:
-        chat = client.chat.create(model=model)
+    chat = client.chat.create(model=model)
 
     chat.append(
         system(
@@ -672,7 +653,6 @@ def generate_textbook_content_batch(
     content: str,
     problems: str,
     model: str,
-    max_tokens: Optional[int] = None,
 ) -> Dict[str, List[str]]:
     """
     Generate content for all knowledge points in the course at once (textbook mode only).
@@ -682,7 +662,6 @@ def generate_textbook_content_batch(
         content: Textbook content text
         problems: Textbook problems text
         model: Model to use for generation
-        max_tokens: Maximum number of tokens in the response (None for unlimited)
 
     Returns:
         Dictionary mapping knowledge point names to their content blocks
@@ -694,10 +673,7 @@ def generate_textbook_content_batch(
     )
 
     # Create a chat session
-    if max_tokens:
-        chat = client.chat.create(model=model, max_tokens=max_tokens)
-    else:
-        chat = client.chat.create(model=model)
+    chat = client.chat.create(model=model)
 
     chat.append(
         system(
@@ -766,7 +742,6 @@ def generate_questions(
     kp_description: str,
     contents: List[str],
     model: str,
-    max_tokens: Optional[int] = None,
     max_retries: int = 2,
     content: Optional[str] = None,
     problems: Optional[str] = None,
@@ -782,7 +757,6 @@ def generate_questions(
         kp_description: The description of the knowledge point
         contents: The content blocks that were generated
         model: Model to use for generation
-        max_tokens: Maximum number of tokens in the response (None for unlimited)
         max_retries: Maximum number of retry attempts if validation fails
         content: Optional textbook content text
         problems: Optional textbook problems text
@@ -803,10 +777,7 @@ def generate_questions(
         )
 
         # Create a chat session
-        if max_tokens:
-            chat = client.chat.create(model=model, max_tokens=max_tokens)
-        else:
-            chat = client.chat.create(model=model)
+        chat = client.chat.create(model=model)
 
         chat.append(
             system(
@@ -928,7 +899,6 @@ def generate_textbook_numerical_questions(
     content: str,
     problems: str,
     model: str,
-    max_tokens: Optional[int] = None,
     max_retries: int = 2,
     question_count: int = 10,
 ) -> List[Dict[str, Any]]:
@@ -947,7 +917,6 @@ def generate_textbook_numerical_questions(
         content: Textbook content text
         problems: Textbook problems text
         model: Model to use for generation
-        max_tokens: Maximum number of tokens in the response (None for unlimited)
         max_retries: Maximum number of retry attempts if validation fails
         question_count: Number of questions to generate (default: 10)
 
@@ -990,10 +959,7 @@ def generate_textbook_numerical_questions(
             timeout=3600,
         )
 
-        if max_tokens:
-            chat = client.chat.create(model=model, max_tokens=max_tokens)
-        else:
-            chat = client.chat.create(model=model)
+        chat = client.chat.create(model=model)
 
         prompt = TEXTBOOK_NUMERICAL_QUESTION_PROMPTS_PROMPT.format(
             course_title=course_title,
@@ -1103,12 +1069,7 @@ def generate_textbook_numerical_questions(
                 timeout=3600,
             )
 
-            if max_tokens:
-                choices_chat = choices_client.chat.create(
-                    model=model, max_tokens=max_tokens
-                )
-            else:
-                choices_chat = choices_client.chat.create(model=model)
+            choices_chat = choices_client.chat.create(model=model)
 
             choices_prompt_text = TEXTBOOK_NUMERICAL_CHOICES_PROMPT.format(
                 prompt=question_prompt,
@@ -1215,7 +1176,6 @@ def generate_textbook_numerical_questions(
 def fill_course_content(
     outline_yaml: str,
     model: str,
-    max_tokens: Optional[int] = None,
     content_file: Optional[str] = None,
     problems_file: Optional[str] = None,
     numerical: bool = False,
@@ -1227,7 +1187,6 @@ def fill_course_content(
     Args:
         outline_yaml: The course outline as a YAML string
         model: Model to use for generation
-        max_tokens: Maximum number of tokens per knowledge point generation
         content_file: Optional path to textbook content file
         problems_file: Optional path to textbook problems file
         numerical: Use numerical question generation (3-step with code execution)
@@ -1268,7 +1227,6 @@ def fill_course_content(
             content=content,
             problems=problems,
             model=model,
-            max_tokens=max_tokens,
         )
 
         # Verify all knowledge points got content
@@ -1314,7 +1272,6 @@ def fill_course_content(
                     kp_description=kp_description,
                     prerequisites=prerequisites,
                     model=model,
-                    max_tokens=max_tokens,
                     content=content,
                     problems=problems,
                 )
@@ -1335,7 +1292,6 @@ def fill_course_content(
                     content=content,
                     problems=problems,
                     model=model,
-                    max_tokens=max_tokens,
                     question_count=question_count,
                 )
             else:
@@ -1348,7 +1304,6 @@ def fill_course_content(
                     kp_description=kp_description,
                     contents=contents,
                     model=model,
-                    max_tokens=max_tokens,
                     content=content,
                     problems=problems,
                     question_count=question_count,
@@ -1369,7 +1324,6 @@ def extract_textbook_content(
     textbook_file_id: str,
     section_name: str,
     model: str,
-    max_tokens: Optional[int] = None,
 ) -> str:
     """
     Extract content from a textbook section using vision model.
@@ -1377,7 +1331,6 @@ def extract_textbook_content(
     Args:
         textbook_file: Path to the textbook PDF file
         section_name: Name of the section to extract
-        max_tokens: Maximum number of tokens in the response (None for unlimited)
 
     Returns:
         Extracted content as a string
@@ -1388,11 +1341,8 @@ def extract_textbook_content(
         timeout=3600,
     )
 
-    # Create a chat session with vision model
-    if max_tokens:
-        chat = client.chat.create(model=model, max_tokens=max_tokens)
-    else:
-        chat = client.chat.create(model=model)
+    # Create a chat session
+    chat = client.chat.create(model=model)
 
     # Add system message
     chat.append(
@@ -1547,7 +1497,6 @@ def extract_textbook_problems(
     textbook_file_id: str,
     section_name: str,
     model: str,
-    max_tokens: Optional[int] = None,
 ) -> str:
     """
     Extract practice problems from a textbook section using vision model.
@@ -1555,7 +1504,6 @@ def extract_textbook_problems(
     Args:
         textbook_file: Path to the textbook PDF file
         section_name: Name of the section to extract problems for
-        max_tokens: Maximum number of tokens in the response (None for unlimited)
 
     Returns:
         Extracted problems as a string
@@ -1567,10 +1515,7 @@ def extract_textbook_problems(
     )
 
     # Create a chat session with vision model
-    if max_tokens:
-        chat = client.chat.create(model=model, max_tokens=max_tokens)
-    else:
-        chat = client.chat.create(model=model)
+    chat = client.chat.create(model=model)
 
     # Add system message
     chat.append(
@@ -1624,7 +1569,6 @@ def extract_section(
     content_output: str,
     problems_output: str,
     model: str,
-    max_tokens: Optional[int] = None,
 ) -> None:
     """
     Extract content and problems from a textbook section.
@@ -1635,7 +1579,6 @@ def extract_section(
         content_output: Path to write extracted content
         problems_output: Path to write extracted problems
         model: Model to use for generation
-        max_tokens: Maximum number of tokens in the response (None for unlimited)
     """
     print(f"Extracting from: {textbook_file}")
     print(f"Section: {section_name}")
@@ -1661,17 +1604,13 @@ def extract_section(
     print(f"File ID: {textbook_file_id}")
 
     # Extract content
-    content = extract_textbook_content(
-        textbook_file_id, section_name, model, max_tokens
-    )
+    content = extract_textbook_content(textbook_file_id, section_name, model)
     with open(content_output, "w") as f:
         f.write(content)
     print(f"✓ Content written to: {content_output}")
 
     # Extract problems
-    problems = extract_textbook_problems(
-        textbook_file_id, section_name, model, max_tokens
-    )
+    problems = extract_textbook_problems(textbook_file_id, section_name, model)
     with open(problems_output, "w") as f:
         f.write(problems)
     print(f"✓ Problems written to: {problems_output}")
@@ -1731,11 +1670,6 @@ def main() -> None:
         "-o",
         help="Output file path for the outline YAML",
     )
-    outline_parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Limit output to 500 tokens for testing",
-    )
 
     # Fill subcommand
     fill_parser = subparsers.add_parser(
@@ -1774,11 +1708,6 @@ def main() -> None:
         default=10,
         help="Number of questions to generate per knowledge point (default: 10)",
     )
-    fill_parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Limit output to 500 tokens for testing",
-    )
 
     # Extract subcommand
     extract_parser = subparsers.add_parser(
@@ -1806,11 +1735,6 @@ def main() -> None:
         required=True,
         help="Output file for extracted problems",
     )
-    extract_parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Limit output to 500 tokens for testing",
-    )
 
     args = parser.parse_args()
     assert args.model in list(Model)
@@ -1831,9 +1755,6 @@ def main() -> None:
         api_key=os.getenv("XAI_API_KEY"),
         timeout=3600,
     )
-
-    # Set max_tokens based on debug flag
-    max_tokens = 500 if args.debug else None
 
     try:
         if args.command == "outline":
@@ -1857,7 +1778,6 @@ def main() -> None:
                     client=client,
                     content_file=args.content,
                     problems_file=args.problems,
-                    max_tokens=max_tokens,
                     model=args.model,
                 )
             else:
@@ -1867,7 +1787,6 @@ def main() -> None:
                     client=client,
                     topic=topic,
                     lesson_count=args.lessons,
-                    max_tokens=max_tokens,
                     model=args.model,
                 )
 
@@ -1890,12 +1809,6 @@ def main() -> None:
                 print("=" * 80)
                 print(outline)
                 print("=" * 80)
-
-            if args.debug:
-                print(
-                    f"\nNote: Running in debug mode - output was limited to {max_tokens} tokens"
-                )
-                print("To run full generation, remove --debug flag")
 
         elif args.command == "fill":
             # Validate textbook file arguments
@@ -1925,7 +1838,6 @@ def main() -> None:
             complete_course = fill_course_content(
                 outline_yaml,
                 model=args.model,
-                max_tokens=max_tokens,
                 content_file=args.content,
                 problems_file=args.problems,
                 numerical=args.numerical,
@@ -1967,7 +1879,6 @@ def main() -> None:
                 content_output=args.content_output,
                 problems_output=args.problems_output,
                 model=args.model,
-                max_tokens=max_tokens,
             )
 
     except Exception as e:
