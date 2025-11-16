@@ -8,25 +8,36 @@ from flask import (
     send_file,
     make_response,
 )
+from werkzeug.exceptions import RequestEntityTooLarge
 from datetime import datetime, timedelta
 from markupsafe import escape, Markup
+import markdown
+
 import yaml
 import sqlite3
 import hashlib
+import random
+import argparse
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional, NoReturn, Union
-import random
 from dataclasses import dataclass
-from visualize_course import create_knowledge_graph, KnowledgeGraph
-from validate import validate_course
-import argparse
-from werkzeug.exceptions import RequestEntityTooLarge
-import markdown
-from tasks import create_course_task, JobStatus, check_course_exists, save_course
+
+from noobular.visualize import create_knowledge_graph, KnowledgeGraph
+from noobular.validate import validate_course
+from noobular.tasks import (
+    create_course_task,
+    JobStatus,
+    check_course_exists,
+    save_course,
+)
 
 # Init app
-app = Flask(__name__)
+# Templates and static are one level up from this file (at project root)
+BASE_DIR = Path(__file__).parent.parent
+app = Flask(
+    __name__, template_folder=BASE_DIR / "templates", static_folder=BASE_DIR / "static"
+)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024  # allow up to ~1MB uploads
 app.config["MAX_FORM_MEMORY_SIZE"] = 1 * 1024 * 1024
 

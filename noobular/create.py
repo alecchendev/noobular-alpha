@@ -1,13 +1,15 @@
+from xai_sdk import Client  # type: ignore
+from xai_sdk.chat import user, system, file  # type: ignore
+from xai_sdk.tools import code_execution  # type: ignore
+
 import os
 import sys
 import argparse
 import yaml
-from typing import Optional, Any, Dict, List
-from xai_sdk import Client  # type: ignore
-from xai_sdk.chat import user, system, file  # type: ignore
-from xai_sdk.tools import code_execution  # type: ignore
-from validate import validate_question
 from enum import Enum
+from typing import Optional, Any, Dict, List
+
+from noobular.validate import validate_question
 
 
 class Model(str, Enum):

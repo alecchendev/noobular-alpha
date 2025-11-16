@@ -40,21 +40,22 @@ Unlike Math Academy, I don't have a team or the expertise to create educational 
 - Install dependencies: `python -m pip install -e .`
 - Install dev dependencies: `python -m pip install -e ".[dev]"`
 - Install pre-commit hooks: `pre-commit install`
-- Run: `python main.py`
-- Run tests: `python test.py`
+- Run server: `python noobular/main.py`
+- Run task consumer: `huey_consumer noobular.tasks.huey`
 - Lint: `ruff check`
 - Format: `ruff format`
 - Type check: `mypy`
 - Scripts
     - Course validation
-        - `python validate.py course.yaml`
+        - `python noobular/validate.py course.yaml`
     - Knowledge graph visualization
-        - `python visualize_course.py course.yaml`
+        - `python noobular/visualize.py course.yaml`
     - Course creation (requires dev dependencies)
         - `export XAI_API_KEY=<your_api_key_here>`
-        - `python create.py outline "thermodynamics" -o outline.yaml`
-        - `python create.py fill outline.yaml -o course.yaml`
+        - `python noobular/create.py outline "thermodynamics" -o outline.yaml`
+        - `python noobular/create.py fill outline.yaml -o course.yaml`
+        - And others, see help for more.
 
 ### Database
 
-The app uses SQLite3 for data storage, which is included in Python's standard library. A `database.db` file will be created automatically on first run.
+The app uses SQLite3 for data storage, which is included in Python's standard library. A `database.db` file will be created automatically on first run. Huey, the task consumer will also create a `huey.db` for it's storage.

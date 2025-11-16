@@ -31,10 +31,10 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main", "validate", "visualize_course", "create", "tasks"]
+py-modules = ["noobular"]
 
 [tool.mypy]
-files = ["main.py", "visualize_course.py", "validate.py", "create.py", "tasks.py"]   # folders or files to always check
+files = ["noobular"]
 python_version = "3.11"
 strict = true
 
@@ -43,5 +43,5 @@ module = "huey.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "tasks"
+module = "noobular.tasks"
 disallow_untyped_decorators = false

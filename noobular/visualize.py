@@ -5,11 +5,12 @@ Visualize the prerequisite graph of a course YAML file.
 Usage: python visualize_course.py <course_file.yaml>
 """
 
-from dataclasses import dataclass
-import sys
-from typing import Any
-import yaml
 from graphviz import Digraph  # type: ignore
+
+import sys
+import yaml
+from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass

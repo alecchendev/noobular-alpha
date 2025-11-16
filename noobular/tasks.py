@@ -1,20 +1,22 @@
 """Huey task queue setup and task definitions"""
 
+from huey import SqliteHuey
+from xai_sdk import Client  # type: ignore
+
 import os
 import logging
-from huey import SqliteHuey
 import sqlite3
 import yaml
 import hashlib
 from enum import StrEnum
 from typing import Any
-from xai_sdk import Client  # type: ignore
-from create import (
+
+from noobular.create import (
     generate_topic_outline,
     fill_topic_course_content,
     Model,
 )
-from validate import validate_course
+from noobular.validate import validate_course
 
 
 logger = logging.getLogger(__name__)

@@ -5,9 +5,9 @@ Can be used as a module or run as a CLI script to validate course YAML files.
 """
 
 import argparse
-from dataclasses import dataclass
 import sys
 import yaml
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
