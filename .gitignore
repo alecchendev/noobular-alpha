@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+noobular.egg-info/
+physics/
+chemistry/
+temp/
+courses_temp/
+notes/
+todo.txt
+database.db
+huey.db*
