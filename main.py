@@ -824,7 +824,7 @@ def logout() -> Any:
 
 @app.route("/create")
 def create_course_page() -> str:
-    sample_yaml_path = Path("sample.yaml")
+    sample_yaml_path = Path("prompt/sample.yaml")
     sample_content = ""
     if sample_yaml_path.exists():
         with open(sample_yaml_path, "r") as f:
