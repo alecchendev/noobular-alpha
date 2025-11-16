@@ -128,7 +128,7 @@ def save_course(
 
 
 @huey.task()
-def create_course_task(course_topic: str, task_id: str) -> str:
+def create_course_topic_task(course_topic: str, task_id: str) -> str:
     """Generate a course outline and fill it with content"""
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
@@ -227,6 +227,51 @@ def create_course_task(course_topic: str, task_id: str) -> str:
         conn.commit()
         logger.error(
             f"Task failed for topic '{course_topic}' (task_id: {task_id}): {e}",
+            exc_info=True,
+        )
+        raise
+    finally:
+        conn.close()
+
+
+@huey.task()
+def create_course_textbook_task(section_number: str, task_id: str) -> str:
+    """Generate a course from a textbook section (stub implementation)"""
+    import time
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    try:
+        logger.info(
+            f"Creating course from textbook section: {section_number} (task_id: {task_id})"
+        )
+
+        # Stub: just sleep for a bit
+        logger.info("Sleeping for 5 seconds (stub implementation)...")
+        time.sleep(5)
+
+        # Mark as completed
+        cursor.execute(
+            "UPDATE jobs SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
+            (JobStatus.COMPLETED, task_id),
+        )
+        conn.commit()
+
+        logger.info(
+            f"✓ Textbook course creation completed for section {section_number}"
+        )
+        return f"Course creation completed for section: {section_number}"
+
+    except Exception as e:
+        # Update job status to failed
+        cursor.execute(
+            "UPDATE jobs SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
+            (JobStatus.FAILED, task_id),
+        )
+        conn.commit()
+        logger.error(
+            f"Task failed for section '{section_number}' (task_id: {task_id}): {e}",
             exc_info=True,
         )
         raise

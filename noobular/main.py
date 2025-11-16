@@ -26,7 +26,8 @@ from dataclasses import dataclass
 from noobular.visualize import create_knowledge_graph, KnowledgeGraph
 from noobular.validate import validate_course
 from noobular.tasks import (
-    create_course_task,
+    create_course_topic_task,
+    create_course_textbook_task,
     JobStatus,
     check_course_exists,
     save_course,
@@ -833,6 +834,47 @@ def logout() -> Any:
     return response
 
 
+def get_available_textbook_sections() -> List[dict[str, Any]]:
+    """Get available physics textbook sections based on existing PDFs"""
+    outline_path = BASE_DIR / "physics_textbook" / "outline.yaml"
+    pdf_dir = BASE_DIR / "physics_textbook" / "pdf"
+
+    if not outline_path.exists():
+        return []
+
+    # Load outline
+    with open(outline_path, "r") as f:
+        outline = yaml.safe_load(f)
+
+    # Find which chapter PDFs exist
+    available_chapters = set()
+    if pdf_dir.exists():
+        for pdf_file in pdf_dir.glob("*.pdf"):
+            # Extract chapter number from filename (e.g., "7.pdf" -> 7)
+            try:
+                chapter_num = int(pdf_file.stem)
+                available_chapters.add(chapter_num)
+            except ValueError:
+                continue
+
+    # Build list of available sections
+    available_sections = []
+    for chapter in outline.get("chapters", []):
+        chapter_num = chapter["number"]
+        if chapter_num in available_chapters:
+            chapter_title = chapter["title"]
+            for section in chapter["sections"]:
+                available_sections.append(
+                    {
+                        "number": section["number"],
+                        "title": f"{section['number']} - {section['title']}",
+                        "chapter_title": f"Chapter {chapter_num}: {chapter_title}",
+                    }
+                )
+
+    return available_sections
+
+
 @app.route("/create")
 def create_course_page() -> str:
     sample_yaml_path = Path("prompt/sample.yaml")
@@ -868,13 +910,20 @@ def create_course_page() -> str:
         for row in g.cursor.fetchall()
     ]
 
+    # Get available textbook sections
+    textbook_sections = get_available_textbook_sections()
+
     return render_template(
-        "create.html", sample_content=sample_content, prompt_text=prompt_text, jobs=jobs
+        "create.html",
+        sample_content=sample_content,
+        prompt_text=prompt_text,
+        jobs=jobs,
+        textbook_sections=textbook_sections,
     )
 
 
-@app.route("/create", methods=["POST"])
-def create_course() -> str:
+@app.route("/create-topic", methods=["POST"])
+def create_course_topic() -> str:
     """Start a Huey task to generate a course from a topic"""
     course_topic = request.form.get("course_topic", "")
 
@@ -904,9 +953,45 @@ def create_course() -> str:
     )
 
     # Queue the task with the pre-generated task_id
-    create_course_task(course_topic.strip(), task_id)
+    create_course_topic_task(course_topic.strip(), task_id)
 
     return f"<p>Course generation started for topic: {escape(course_topic)}</p>"
+
+
+@app.route("/create-textbook", methods=["POST"])
+def create_course_textbook() -> str:
+    """Start a Huey task to generate a course from a textbook section"""
+    section_number = request.form.get("section_number", "")
+
+    if not section_number or not section_number.strip():
+        return "<p>Error: No section selected</p>"
+
+    # Check if user already has 5 pending jobs
+    g.cursor.execute(
+        "SELECT COUNT(*) FROM jobs WHERE status = ?",
+        (JobStatus.PENDING,),
+    )
+    pending_count = g.cursor.fetchone()[0]
+
+    if pending_count >= 5:
+        return "<p>Error: You already have 5 pending jobs. Please wait for some to complete.</p>"
+
+    # Generate unique task ID
+    import uuid
+
+    task_id = str(uuid.uuid4())
+
+    # Save job to database first
+    topic_display = f"Textbook Section {section_number}"
+    g.cursor.execute(
+        "INSERT INTO jobs (task_id, user_id, topic, status) VALUES (?, ?, ?, ?)",
+        (task_id, g.user.id, topic_display, JobStatus.PENDING),
+    )
+
+    # Queue the task with the pre-generated task_id
+    create_course_textbook_task(section_number.strip(), task_id)
+
+    return f"<p>Course generation started for section: {escape(section_number)}</p>"
 
 
 @app.route("/create-manual", methods=["POST"])

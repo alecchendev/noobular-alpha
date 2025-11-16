@@ -1,0 +1,114 @@
+CHAPTER 1: UNITS, PHYSICAL QUANTITIES, AND VECTORS
+1.1 The Nature of Physics
+1.2 Solving Physics Problems
+1.3 Standards and Units
+1.4 Using and Converting Units
+1.5 Uncertainty and Significant Figures
+1.6 Estimates and Orders of Magnitude
+1.7 Vectors and Vector Addition
+1.8 Components of Vectors
+1.9 Unit Vectors
+1.10 Products of Vectors
+
+CHAPTER 2: MOTION ALONG A STRAIGHT LINE
+2.1 Displacement, Time, and Average Velocity
+2.2 Instantaneous Velocity
+2.3 Average and Instantaneous Acceleration
+2.4 Motion with Constant Acceleration
+2.5 Freely Falling Objects
+2.6 Velocity and Position by Integration
+
+CHAPTER 3: MOTION IN TWO OR THREE DIMENSIONS
+3.1 Position and Velocity Vectors
+3.2 The Acceleration Vector
+3.3 Projectile Motion
+3.4 Motion in a Circle
+3.5 Relative Velocity
+
+CHAPTER 4: NEWTON'S LAWS OF MOTION
+4.1 Force and Interactions
+4.2 Newton's First Law
+4.3 Newton's Second Law
+4.4 Mass and Weight
+4.5 Newton's Third Law
+4.6 Free-Body Diagrams
+
+CHAPTER 5: APPLYING NEWTON'S LAWS
+5.1 Using Newton's First Law: Particles in Equilibrium
+5.2 Using Newton's Second Law: Dynamics of Particles
+5.3 Friction Forces
+5.4 Dynamics of Circular Motion
+5.5 The Fundamental Forces of Nature
+
+CHAPTER 6: WORK AND KINETIC ENERGY
+6.1 Work
+6.2 Kinetic Energy and the Work–Energy Theorem
+6.3 Work and Energy with Varying Forces
+6.4 Power
+
+CHAPTER 7: POTENTIAL ENERGY AND ENERGY CONSERVATION
+7.1 Gravitational Potential Energy
+7.2 Elastic Potential Energy
+7.3 Conservative and Nonconservative Forces
+7.4 Force and Potential Energy
+7.5 Energy Diagrams
+
+CHAPTER 8: MOMENTUM, IMPULSE, AND COLLISIONS
+8.1 Momentum and Impulse
+8.2 Conservation of Momentum
+8.3 Momentum Conservation and Collisions
+8.4 Elastic Collisions
+8.5 Center of Mass
+8.6 Rocket Propulsion
+
+CHAPTER 9: ROTATION OF RIGID BODIES
+9.1 Angular Velocity and Acceleration
+9.2 Rotation with Constant Angular Acceleration
+9.3 Relating Linear and Angular Kinematics
+9.4 Energy in Rotational Motion
+9.5 Parallel-Axis Theorem
+9.6 Moment-of-Inertia Calculations
+
+CHAPTER 10: DYNAMICS OF ROTATIONAL MOTION
+10.1 Torque
+10.2 Torque and Angular Acceleration for a Rigid Body
+10.3 Rigid-Body Rotation About a Moving Axis
+10.4 Work and Power in Rotational Motion
+10.5 Angular Momentum
+10.6 Conservation of Angular Momentum
+10.7 Gyroscopes and Precession
+
+CHAPTER 11: EQUILIBRIUM AND ELASTICITY
+11.1 Conditions for Equilibrium
+11.2 Center of Gravity
+11.3 Solving Rigid-Body Equilibrium Problems
+11.4 Stress, Strain, and Elastic Moduli
+11.5 Elasticity and Plasticity
+
+CHAPTER 12: FLUID MECHANICS
+12.1 Gases, Liquids, and Density
+12.2 Pressure in a Fluid
+12.3 Buoyancy
+12.4 Fluid Flow
+12.5 Bernoulli's Equation
+12.6 Viscosity and Turbulence
+
+CHAPTER 13: GRAVITATION
+13.1 Newton's Law of Gravitation
+13.2 Weight
+13.3 Gravitational Potential Energy
+13.4 The Motion of Satellites
+13.5 Kepler's Laws and the Motion of Planets
+13.6 Spherical Mass Distributions
+13.7 Apparent Weight and the Earth's Rotation
+13.8 Black Holes
+
+CHAPTER 14: PERIODIC MOTION
+14.1 Describing Oscillation
+14.2 Simple Harmonic Motion
+14.3 Energy in Simple Harmonic Motion
+14.4 Applications of Simple Harmonic Motion
+14.5 The Simple Pendulum
+14.6 The Physical Pendulum
+14.7 Damped Oscillations
+14.8 Forced Oscillations and Resonance

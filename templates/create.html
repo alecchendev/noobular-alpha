@@ -8,12 +8,34 @@
 <details open>
     <summary><h3>Course Creation</h3></summary>
     <div>
-        <form hx-post="/create" hx-target="#message-container" hx-swap="innerHTML">
+        <form hx-post="/create-topic" hx-target="#message-container" hx-swap="innerHTML">
             <label for="course-topic">
             </label>
             <input type="text" name="course_topic" id="course-topic" placeholder="e.g., Newton's Laws of Motion">
             <button type="submit">Generate Course</button>
         </form>
+    </div>
+</details>
+
+<details>
+    <summary><h3>Physics Textbook Course Creation</h3></summary>
+    <div>
+        {% if textbook_sections %}
+        <form hx-post="/create-textbook" hx-target="#message-container" hx-swap="innerHTML">
+            <label for="textbook-section">
+                <strong>Select a section from the Young and Freedman's University Physics:</strong>
+            </label>
+            <select name="section_number" id="textbook-section" required>
+                <option value="">-- Choose a section --</option>
+                {% for section in textbook_sections %}
+                <option value="{{ section.number }}">{{ section.title }} ({{ section.chapter_title }})</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Generate Course</button>
+        </form>
+        {% else %}
+        <p>No textbook sections available.</p>
+        {% endif %}
     </div>
 </details>
 

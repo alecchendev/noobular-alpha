@@ -1,0 +1,230 @@
+chapters:
+  - number: 1
+    title: Units, Physical Quantities, and Vectors
+    sections:
+      - number: 1.1
+        title: The Nature of Physics
+      - number: 1.2
+        title: Solving Physics Problems
+      - number: 1.3
+        title: Standards and Units
+      - number: 1.4
+        title: Using and Converting Units
+      - number: 1.5
+        title: Uncertainty and Significant Figures
+      - number: 1.6
+        title: Estimates and Orders of Magnitude
+      - number: 1.7
+        title: Vectors and Vector Addition
+      - number: 1.8
+        title: Components of Vectors
+      - number: 1.9
+        title: Unit Vectors
+      - number: 1.10
+        title: Products of Vectors
+
+  - number: 2
+    title: Motion Along a Straight Line
+    sections:
+      - number: 2.1
+        title: Displacement, Time, and Average Velocity
+      - number: 2.2
+        title: Instantaneous Velocity
+      - number: 2.3
+        title: Average and Instantaneous Acceleration
+      - number: 2.4
+        title: Motion with Constant Acceleration
+      - number: 2.5
+        title: Freely Falling Objects
+      - number: 2.6
+        title: Velocity and Position by Integration
+
+  - number: 3
+    title: Motion in Two or Three Dimensions
+    sections:
+      - number: 3.1
+        title: Position and Velocity Vectors
+      - number: 3.2
+        title: The Acceleration Vector
+      - number: 3.3
+        title: Projectile Motion
+      - number: 3.4
+        title: Motion in a Circle
+      - number: 3.5
+        title: Relative Velocity
+
+  - number: 4
+    title: Newton's Laws of Motion
+    sections:
+      - number: 4.1
+        title: Force and Interactions
+      - number: 4.2
+        title: Newton's First Law
+      - number: 4.3
+        title: Newton's Second Law
+      - number: 4.4
+        title: Mass and Weight
+      - number: 4.5
+        title: Newton's Third Law
+      - number: 4.6
+        title: Free-Body Diagrams
+
+  - number: 5
+    title: Applying Newton's Laws
+    sections:
+      - number: 5.1
+        title: Using Newton's First Law - Particles in Equilibrium
+      - number: 5.2
+        title: Using Newton's Second Law - Dynamics of Particles
+      - number: 5.3
+        title: Friction Forces
+      - number: 5.4
+        title: Dynamics of Circular Motion
+      - number: 5.5
+        title: The Fundamental Forces of Nature
+
+  - number: 6
+    title: Work and Kinetic Energy
+    sections:
+      - number: 6.1
+        title: Work
+      - number: 6.2
+        title: Kinetic Energy and the Work–Energy Theorem
+      - number: 6.3
+        title: Work and Energy with Varying Forces
+      - number: 6.4
+        title: Power
+
+  - number: 7
+    title: Potential Energy and Energy Conservation
+    sections:
+      - number: 7.1
+        title: Gravitational Potential Energy
+      - number: 7.2
+        title: Elastic Potential Energy
+      - number: 7.3
+        title: Conservative and Nonconservative Forces
+      - number: 7.4
+        title: Force and Potential Energy
+      - number: 7.5
+        title: Energy Diagrams
+
+  - number: 8
+    title: Momentum, Impulse, and Collisions
+    sections:
+      - number: 8.1
+        title: Momentum and Impulse
+      - number: 8.2
+        title: Conservation of Momentum
+      - number: 8.3
+        title: Momentum Conservation and Collisions
+      - number: 8.4
+        title: Elastic Collisions
+      - number: 8.5
+        title: Center of Mass
+      - number: 8.6
+        title: Rocket Propulsion
+
+  - number: 9
+    title: Rotation of Rigid Bodies
+    sections:
+      - number: 9.1
+        title: Angular Velocity and Acceleration
+      - number: 9.2
+        title: Rotation with Constant Angular Acceleration
+      - number: 9.3
+        title: Relating Linear and Angular Kinematics
+      - number: 9.4
+        title: Energy in Rotational Motion
+      - number: 9.5
+        title: Parallel-Axis Theorem
+      - number: 9.6
+        title: Moment-of-Inertia Calculations
+
+  - number: 10
+    title: Dynamics of Rotational Motion
+    sections:
+      - number: 10.1
+        title: Torque
+      - number: 10.2
+        title: Torque and Angular Acceleration for a Rigid Body
+      - number: 10.3
+        title: Rigid-Body Rotation About a Moving Axis
+      - number: 10.4
+        title: Work and Power in Rotational Motion
+      - number: 10.5
+        title: Angular Momentum
+      - number: 10.6
+        title: Conservation of Angular Momentum
+      - number: 10.7
+        title: Gyroscopes and Precession
+
+  - number: 11
+    title: Equilibrium and Elasticity
+    sections:
+      - number: 11.1
+        title: Conditions for Equilibrium
+      - number: 11.2
+        title: Center of Gravity
+      - number: 11.3
+        title: Solving Rigid-Body Equilibrium Problems
+      - number: 11.4
+        title: Stress, Strain, and Elastic Moduli
+      - number: 11.5
+        title: Elasticity and Plasticity
+
+  - number: 12
+    title: Fluid Mechanics
+    sections:
+      - number: 12.1
+        title: Gases, Liquids, and Density
+      - number: 12.2
+        title: Pressure in a Fluid
+      - number: 12.3
+        title: Buoyancy
+      - number: 12.4
+        title: Fluid Flow
+      - number: 12.5
+        title: Bernoulli's Equation
+      - number: 12.6
+        title: Viscosity and Turbulence
+
+  - number: 13
+    title: Gravitation
+    sections:
+      - number: 13.1
+        title: Newton's Law of Gravitation
+      - number: 13.2
+        title: Weight
+      - number: 13.3
+        title: Gravitational Potential Energy
+      - number: 13.4
+        title: The Motion of Satellites
+      - number: 13.5
+        title: Kepler's Laws and the Motion of Planets
+      - number: 13.6
+        title: Spherical Mass Distributions
+      - number: 13.7
+        title: Apparent Weight and the Earth's Rotation
+      - number: 13.8
+        title: Black Holes
+
+  - number: 14
+    title: Periodic Motion
+    sections:
+      - number: 14.1
+        title: Describing Oscillation
+      - number: 14.2
+        title: Simple Harmonic Motion
+      - number: 14.3
+        title: Energy in Simple Harmonic Motion
+      - number: 14.4
+        title: Applications of Simple Harmonic Motion
+      - number: 14.5
+        title: The Simple Pendulum
+      - number: 14.6
+        title: The Physical Pendulum
+      - number: 14.7
+        title: Damped Oscillations
+      - number: 14.8
+        title: Forced Oscillations and Resonance
