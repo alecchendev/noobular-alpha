@@ -841,10 +841,8 @@ def create_course_page() -> str:
     g.cursor.execute(
         """SELECT id, task_id, user_id, topic, status, created_at, updated_at
            FROM jobs
-           WHERE user_id = ?
            ORDER BY created_at DESC
            LIMIT 5""",
-        (g.user.id,),
     )
     jobs = [
         Job(
@@ -874,8 +872,8 @@ def create_course() -> str:
 
     # Check if user already has 5 pending jobs
     g.cursor.execute(
-        "SELECT COUNT(*) FROM jobs WHERE user_id = ? AND status = ?",
-        (g.user.id, JobStatus.PENDING),
+        "SELECT COUNT(*) FROM jobs WHERE status = ?",
+        (JobStatus.PENDING,),
     )
     pending_count = g.cursor.fetchone()[0]
 
