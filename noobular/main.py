@@ -834,7 +834,14 @@ def logout() -> Any:
     return response
 
 
-def get_available_textbook_sections() -> List[dict[str, Any]]:
+@dataclass
+class TextbookSection:
+    number: float
+    title: str
+    chapter_title: str
+
+
+def get_available_textbook_sections() -> List[TextbookSection]:
     """Get available physics textbook sections based on existing PDFs"""
     outline_path = BASE_DIR / "physics_textbook" / "outline.yaml"
     pdf_dir = BASE_DIR / "physics_textbook" / "pdf"
@@ -865,11 +872,11 @@ def get_available_textbook_sections() -> List[dict[str, Any]]:
             chapter_title = chapter["title"]
             for section in chapter["sections"]:
                 available_sections.append(
-                    {
-                        "number": section["number"],
-                        "title": f"{section['number']} - {section['title']}",
-                        "chapter_title": f"Chapter {chapter_num}: {chapter_title}",
-                    }
+                    TextbookSection(
+                        number=float(section["number"]),
+                        title=f"{section['number']} - {section['title']}",
+                        chapter_title=f"Chapter {chapter_num}: {chapter_title}",
+                    )
                 )
 
     return available_sections

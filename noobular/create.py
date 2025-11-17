@@ -922,6 +922,8 @@ def generate_textbook_numerical_questions(
     Returns:
         List of question dictionaries
     """
+    if question_count == 0:
+        return []
     # Create content summary
     assert contents
     content_summary = "\n\n".join(contents)
@@ -1256,7 +1258,6 @@ def fill_textbook_course_content(
     content_file: str,
     problems_file: str,
     model: str,
-    numerical: bool = False,
     question_count: int = 10,
 ) -> Dict[str, Any]:
     """
@@ -1268,7 +1269,6 @@ def fill_textbook_course_content(
         content_file: Path to textbook content file
         problems_file: Path to textbook problems file
         model: Model to use for generation
-        numerical: Use numerical question generation (3-step with code execution)
         question_count: Number of questions to generate per knowledge point (default: 10)
 
     Returns:
@@ -1332,39 +1332,20 @@ def fill_textbook_course_content(
             contents = content_batch[kp_name]
             print(f"    - Using batch-generated content ({len(contents)} blocks)")
 
-            # Generate questions
-            if question_count == 0:
-                questions = []
-            elif numerical:
-                # Use numerical 3-step process for textbook questions
-                print("    - Generating numerical questions (4-step process)...")
-                questions = generate_textbook_numerical_questions(
-                    client=client,
-                    course_title=course_title,
-                    lesson_title=lesson_title,
-                    kp_name=kp_name,
-                    kp_description=kp_description,
-                    contents=contents,
-                    content=content,
-                    problems=problems,
-                    model=model,
-                    question_count=question_count,
-                )
-            else:
-                # Use standard textbook question generation
-                print("    - Generating questions...", end=" ")
-                questions = generate_questions(
-                    course_title=course_title,
-                    lesson_title=lesson_title,
-                    kp_name=kp_name,
-                    kp_description=kp_description,
-                    contents=contents,
-                    model=model,
-                    content=content,
-                    problems=problems,
-                    question_count=question_count,
-                )
-                print(f"✓ ({len(questions)} questions)")
+            # Use numerical 3-step process for textbook questions
+            print("    - Generating numerical questions (4-step process)...")
+            questions = generate_textbook_numerical_questions(
+                client=client,
+                course_title=course_title,
+                lesson_title=lesson_title,
+                kp_name=kp_name,
+                kp_description=kp_description,
+                contents=contents,
+                content=content,
+                problems=problems,
+                model=model,
+                question_count=question_count,
+            )
 
             # Add to knowledge point
             kp["contents"] = contents
@@ -1750,11 +1731,6 @@ def main() -> None:
         help="Output file path for the complete course YAML",
     )
     fill_parser.add_argument(
-        "--numerical",
-        action="store_true",
-        help="Use numerical question generation (3-step process with code execution for physics problems)",
-    )
-    fill_parser.add_argument(
         "--questions",
         "-q",
         type=int,
@@ -1882,11 +1858,6 @@ def main() -> None:
             with open(outline_path, "r") as f:
                 outline_yaml = f.read()
 
-            # Validate numerical flag
-            if args.numerical and not (args.content and args.problems):
-                print("Error: --numerical requires --content and --problems")
-                sys.exit(1)
-
             # Fill in the content
             if args.content and args.problems:
                 # Textbook mode
@@ -1896,7 +1867,6 @@ def main() -> None:
                     content_file=args.content,
                     problems_file=args.problems,
                     model=args.model,
-                    numerical=args.numerical,
                     question_count=args.questions,
                 )
             else:

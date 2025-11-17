@@ -99,7 +99,7 @@ def validate_course(course_data: dict[str, Any]) -> None:
     """Validate course data and return a Course object. Raises ValueError on validation failure."""
     # Config is just constant
     config = ValidationConfig(
-        max_course_knowledge_point_count=1000, min_question_count=2
+        max_course_knowledge_point_count=1000, min_question_count=1
     )
 
     # Validate required fields

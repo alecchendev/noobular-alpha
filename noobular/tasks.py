@@ -18,6 +18,12 @@ from noobular.create import (
 )
 from noobular.validate import validate_course
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("tasks.log"), logging.StreamHandler()],
+)
 
 logger = logging.getLogger(__name__)
 
@@ -236,20 +242,151 @@ def create_course_topic_task(course_topic: str, task_id: str) -> str:
 
 @huey.task()
 def create_course_textbook_task(section_number: str, task_id: str) -> str:
-    """Generate a course from a textbook section (stub implementation)"""
-    import time
+    """Generate a course from a textbook section"""
+    from pathlib import Path
+    from noobular.create import (
+        extract_section,
+        generate_textbook_outline,
+        fill_textbook_course_content,
+        Model,
+    )
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
+
+    client = Client(
+        api_key=os.getenv("XAI_API_KEY"),
+        timeout=3600,
+    )
 
     try:
         logger.info(
             f"Creating course from textbook section: {section_number} (task_id: {task_id})"
         )
 
-        # Stub: just sleep for a bit
-        logger.info("Sleeping for 5 seconds (stub implementation)...")
-        time.sleep(5)
+        # Determine chapter number from section (e.g., "7.1" -> 7)
+        chapter_num = int(section_number.split(".")[0])
+
+        # Setup paths
+        base_dir = Path(__file__).parent.parent
+        pdf_path = base_dir / "physics_textbook" / "pdf" / f"{chapter_num}.pdf"
+        extracted_dir = base_dir / "physics_textbook" / "extracted"
+        outlines_dir = base_dir / "physics_textbook" / "outlines"
+        courses_dir = base_dir / "physics_textbook" / "courses"
+
+        # Create directories if they don't exist
+        extracted_dir.mkdir(parents=True, exist_ok=True)
+        outlines_dir.mkdir(parents=True, exist_ok=True)
+        courses_dir.mkdir(parents=True, exist_ok=True)
+
+        content_output = extracted_dir / f"section_{section_number}_content.txt"
+        problems_output = extracted_dir / f"section_{section_number}_problems.txt"
+        outline_output = outlines_dir / f"section_{section_number}_outline.yaml"
+        course_output = courses_dir / f"section_{section_number}_course.yaml"
+
+        # Check if PDF exists
+        if not pdf_path.exists():
+            raise FileNotFoundError(f"PDF not found: {pdf_path}")
+
+        # Step 1: Extract content and problems
+        logger.info("=" * 80)
+        logger.info(
+            f"STEP 1: Extracting content and problems from Section {section_number}..."
+        )
+        logger.info("=" * 80)
+
+        if content_output.exists() and problems_output.exists():
+            logger.info("✓ Found existing extracted files, skipping extraction")
+            logger.info(f"  Content: {content_output}")
+            logger.info(f"  Problems: {problems_output}")
+        else:
+            extract_section(
+                client=client,
+                textbook_file=str(pdf_path),
+                section_name=f"Section {section_number}",
+                content_output=str(content_output),
+                problems_output=str(problems_output),
+                model=Model.GROK_4_FAST,
+            )
+            logger.info(f"✓ Extracted to {content_output} and {problems_output}")
+
+        # Step 2: Generate outline
+        logger.info("=" * 80)
+        logger.info(
+            f"STEP 2: Generating course outline for Section {section_number}..."
+        )
+        logger.info("=" * 80)
+
+        if outline_output.exists():
+            logger.info(f"✓ Found existing outline, loading from {outline_output}")
+            with open(outline_output, "r") as f:
+                outline_yaml = f.read()
+        else:
+            outline_yaml = generate_textbook_outline(
+                client=client,
+                content_file=str(content_output),
+                problems_file=str(problems_output),
+                model=Model.GROK_4_FAST,
+            )
+
+            # Save outline
+            with open(outline_output, "w") as f:
+                f.write(outline_yaml)
+
+            logger.info(f"✓ Outline saved to {outline_output}")
+
+        # Step 3: Fill in content and questions
+        logger.info("=" * 80)
+        logger.info(f"STEP 3: Filling course content for Section {section_number}...")
+        logger.info("=" * 80)
+
+        if course_output.exists():
+            logger.info(f"✓ Found existing course, loading from {course_output}")
+            with open(course_output, "r") as f:
+                complete_course_yaml = f.read()
+            complete_course = yaml.safe_load(complete_course_yaml)
+        else:
+            complete_course = fill_textbook_course_content(
+                client=client,
+                outline_yaml=outline_yaml,
+                content_file=str(content_output),
+                problems_file=str(problems_output),
+                model=Model.GROK_4_FAST,
+                question_count=8,
+            )
+
+            # Convert to YAML and save
+            complete_course_yaml = yaml.dump(
+                complete_course,
+                default_flow_style=False,
+                sort_keys=False,
+                allow_unicode=True,
+            )
+
+            with open(course_output, "w") as f:
+                f.write(complete_course_yaml)
+
+            logger.info(f"✓ Course saved to {course_output}")
+
+        # Step 4: Validate and save to database
+        logger.info("=" * 80)
+        logger.info("STEP 4: Validating and saving to database...")
+        logger.info("=" * 80)
+
+        validate_course(complete_course)
+        logger.info("✓ Course validation passed")
+
+        file_hash = hashlib.md5(complete_course_yaml.encode()).digest()
+
+        if check_course_exists(cursor, file_hash):
+            logger.warning(
+                f"Course already exists in database for section {section_number}"
+            )
+            result = f"Course already exists for section {section_number}"
+        else:
+            course_id = save_course(cursor, complete_course, file_hash)
+            logger.info(f"✓ Course saved to database with ID: {course_id}")
+            result = f"Course creation completed for section {section_number} (ID: {course_id})"
 
         # Mark as completed
         cursor.execute(
@@ -258,10 +395,13 @@ def create_course_textbook_task(section_number: str, task_id: str) -> str:
         )
         conn.commit()
 
+        logger.info("=" * 80)
         logger.info(
             f"✓ Textbook course creation completed for section {section_number}"
         )
-        return f"Course creation completed for section: {section_number}"
+        logger.info("=" * 80)
+
+        return result
 
     except Exception as e:
         # Update job status to failed
